@@ -46,7 +46,7 @@ SRCS =
 MAIN_OBJS = ${BUILD_TREE}/obj/main.o
 
 # Modules
-MODULE_OBJS = base_module.mod
+MODULE_OBJS = ${BUILD_TREE}/mod/base_module.mod
 
 # The platforms avaliable to compile on
 PLATS = linux
@@ -99,12 +99,13 @@ ${BUILD_TREE}/obj/%.o: src/main/%.cpp
 	${CC} ${CFLAGS} ${DEBUG} ${INCLUDES} ${BMACROS} -c $< -o $@
 
 # This should compile our modules in a cross platform manner!
-%.mod: src/modules/%.cpp src/modules/%.hpp
-	${CC} ${CFLAGS} ${MODULE_FLAGS} ${INCLUDES} $< -o ${BUILD_TREE}/release/modules/$@
+${BUILD_TREE}/mod/%.mod: src/modules/%.cpp src/modules/%.hpp
+	${CC} ${CFLAGS} ${MODULE_FLAGS} ${INCLUDES} $< -o $@
+	cp -f $@ ${BUILD_TREE}/release/modules/
 
 .PHONY: clean .buildenv
 .buildenv:
-	mkdir -p ${BUILD_TREE}/obj
+	mkdir -p ${BUILD_TREE}/{obj,mod}
 	mkdir -p ${BUILD_TREE}/release/modules	
 clean:
 	rm -rf ${BUILD_TREE}
