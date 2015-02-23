@@ -82,10 +82,10 @@ endif
 
 all:
 	@echo Please specify your platform: [ ${PLATS} ]
-	@echo -- Option Flags \(\"flag\"=yes\):
-	@echo -- \"rebuild\": Set to yes to force a complete recompile
-	@echp -- \"modules\": Build modules
-	@echo -- \"debug\": Set to yes for a debug build
+	@echo -- Option Flags \(flag=yes\):
+	@echo -- -- rebuild: Set to yes to force a complete recompile
+	@echo -- -- modules: Set to yes to build modules
+	@echo -- -- debug: Set to yes for a debug build
 
 linux: ${REBUILD} .buildenv ${MAIN_OBJS} ${MODULES}
 	${CC} ${BLIBS} ${BUILD_TREE}/obj/*.o -o ${BUILD_TREE}/release/main
