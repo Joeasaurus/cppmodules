@@ -13,6 +13,7 @@ class Module {
 	protected:
 		ModuleInfo __info;
 	public:
+		virtual ~Module(){};
 		virtual std::string name()=0;
 };
 
