@@ -6,8 +6,8 @@
 class BaseModule : public Module {
 	public:
 		BaseModule();
-		virtual ~BaseModule();
-		virtual std::string name();
+		std::string name();
+		void close();
 };
 
 // Init/Del functions.

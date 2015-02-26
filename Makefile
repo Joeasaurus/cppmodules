@@ -9,7 +9,7 @@ modules ?= no
 rebuild ?= no
 
 # Both Macros
-BMACROS := 
+BMACROS :=
 # Linux Macros
 LMACROS :=
 # Mac Macros
@@ -24,7 +24,7 @@ BLIBS :=
 # Linux libs
 LLIBS := -ldl
 # Mac libs
-MLIBS :=
+MLIBS := -lzmq
 # Win libs
 WLIBS :=
 
