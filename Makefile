@@ -72,7 +72,7 @@ else
 endif
 
 ifeq (${rebuild},yes)
-	REBUILD = clean
+	REBUILD = clean_objs
 else
 	REBUILD =
 endif
@@ -133,12 +133,14 @@ ${BUILD_TREE}/obj/%.o: src/main/%.cpp
 
 # This should compile our modules to dynamic libraries
 ${BUILD_TREE}/mod/%.so: src/modules/%.cpp src/modules/%.hpp
-	${CC} ${CFLAGS} ${BLFLAGS} ${MODULE_FLAGS} ${INCLUDES} $< -o $@
+	${CC} ${CFLAGS} ${BLIBS} ${BLFLAGS} ${MODULE_FLAGS} ${INCLUDES} $< -o $@
 	cp -f $@ ${BUILD_TREE}/release/modules/
 
-.PHONY: clean .buildenv
+.PHONY: clean_objs clean_all .buildenv
 .buildenv:
 	mkdir -p ${BUILD_TREE}/{obj,mod}
 	mkdir -p ${BUILD_TREE}/release/modules
-clean:
+clean_objs:
+	rm -rf ${BUILD_TREE}/{obj,mod}
+clean_all:
 	rm -rf ${BUILD_TREE}

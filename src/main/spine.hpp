@@ -6,7 +6,7 @@
 #include <vector>
 #include <dlfcn.h>
 #include <dirent.h>
-#include "module.hpp"
+#include "main/module.hpp"
 
 typedef struct SpineModule {
 	void* module_so;
@@ -18,18 +18,19 @@ typedef struct SpineModule {
 
 class Spine : public Module {
 	private:
-		ModuleInfo __info;
 		unsigned short moduleCount;
-		std::vector<SpineModule*> modules;
+		std::vector<std::thread*> threads;
+		std::vector<std::string> loadedModules;
 
+		bool isModuleFile(std::string filename);
 		int listDirectory(std::string directory, std::vector<std::string> &fileList);
 		int openModuleFile(std::string fileName, SpineModule* spineModule);
 		int resolveModuleFunctions(SpineModule* spineModule);
 	public:
 		Spine(unsigned short modules);
 		std::string name();
+		void run();
 		bool loadModules(std::string directory);
-		void sendMessage(std::string module, std::string message);
 		void close();
 };
 

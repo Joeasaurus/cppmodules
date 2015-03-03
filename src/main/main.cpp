@@ -2,19 +2,22 @@
 #include "main/spine.hpp"
 
 int main(int argc, char **argv) {
-	zmq::context_t ipc_context(1);
+	zmq::context_t spineCtx(1);
+	std::thread spineThread([&spineCtx](){
+		Spine spine(1);
 
-    Spine* spine = new Spine(1);
+		try {
+			spine.setSocketContext(&spineCtx);
+			spine.openSockets();
+		} catch (const zmq::error_t &e) {
+			std::cout << e.what() << std::endl;
+		}
 
-    spine->setSocketContext(&ipc_context);
-	spine->openSockets("Spint");
+	    spine.loadModules("./modules");
+	 	spine.run();
 
-    spine->loadModules("./modules");
-    spine->sendMessage("BaseModule", "Initialise");
-
-    spine->close();
-    delete spine;
-
-    ipc_context.close();
+	    spine.close();
+	});
+	spineThread.join();
     return 0;
 }

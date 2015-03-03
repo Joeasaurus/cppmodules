@@ -1,12 +1,13 @@
-#include "main/module.hpp"
-
 #ifndef H_BASE_MODULE
 #define H_BASE_MODULE
+#include "main/module.hpp"
 
 class BaseModule : public Module {
 	public:
 		BaseModule();
+		~BaseModule(){};
 		std::string name();
+		void run();
 		void close();
 };
 

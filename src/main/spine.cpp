@@ -1,21 +1,36 @@
 #include "main/spine.hpp"
 
 Spine::Spine(unsigned short maxModules) {
-	this->__info.name = "main_Spine";
+	this->__info.name = "Spine";
 	this->__info.author = "mainline";
+
 	this->moduleCount = maxModules;
 	std::cout << "[Spine] Spine Open" << std::endl;
 }
 
-// Spine::~Spine() {
-// 	if (!this->closedModules) {
-// 		this->close();
-// 	}
-// 	std::cout << "[Spine] Spine Closed" << std::endl;
-// }
-
 std::string Spine::name() {
 	return this->__info.name;
+}
+
+// This example is ripped from stackoverflow, I don't want to pull in boost just for this!
+bool Spine::isModuleFile(std::string filename) {
+	size_t last_dot_offset = filename.rfind('.');
+    // This assumes your directory separators are either \ or /
+    size_t last_dirsep_offset = std::max( filename.rfind('\\'), filename.rfind('/') );
+
+    // no dot = no extension
+    if( last_dot_offset == std::string::npos )
+        return false;
+
+    // directory separator after last dot = extension of directory, not file.
+    // for example, given C:\temp.old\file_that_has_no_extension we should return "" not "old"
+    if( (last_dirsep_offset != std::string::npos) && (last_dirsep_offset > last_dot_offset) )
+        return false;
+
+    if (filename.substr( last_dot_offset + 1 ) == "so") {
+    	return true;
+    }
+    return false;
 }
 
 int Spine::listDirectory(std::string directory, std::vector<std::string> &fileList) {
@@ -27,8 +42,8 @@ int Spine::listDirectory(std::string directory, std::vector<std::string> &fileLi
 	}
 
 	while ((dirp = readdir(dp)) != NULL) {
-		std::string dirName = dirp->d_name;
-		if (dirName != "." && dirName != "..") {
+		std::string dirName = static_cast<std::string>(dirp->d_name);
+		if (this->isModuleFile(dirName)) {
 			fileList.push_back(static_cast<std::string>(dirp->d_name));
 		}
 	}
@@ -60,56 +75,82 @@ int Spine::resolveModuleFunctions(SpineModule* spineModule) {
 }
 
 bool Spine::loadModules(std::string directory) {
-	int failure = 0;
-
 	std::vector<std::string> moduleFiles;
 	this->listDirectory(directory, moduleFiles);
 
 	for (std::vector<std::string>::iterator iter = moduleFiles.begin();
 			iter != moduleFiles.end(); ++iter)
 	{
-		SpineModule* spineModule = new SpineModule();
-		std::string location = directory + "/" + *iter;
+		std::string filename = static_cast<std::string>(*iter);
+		std::thread* moduleThread = new std::thread([this, directory, filename]() {
+			int failure = 0;
+			SpineModule* spineModule = new SpineModule();
+			std::string location = directory + "/" + filename;
 
-		failure = this->openModuleFile(location, spineModule);
-		if (failure != 0) {
-			exit(EXIT_FAILURE);
+			failure = this->openModuleFile(location, spineModule);
+			if (failure != 0) {
+				exit(EXIT_FAILURE);
+			}
+
+			failure = this->resolveModuleFunctions(spineModule);
+			if (failure != 0) {
+				exit(EXIT_FAILURE);
+			}
+
+			spineModule->module = spineModule->loadModule();
+			spineModule->moduleName = spineModule->module->name();
+
+			spineModule->module->setSocketContext(this->inp_context);
+			spineModule->module->openSockets();
+
+			spineModule->module->subscribe(spineModule->module->name());
+			spineModule->module->connectOutput("publish", "Spine");
+			spineModule->module->connectOutput("manage", "Spine");
+
+			std::string regMessage = "register " + spineModule->moduleName;
+			spineModule->module->sendMessage("manage-out", regMessage, "");
+			std::string regReply = spineModule->module->recvMessage("manage-out");
+			if (regReply == "success") {
+				spineModule->module->run();
+			}
+
+			spineModule->unloadModule(spineModule->module);
+			if (dlclose(spineModule->module_so) != 0) {
+				exit(EXIT_FAILURE);
+			}
+		});
+		std::string regMessage = this->recvMessage("manage-in");
+		std::vector<std::string> tokens;
+		this->splitString(regMessage, ' ', tokens);
+		if (tokens.at(0) == "register") {
+			this->threads.push_back(moduleThread);
+			this->loadedModules.push_back(tokens.at(1));
+			this->connectOutput("publish", tokens.at(1));
+			this->sendMessage("manage-in", "success", "");
 		}
-
-		failure = this->resolveModuleFunctions(spineModule);
-		if (failure != 0) {
-			exit(EXIT_FAILURE);
-		}
-
-		spineModule->module = spineModule->loadModule();
-		spineModule->moduleName = spineModule->module->name();
-
-		spineModule->module->setSocketContext(this->ipc_context);
-		spineModule->module->openSockets(spineModule->moduleName);
-
-		this->modules.push_back(spineModule);
 	}
 
 	return true;
 }
 
-void Spine::sendMessage(std::string module, std::string message) {
-	std::cout <<"[Spine] " << message << " " << this->modules[0]->module->name() << std::endl;
+void Spine::close() {
+	int position = 0;
+	for (auto& modName : this->loadedModules) {
+		this->sendMessage("publish", "close", modName);
+		this->threads.at(position)->join();
+		position += 1;
+	}
+	this->closeSockets();
+	std::cout << "[Spine] Closed" << std::endl;
 }
 
-void Spine::close() {
-	for (std::vector<SpineModule*>::iterator iter = this->modules.begin();
-			iter != this->modules.end(); ++iter)
-	{
-		Module* mod = (*iter)->module;
-		mod->close();
-		mod->closeSockets();
-		(*iter)->unloadModule(mod);
-		if (dlclose((*iter)->module_so) != 0) {
-			exit(EXIT_FAILURE);
-		}
+void Spine::run() {
+    //    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	for (int count = 0;count<3;count++) {
+		std::cout << "Sleeping..." << std::endl;
+		std::this_thread::sleep_for(std::chrono::seconds(3));
 	}
-	this->ipc_manage->close();
-	std::cout << "[Spine] Closed" << std::endl;
+	this->sendMessage("publish", "close", "Module");
+	std::this_thread::sleep_for(std::chrono::seconds(5));
 }
 
