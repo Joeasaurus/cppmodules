@@ -4,8 +4,12 @@
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include <boost/filesystem.hpp>
+#include <boost/range/iterator_range_core.hpp>
+
 #include <dlfcn.h>
-#include <dirent.h>
+
 #include "main/module.hpp"
 
 typedef struct SpineModule {
@@ -13,25 +17,23 @@ typedef struct SpineModule {
 	Module_loader* loadModule;
 	Module_unloader* unloadModule;
 	Module* module;
-	std::string moduleName;
 } SpineModule;
 
 class Spine : public Module {
 	private:
-		unsigned short moduleCount;
 		std::vector<std::thread*> threads;
 		std::vector<std::string> loadedModules;
 
 		bool isModuleFile(std::string filename);
-		int listDirectory(std::string directory, std::vector<std::string> &fileList);
+		std::vector<std::string> listModules(std::string directory);
 		int openModuleFile(std::string fileName, SpineModule* spineModule);
 		int resolveModuleFunctions(SpineModule* spineModule);
 	public:
-		Spine(unsigned short modules);
+		Spine();
+		~Spine();
 		std::string name();
 		void run();
 		bool loadModules(std::string directory);
-		void close();
 };
 
 #endif // H_SPINE

@@ -8,10 +8,19 @@
 #include <vector>
 #include <zmq.hpp>
 
+#include <boost/algorithm/string.hpp>
+
 typedef struct ModuleInfo {
 	std::string name;
 	std::string author;
 } ModuleInfo;
+
+enum class SocketType {
+	PUB,
+	SUB,
+	MGM_IN,
+	MGM_OUT
+};
 
 class Module {
 	protected:
@@ -23,7 +32,6 @@ class Module {
 		zmq::socket_t* inp_out;
 	public:
 		virtual ~Module(){};
-		virtual void close()=0;
 		virtual std::string name()=0;
 		virtual void run()=0;
 		void setSocketContext(zmq::context_t* context) {
@@ -51,22 +59,21 @@ class Module {
 			this->inp_manage_in->close();
 			this->inp_manage_out->close();
 		};
-		void connectOutput(std::string socketType, std::string endpoint) {
+		void connectOutput(SocketType sockT, std::string endpoint) {
 			endpoint = "inproc://" + endpoint;
-			if (socketType == "publish") {
+			if (sockT == SocketType::PUB) {
 				endpoint += ".in";
 				this->inp_out->connect(endpoint.c_str());
-			} else if (socketType == "manage") {
+			} else if (sockT == SocketType::MGM_OUT) {
 				endpoint += ".manage";
 				this->inp_manage_out->connect(endpoint.c_str());
 			}
-
 		};
 		void subscribe(std::string channel) {
-			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.c_str(), 4);
+			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 		};
-		void sendMessage(std::string messageType, std::string message, std::string module) {
-			if (messageType == "publish") {
+		void sendMessage(SocketType sockT, std::string message, std::string module) {
+			if (sockT == SocketType::PUB) {
 				message = module + " " + message;
 				try {
 					zmq::message_t zmqObject(message.size());
@@ -76,7 +83,7 @@ class Module {
 				} catch (const zmq::error_t &e) {
 					std::cout << e.what() << std::endl;
 				}
-			} else if (messageType == "manage-in") {
+			} else if (sockT == SocketType::MGM_IN) {
 				try {
 					zmq::message_t zmqObject(message.size());
 					memcpy(zmqObject.data(), message.data(), message.size());
@@ -85,7 +92,7 @@ class Module {
 				} catch (const zmq::error_t &e) {
 					std::cout << e.what() << std::endl;
 				}
-			} else if (messageType == "manage-out") {
+			} else if (sockT == SocketType::MGM_OUT) {
 				try {
 					zmq::message_t zmqObject(message.size());
 					memcpy(zmqObject.data(), message.data(), message.size());
@@ -96,23 +103,23 @@ class Module {
 				}
 			}
 		};
-		std::string recvMessage(std::string socketType) {
+		std::string recvMessage(SocketType sockT) {
 			std::string errorText = "__NULL_RECV_FAILED__";
 			zmq::message_t message;
 			std::string messageText;
-			if (socketType == "publish") {
+			if (sockT == SocketType::PUB) {
 		        if(this->inp_in->recv(&message)) {
 		        	messageText = std::string(static_cast<char*>(message.data()), message.size());
        			} else {
        				messageText = errorText;
        			}
-			} else if (socketType == "manage-in") {
+			} else if (sockT == SocketType::MGM_IN) {
 				if(this->inp_manage_in->recv(&message)) {
 		        	messageText = std::string(static_cast<char*>(message.data()), message.size());
        			} else {
        				messageText = errorText;
        			}
-			} else if (socketType == "manage-out") {
+			} else if (sockT == SocketType::MGM_OUT) {
 				if(this->inp_manage_out->recv(&message)) {
 		        	messageText = std::string(static_cast<char*>(message.data()), message.size());
        			} else {
@@ -120,22 +127,6 @@ class Module {
        			}
 			}
 			return messageText;
-		};
-
-		std::vector<std::string> &splitString(const std::string &s, char delim, std::vector<std::string> &elems) {
-			std::stringstream ss(s);
-			std::string item;
-			while (std::getline(ss, item, delim)) {
-				if (!item.empty()) {
-					elems.push_back(item);
-				 }
-			}
-			return elems;
-		};
-		std::vector<std::string> splitString(const std::string &s, char delim) {
-			std::vector<std::string> elems;
-			splitString(s, delim, elems);
-			return elems;
 		};
 };
 

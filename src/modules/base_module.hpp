@@ -5,10 +5,9 @@
 class BaseModule : public Module {
 	public:
 		BaseModule();
-		~BaseModule(){};
+		~BaseModule();
 		std::string name();
 		void run();
-		void close();
 };
 
 // Init/Del functions.

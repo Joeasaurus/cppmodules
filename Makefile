@@ -20,7 +20,7 @@ WMACROS :=
 # Any libraries we want to link into executable:
 #   -llibname
 # Both libs
-BLIBS :=
+BLIBS := -lboost_filesystem -lboost_system
 # Linux libs
 LLIBS := -ldl
 # Mac libs

@@ -6,23 +6,22 @@ BaseModule::BaseModule() {
 	std::cout << "[" << this->name() << "] loaded!" << std::endl;
 }
 
-std::string BaseModule::name() {
-	return this->__info.name;
-}
-
-void BaseModule::close() {
+BaseModule::~BaseModule() {
 	this->closeSockets();
 	std::cout << "[" << this->name() << "] Closed!" << std::endl;
 }
 
+std::string BaseModule::name() {
+	return this->__info.name;
+}
+
 void BaseModule::run() {
 	while (true) {
-		std::string messageText = this->recvMessage("publish");
+		std::string messageText = this->recvMessage(SocketType::PUB);
 		std::vector<std::string> messageTokens;
-		this->splitString(messageText, ' ', messageTokens);
+		boost::split(messageTokens, messageText, boost::is_any_of(" "));
 		if (messageTokens.at(1) == "close") {
 			std::cout << "[" << this->name() << "] Closing..." << std::endl;
-			this->close();
 			break;
 		}
 	}
