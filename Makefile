@@ -54,7 +54,7 @@ LIB_PATHS =
 MAIN_OBJS = ${BUILD_TREE}/obj/spine.o ${BUILD_TREE}/obj/main.o
 
 # Modules
-MODULE_OBJS = ${BUILD_TREE}/mod/base_module.so
+MODULE_OBJS = ${BUILD_TREE}/mod/core.so
 
 # The platforms available to compile on
 PLATS = linux macosx mingw
@@ -136,7 +136,7 @@ ${BUILD_TREE}/mod/%.so: src/modules/%.cpp src/modules/%.hpp
 	${CC} ${CFLAGS} ${BLIBS} ${BLFLAGS} ${MODULE_FLAGS} ${INCLUDES} $< -o $@
 	cp -f $@ ${BUILD_TREE}/release/modules/
 
-.PHONY: clean_objs clean_all .buildenv
+.PHONY: clean clean_objs clean_all .buildenv
 .buildenv:
 	mkdir -p ${BUILD_TREE}/{obj,mod}
 	mkdir -p ${BUILD_TREE}/release/modules
@@ -144,3 +144,4 @@ clean_objs:
 	rm -rf ${BUILD_TREE}/{obj,mod}
 clean_all:
 	rm -rf ${BUILD_TREE}
+clean: clean_all
