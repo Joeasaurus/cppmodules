@@ -1,21 +1,21 @@
-#include "modules/base_module.hpp"
+#include "modules/core.hpp"
 
-BaseModule::BaseModule() {
-	this->__info.name   = "Base";
+CoreModule::CoreModule() {
+	this->__info.name   = "Core";
 	this->__info.author = "Joe Eaves";
 	std::cout << "[" << this->name() << "] loaded!" << std::endl;
 }
 
-BaseModule::~BaseModule() {
+CoreModule::~CoreModule() {
 	this->closeSockets();
 	std::cout << "[" << this->name() << "] Closed!" << std::endl;
 }
 
-std::string BaseModule::name() {
+std::string CoreModule::name() {
 	return this->__info.name;
 }
 
-void BaseModule::run() {
+void CoreModule::run() {
 	while (true) {
 		std::string messageText = this->recvMessage(SocketType::PUB);
 		std::vector<std::string> messageTokens;
@@ -27,10 +27,10 @@ void BaseModule::run() {
 	}
 }
 
-BaseModule* loadModule() {
-	return new BaseModule;
+CoreModule* loadModule() {
+	return new CoreModule;
 }
 
-void unloadModule(BaseModule* module) {
+void unloadModule(CoreModule* module) {
 	delete module;
 }
