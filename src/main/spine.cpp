@@ -8,9 +8,12 @@ Spine::Spine() {
 
 Spine::~Spine() {
 	int position = 0;
+	std::string closeMessage;
 	for (auto& modName : this->loadedModules) {
-		this->sendMessage(SocketType::PUB, "close", modName);
+		closeMessage = modName + " close";
+		this->sendMessage(SocketType::PUB, closeMessage);
 		this->threads.at(position)->join();
+		delete this->threads[position];
 		position += 1;
 	}
 	this->closeSockets();
@@ -34,23 +37,23 @@ std::vector<std::string> Spine::listModules(std::string directory) {
 	return moduleFiles;
 }
 
-int Spine::openModuleFile(std::string moduleFile, SpineModule* spineModule) {
-	spineModule->module_so = dlopen(moduleFile.c_str(), RTLD_NOW | RTLD_GLOBAL);
-	if (!spineModule->module_so) {
+int Spine::openModuleFile(std::string moduleFile, SpineModule& spineModule) {
+	spineModule.module_so = dlopen(moduleFile.c_str(), RTLD_NOW | RTLD_GLOBAL);
+	if (!spineModule.module_so) {
 		std::cerr << dlerror() << std::endl;
 		return 1;
 	}
 	return 0;
 }
 
-int Spine::resolveModuleFunctions(SpineModule* spineModule) {
-	spineModule->loadModule = (Module_loader*)dlsym(spineModule->module_so, "loadModule");
-	if (!spineModule->loadModule) {
+int Spine::resolveModuleFunctions(SpineModule& spineModule) {
+	spineModule.loadModule = (Module_loader*)dlsym(spineModule.module_so, "loadModule");
+	if (!spineModule.loadModule) {
 		 return 1;
 	}
 
-	spineModule->unloadModule = (Module_unloader*)dlsym(spineModule->module_so, "unloadModule");
-	if (!spineModule->unloadModule) {
+	spineModule.unloadModule = (Module_unloader*)dlsym(spineModule.module_so, "unloadModule");
+	if (!spineModule.unloadModule) {
 		return 2;
 	}
 
@@ -64,7 +67,7 @@ bool Spine::loadModules(std::string directory) {
 	{
 		std::thread* moduleThread = new std::thread([this, filename]() {
 			int failure = 0;
-			SpineModule* spineModule = new SpineModule();
+			SpineModule spineModule;
 
 			failure = this->openModuleFile(filename, spineModule);
 			if (failure != 0) {
@@ -76,49 +79,59 @@ bool Spine::loadModules(std::string directory) {
 				exit(EXIT_FAILURE);
 			}
 
-			spineModule->module = spineModule->loadModule();
-			std::string moduleName = spineModule->module->name();
+			spineModule.module = spineModule.loadModule();
+			std::string moduleName = spineModule.module->name();
 
-			spineModule->module->setSocketContext(this->inp_context);
-			spineModule->module->openSockets();
+			spineModule.module->setSocketContext(this->inp_context);
+			spineModule.module->openSockets();
 
-			spineModule->module->subscribe(moduleName);
-			spineModule->module->connectOutput(SocketType::PUB, "Spine");
-			spineModule->module->connectOutput(SocketType::MGM_OUT, "Spine");
+			spineModule.module->subscribe(moduleName);
+			spineModule.module->connectOutput(SocketType::PUB, "Spine");
+			spineModule.module->connectOutput(SocketType::MGM_OUT, "Spine");
 
 			std::string regMessage = "register " + moduleName;
-			spineModule->module->sendMessage(SocketType::MGM_OUT, regMessage, "");
-			std::string regReply = spineModule->module->recvMessage(SocketType::MGM_OUT);
+			spineModule.module->sendMessage(SocketType::MGM_OUT, regMessage);
+			std::string regReply = spineModule.module->recvMessage(SocketType::MGM_OUT);
 			if (regReply == "success") {
-				spineModule->module->run();
+				spineModule.module->run();
 			}
 
-			spineModule->unloadModule(spineModule->module);
-			if (dlclose(spineModule->module_so) != 0) {
+			spineModule.unloadModule(spineModule.module);
+			if (dlclose(spineModule.module_so) != 0) {
 				exit(EXIT_FAILURE);
 			}
 		});
-		std::string regMessage = this->recvMessage(SocketType::MGM_IN);
-		std::vector<std::string> tokens;
-		boost::split(tokens, regMessage, boost::is_any_of(" "));
-		if (tokens.at(0) == "register") {
+		if (this->registerModule()) {
 			this->threads.push_back(moduleThread);
-			this->loadedModules.push_back(tokens.at(1));
-			this->connectOutput(SocketType::PUB, tokens.at(1));
-			this->sendMessage(SocketType::MGM_IN, "success", "");
+		} else {
+			moduleThread->join();
 		}
 	}
 
 	return true;
 }
 
+bool Spine::registerModule() {
+	std::string regMessage = this->recvMessage(SocketType::MGM_IN);
+	std::vector<std::string> tokens;
+	boost::split(tokens, regMessage, boost::is_any_of(" "));
+	if (tokens.at(0) == "register") {
+		//TODO: at(1) could be "", so we should check it!
+		this->loadedModules.push_back(tokens.at(1));
+		this->connectOutput(SocketType::PUB, tokens.at(1));
+		this->sendMessage(SocketType::MGM_IN, "success");
+		return true;
+	}
+	return false;
+}
+
 void Spine::run() {
-	//    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	for (int count = 0;count<3;count++) {
 		std::cout << "Sleeping..." << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(3));
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
-	this->sendMessage(SocketType::PUB, "close", "Module");
-	std::this_thread::sleep_for(std::chrono::seconds(5));
+	// Dummy close to make sure our subscription is correct
+	this->sendMessage(SocketType::PUB, "Module close");
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 

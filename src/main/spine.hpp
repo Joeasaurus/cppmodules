@@ -26,8 +26,9 @@ class Spine : public Module {
 
 		bool isModuleFile(std::string filename);
 		std::vector<std::string> listModules(std::string directory);
-		int openModuleFile(std::string fileName, SpineModule* spineModule);
-		int resolveModuleFunctions(SpineModule* spineModule);
+		int openModuleFile(std::string fileName, SpineModule& spineModule);
+		int resolveModuleFunctions(SpineModule& spineModule);
+		bool registerModule();
 	public:
 		Spine();
 		~Spine();

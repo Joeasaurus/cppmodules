@@ -54,78 +54,86 @@ class Module {
 			}
 		};
 		void closeSockets() {
-			this->inp_in->close();
-			this->inp_out->close();
-			this->inp_manage_in->close();
-			this->inp_manage_out->close();
+			try {
+				this->inp_in->close();
+				this->inp_out->close();
+				this->inp_manage_in->close();
+				this->inp_manage_out->close();
+			} catch (const zmq::error_t &e) {
+				std::cout << e.what() << std::endl;
+			}
+
+			delete this->inp_in;
+			delete this->inp_out;
+			delete this->inp_manage_in;
+			delete this->inp_manage_out;
 		};
 		void connectOutput(SocketType sockT, std::string endpoint) {
 			endpoint = "inproc://" + endpoint;
-			if (sockT == SocketType::PUB) {
-				endpoint += ".in";
-				this->inp_out->connect(endpoint.c_str());
-			} else if (sockT == SocketType::MGM_OUT) {
-				endpoint += ".manage";
-				this->inp_manage_out->connect(endpoint.c_str());
+			try {
+				if (sockT == SocketType::PUB) {
+					endpoint += ".in";
+					this->inp_out->connect(endpoint.c_str());
+				} else if (sockT == SocketType::MGM_OUT) {
+					endpoint += ".manage";
+					this->inp_manage_out->connect(endpoint.c_str());
+				}
+			} catch (const zmq::error_t &e) {
+				std::cout << e.what() << std::endl;
 			}
 		};
 		void subscribe(std::string channel) {
-			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
-		};
-		void sendMessage(SocketType sockT, std::string message, std::string module) {
-			if (sockT == SocketType::PUB) {
-				message = module + " " + message;
-				try {
-					zmq::message_t zmqObject(message.size());
-					memcpy(zmqObject.data(), message.data(), message.size());
-					int failure = this->inp_out->send(zmqObject);
-					std::cout << "Sent " << message << std::endl;
-				} catch (const zmq::error_t &e) {
-					std::cout << e.what() << std::endl;
-				}
-			} else if (sockT == SocketType::MGM_IN) {
-				try {
-					zmq::message_t zmqObject(message.size());
-					memcpy(zmqObject.data(), message.data(), message.size());
-					int failure = this->inp_manage_in->send(zmqObject);
-					std::cout << "Sent " << message << std::endl;
-				} catch (const zmq::error_t &e) {
-					std::cout << e.what() << std::endl;
-				}
-			} else if (sockT == SocketType::MGM_OUT) {
-				try {
-					zmq::message_t zmqObject(message.size());
-					memcpy(zmqObject.data(), message.data(), message.size());
-					int failure = this->inp_manage_out->send(zmqObject);
-					std::cout << "Sent " << message << std::endl;
-				} catch (const zmq::error_t &e) {
-					std::cout << e.what() << std::endl;
-				}
+			try{
+				this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
+			} catch (const zmq::error_t &e) {
+				std::cout << e.what() << std::endl;
 			}
+		};
+		bool sendMessage(SocketType sockT, std::string message) {
+			bool sendErr = false;
+
+			zmq::message_t zmqObject(message.size());
+			memcpy(zmqObject.data(), message.data(), message.size());
+
+			try {
+				if (sockT == SocketType::PUB) {
+					sendErr = this->inp_out->send(zmqObject);
+				} else if (sockT == SocketType::MGM_IN) {
+					sendErr = this->inp_manage_in->send(zmqObject);
+				} else if (sockT == SocketType::MGM_OUT) {
+					sendErr = this->inp_manage_out->send(zmqObject);
+				}
+			} catch (const zmq::error_t &e) {
+				std::cout << e.what() << std::endl;
+			}
+
+			return sendErr;
 		};
 		std::string recvMessage(SocketType sockT) {
 			std::string errorText = "__NULL_RECV_FAILED__";
-			zmq::message_t message;
 			std::string messageText;
-			if (sockT == SocketType::PUB) {
-		        if(this->inp_in->recv(&message)) {
-		        	messageText = std::string(static_cast<char*>(message.data()), message.size());
-       			} else {
-       				messageText = errorText;
-       			}
-			} else if (sockT == SocketType::MGM_IN) {
-				if(this->inp_manage_in->recv(&message)) {
-		        	messageText = std::string(static_cast<char*>(message.data()), message.size());
-       			} else {
-       				messageText = errorText;
-       			}
-			} else if (sockT == SocketType::MGM_OUT) {
-				if(this->inp_manage_out->recv(&message)) {
-		        	messageText = std::string(static_cast<char*>(message.data()), message.size());
-       			} else {
-       				messageText = errorText;
-       			}
+
+			zmq::message_t message;
+			bool recvErr = false;
+
+			try {
+				if (sockT == SocketType::PUB) {
+					recvErr = this->inp_in->recv(&message);
+				} else if (sockT == SocketType::MGM_IN) {
+					recvErr = this->inp_manage_in->recv(&message);
+				} else if (sockT == SocketType::MGM_OUT) {
+					recvErr = this->inp_manage_out->recv(&message);
+				}
+			} catch (const zmq::error_t &e) {
+				std::cout << e.what() << std::endl;
 			}
+
+			if(recvErr) {
+				messageText = std::string(static_cast<char*>(message.data()), message.size());
+			} else {
+				messageText = errorText;
+			}
+
 			return messageText;
 		};
 };
