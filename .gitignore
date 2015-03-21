@@ -3,4 +3,3 @@ IPC design.txt
 .gitattributes
 make-win/make-win/x64/
 .idea
-CMakeLists.txt

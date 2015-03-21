@@ -14,8 +14,6 @@ BMACROS :=
 LMACROS :=
 # Mac Macros
 MMACROS :=
-# Win Macros
-WMACROS :=
 
 # Any libraries we want to link into executable:
 #   -llibname
@@ -25,8 +23,6 @@ BLIBS := -lboost_filesystem -lboost_system
 LLIBS := -ldl
 # Mac libs
 MLIBS := -lzmq
-# Win libs
-WLIBS :=
 
 # Linker flags
 # Both
@@ -35,9 +31,6 @@ BLFLAGS :=
 LLFLAGS :=
 # Mac
 MLFLAGS :=
-# Win
-# We need to statically link stdlibc++ so stop dll mismatch!
-WLFLAGS := -static-libstdc++
 
 # Build env
 BUILD_TREE = build
@@ -57,7 +50,7 @@ MAIN_OBJS = ${BUILD_TREE}/obj/spine.o ${BUILD_TREE}/obj/main.o
 MODULE_OBJS = ${BUILD_TREE}/mod/core.so
 
 # The platforms available to compile on
-PLATS = linux macosx mingw
+PLATS = linux macosx
 
 ifeq (${debug},yes)
 	DEBUG := -g
