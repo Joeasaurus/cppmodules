@@ -1,2 +1,4 @@
 build
 IPC design.txt
+.idea
+CMakeLists.txt
