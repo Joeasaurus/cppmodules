@@ -16,7 +16,7 @@ if (NOT CONFIGURED_ONCE)
 endif()
 
 ### FUNCTIONS & VARS ###
-set(OUTPUT_DIR build)
+set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/build")
 function(createExtraFilesList name mappings)
     foreach(files ${mappings})
         foreach(file ${files})
@@ -33,17 +33,17 @@ endfunction(createExtraFilesList)
 
 ### BUILD TARGETS ###
 #### COMMON ####
-include_directories(src)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(BOTH_LINK_LIBRARIES
     -lzmq
 )
 set(MAIN_LINK_LIBRARIES
-    -lboost_filesystem
-    -lboost_system
+    -lboost_filesystem-mt
+    -lboost_system-mt
 )
 set(OUTPUT_DIRS
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OUTPUT_DIR}/modules"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OUTPUT_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/modules"
+    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
 )
 
 #### MAIN ####
