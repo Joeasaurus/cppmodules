@@ -3,3 +3,6 @@ IPC design.txt
 .gitattributes
 make-win/make-win/x64/
 .idea
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles
