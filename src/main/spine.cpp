@@ -26,14 +26,21 @@ std::string Spine::name() {
 
 std::vector<std::string> Spine::listModules(std::string directory) {
 	std::vector<std::string> moduleFiles;
-	boost::filesystem::directory_iterator startd(directory), endd;
-	auto files = boost::make_iterator_range(startd, endd);
 
-	for(boost::filesystem::path p : files){
-		if (p.extension() == ".so") {
-			moduleFiles.push_back(p.string());
+	try {
+		boost::filesystem::directory_iterator startd(directory), endd;
+		auto files = boost::make_iterator_range(startd, endd);
+
+		for(boost::filesystem::path p : files){
+			if (p.extension() == ".so" || p.extension() == ".dylib") {
+				moduleFiles.push_back(p.string());
+			}
 		}
+	} catch(boost::filesystem::filesystem_error e) {
+		std::cerr << "[Spine] WARNING! Could not load modules!" << std::endl;
+		std::cerr << "    - " << e.what() << std::endl;
 	}
+
 	return moduleFiles;
 }
 

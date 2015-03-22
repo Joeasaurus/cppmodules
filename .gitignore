@@ -6,3 +6,4 @@ make-win/make-win/x64/
 cmake_install.cmake
 CMakeCache.txt
 CMakeFiles
+Makefile
