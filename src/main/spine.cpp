@@ -32,7 +32,7 @@ std::vector<std::string> Spine::listModules(std::string directory) {
 		auto files = boost::make_iterator_range(startd, endd);
 
 		for(boost::filesystem::path p : files){
-			if (p.extension() == ".so" || p.extension() == ".dylib") {
+			if (p.extension() == this->moduleFileExtension) {
 				moduleFiles.push_back(p.string());
 			}
 		}

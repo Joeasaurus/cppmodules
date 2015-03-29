@@ -7,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range_core.hpp>
+#include <boost/predef.h>
 
 #include <dlfcn.h>
 
@@ -21,6 +22,17 @@ typedef struct SpineModule {
 
 class Spine : public Module {
 	private:
+		#if BOOST_OS_MACOS
+			std::string moduleFileExtension = ".dylib";
+		#else
+			#if BOOST_OS_WINDOWS
+				std::string moduleFileExtension = ".dll";
+			#else
+				// Linux
+				std::string moduleFileExtension = ".so";
+			#endif
+		#endif
+
 		std::vector<std::thread*> threads;
 		std::vector<std::string> loadedModules;
 

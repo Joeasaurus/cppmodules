@@ -16,7 +16,7 @@ if (NOT CONFIGURED_ONCE)
 endif()
 
 ### FUNCTIONS & VARS ###
-set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/build")
+set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
 function(createExtraFilesList name mappings)
     foreach(files ${mappings})
         foreach(file ${files})
@@ -33,7 +33,7 @@ endfunction(createExtraFilesList)
 
 ### BUILD TARGETS ###
 #### COMMON ####
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
+include_directories("${CMAKE_SOURCE_DIR}/src")
 set(BOTH_LINK_LIBRARIES
     -lzmq
 )
