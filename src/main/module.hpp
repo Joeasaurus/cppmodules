@@ -15,6 +15,11 @@ typedef struct ModuleInfo {
 	std::string author;
 } ModuleInfo;
 
+enum class MgmtCommands {
+	REGISTER,
+	CLOSE
+};
+
 enum class SocketType {
 	PUB,
 	SUB,
@@ -68,7 +73,7 @@ class Module {
 			delete this->inp_manage_in;
 			delete this->inp_manage_out;
 		};
-		void connectOutput(SocketType sockT, std::string endpoint) {
+		void notify(SocketType sockT, std::string endpoint) {
 			endpoint = "inproc://" + endpoint;
 			try {
 				if (sockT == SocketType::PUB) {
@@ -109,29 +114,39 @@ class Module {
 
 			return sendErr;
 		};
-		std::string recvMessage(SocketType sockT) {
-			std::string errorText = "__NULL_RECV_FAILED__";
+		std::string recvMessage(SocketType sockT, long timeout=1000) {
 			std::string messageText;
+
+			zmq::socket_t* pollSocket;
+			zmq::pollitem_t pollSocketItems[1];
+			pollSocketItems[0].events = ZMQ_POLLIN;
 
 			zmq::message_t message;
 			bool recvErr = false;
 
+			if (sockT == SocketType::PUB) {
+				pollSocketItems[0].socket = *this->inp_in;
+				pollSocket = this->inp_in;
+			} else if (sockT == SocketType::MGM_IN) {
+				pollSocketItems[0].socket = *this->inp_manage_in;
+				pollSocket = this->inp_manage_in;
+			} else if (sockT == SocketType::MGM_OUT) {
+				pollSocketItems[0].socket = *this->inp_manage_out;
+				pollSocket = this->inp_manage_out;
+			}
+
 			try {
-				if (sockT == SocketType::PUB) {
-					recvErr = this->inp_in->recv(&message);
-				} else if (sockT == SocketType::MGM_IN) {
-					recvErr = this->inp_manage_in->recv(&message);
-				} else if (sockT == SocketType::MGM_OUT) {
-					recvErr = this->inp_manage_out->recv(&message);
+				int data = zmq::poll(pollSocketItems, 1, timeout);
+				if (data > 0) {
+					recvErr = pollSocket->recv(&message);
 				}
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				// Should we do anything?
+				continue;
 			}
 
 			if(recvErr) {
 				messageText = std::string(static_cast<char*>(message.data()), message.size());
-			} else {
-				messageText = errorText;
 			}
 
 			return messageText;

@@ -93,12 +93,17 @@ bool Spine::loadModules(std::string directory) {
 			spineModule.module->openSockets();
 
 			spineModule.module->subscribe(moduleName);
-			spineModule.module->connectOutput(SocketType::PUB, "Spine");
-			spineModule.module->connectOutput(SocketType::MGM_OUT, "Spine");
+			spineModule.module->notify(SocketType::PUB, "Spine");
+			spineModule.module->notify(SocketType::MGM_OUT, "Spine");
 
 			std::string regMessage = "register " + moduleName;
+			std::string regReply;
 			spineModule.module->sendMessage(SocketType::MGM_OUT, regMessage);
-			std::string regReply = spineModule.module->recvMessage(SocketType::MGM_OUT);
+			try {
+				regReply = spineModule.module->recvMessage(SocketType::MGM_OUT, 3000);
+			} catch (const ModuleException &e) {
+				std::cout << e.message << std::endl;
+			}
 			if (regReply == "success") {
 				spineModule.module->run();
 			}
@@ -112,6 +117,7 @@ bool Spine::loadModules(std::string directory) {
 			this->threads.push_back(moduleThread);
 		} else {
 			moduleThread->join();
+			std::cerr << "[Spine] Failed to register module: " << filename << std::endl;
 		}
 	}
 
@@ -119,15 +125,19 @@ bool Spine::loadModules(std::string directory) {
 }
 
 bool Spine::registerModule() {
-	std::string regMessage = this->recvMessage(SocketType::MGM_IN);
-	std::vector<std::string> tokens;
-	boost::split(tokens, regMessage, boost::is_any_of(" "));
-	if (tokens.at(0) == "register") {
-		//TODO: at(1) could be "", so we should check it!
-		this->loadedModules.push_back(tokens.at(1));
-		this->connectOutput(SocketType::PUB, tokens.at(1));
-		this->sendMessage(SocketType::MGM_IN, "success");
-		return true;
+	std::string regMessage;
+	regMessage = this->recvMessage(SocketType::MGM_IN);
+	if (regMessage != "__NULL_RECV_FAILED__") {
+		std::vector<std::string> tokens;
+		boost::split(tokens, regMessage, boost::is_any_of(" "));
+		if (tokens.at(0) == "register") {
+			if (tokens.at(1) != "") {
+				this->loadedModules.push_back(tokens.at(1));
+				this->notify(SocketType::PUB, tokens.at(1));
+				this->sendMessage(SocketType::MGM_IN, "success");
+				return true;
+			}
+		}
 	}
 	return false;
 }
