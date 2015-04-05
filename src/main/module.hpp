@@ -135,14 +135,9 @@ class Module {
 				pollSocket = this->inp_manage_out;
 			}
 
-			try {
-				int data = zmq::poll(pollSocketItems, 1, timeout);
-				if (data > 0) {
-					recvErr = pollSocket->recv(&message);
-				}
-			} catch (const zmq::error_t &e) {
-				// Should we do anything?
-				continue;
+			int data = zmq::poll(pollSocketItems, 1, timeout);
+			if (data > 0) {
+				recvErr = pollSocket->recv(&message);
 			}
 
 			if(recvErr) {

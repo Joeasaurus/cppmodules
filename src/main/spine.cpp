@@ -97,13 +97,9 @@ bool Spine::loadModules(std::string directory) {
 			spineModule.module->notify(SocketType::MGM_OUT, "Spine");
 
 			std::string regMessage = "register " + moduleName;
-			std::string regReply;
 			spineModule.module->sendMessage(SocketType::MGM_OUT, regMessage);
-			try {
-				regReply = spineModule.module->recvMessage(SocketType::MGM_OUT, 3000);
-			} catch (const ModuleException &e) {
-				std::cout << e.message << std::endl;
-			}
+
+			std::string regReply = spineModule.module->recvMessage(SocketType::MGM_OUT, 3000);
 			if (regReply == "success") {
 				spineModule.module->run();
 			}

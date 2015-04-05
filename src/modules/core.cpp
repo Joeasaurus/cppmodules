@@ -17,12 +17,7 @@ std::string CoreModule::name() {
 
 void CoreModule::run() {
 	while (true) {
-		std::string messageText;
-		try {
-			messageText = this->recvMessage(SocketType::PUB, 500);
-		} catch (const ModuleException &e) {
-			std::cout << e.message << std::endl;
-		}
+		std::string messageText = this->recvMessage(SocketType::PUB, 500);
 		if (!messageText.empty()) {
 			std::vector<std::string> messageTokens;
 			boost::split(messageTokens, messageText, boost::is_any_of(" "));
