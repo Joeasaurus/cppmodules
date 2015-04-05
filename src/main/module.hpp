@@ -1,5 +1,4 @@
-#ifndef H_MODULE
-#define H_MODULE
+#pragma once
 #include <string>
 #include <iostream>
 #include <thread>
@@ -150,5 +149,3 @@ class Module {
 
 typedef Module* Module_loader(void);
 typedef void Module_unloader(Module*);
-
-#endif // H_MODULE

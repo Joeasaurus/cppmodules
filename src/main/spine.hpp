@@ -1,5 +1,4 @@
-#ifndef H_SPINE
-#define H_SPINE
+#pragma once
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -48,5 +47,3 @@ class Spine : public Module {
 		void run();
 		bool loadModules(std::string directory);
 };
-
-#endif // H_SPINE

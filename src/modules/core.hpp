@@ -1,5 +1,4 @@
-#ifndef H_CORE_MODULE
-#define H_CORE_MODULE
+#pragma once
 #include "main/module.hpp"
 
 class CoreModule : public Module {
@@ -13,5 +12,3 @@ class CoreModule : public Module {
 // Init/Del functions.
 extern "C" CoreModule* loadModule();
 extern "C" void unloadModule(CoreModule* module);
-
-#endif //H_CORE_MODULE
