@@ -17,17 +17,22 @@ std::string CoreModule::name() {
 
 void CoreModule::run() {
 	while (true) {
-		std::string messageText = this->recvMessage(SocketType::PUB, 500);
-		if (!messageText.empty()) {
-			std::vector<std::string> messageTokens;
-			boost::split(messageTokens, messageText, boost::is_any_of(" "));
-			if (messageTokens.size() > 0) {
-				if (messageTokens.at(1) == "close") {
-					std::cout << "[" << this->name() << "] Closing..." << std::endl;
-					break;
+		std::string breakOut = this->recvMessage(SocketType::PUB, [&](const std::string& messageText) -> std::string {
+			if (!messageText.empty()) {
+				std::vector<std::string> messageTokens;
+				boost::split(messageTokens, messageText, boost::is_any_of(" "));
+				if (messageTokens.size() > 0) {
+					if (messageTokens.at(1) == "close") {
+						std::cout << "[" << this->name() << "] Closing..." << std::endl;
+						return "break";
+					}
+					std::cout << "RUN" << std::endl;
 				}
-				std::cout << "RUN" << std::endl;
 			}
+			return "";
+		}, 500);
+		if (breakOut == "break") {
+			break;
 		}
 	}
 }

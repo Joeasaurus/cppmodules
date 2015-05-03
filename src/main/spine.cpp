@@ -99,11 +99,13 @@ bool Spine::loadModules(std::string directory) {
 			std::string regMessage = "register " + moduleName;
 			spineModule.module->sendMessage(SocketType::MGM_OUT, regMessage);
 
-			std::string regReply = spineModule.module->recvMessage(SocketType::MGM_OUT, 3000);
-			if (regReply == "success") {
+			std::string moduleLoaded = spineModule.module->recvMessage(SocketType::MGM_OUT, [&](const std::string& regReply) -> std::string {
+				return regReply;
+			}, 3000);
+
+			if (moduleLoaded == "success") {
 				spineModule.module->run();
 			}
-
 			spineModule.unloadModule(spineModule.module);
 			if (dlclose(spineModule.module_so) != 0) {
 				exit(EXIT_FAILURE);
@@ -121,8 +123,9 @@ bool Spine::loadModules(std::string directory) {
 }
 
 bool Spine::registerModule() {
-	std::string regMessage;
-	regMessage = this->recvMessage(SocketType::MGM_IN);
+	std::string regMessage = this->recvMessage(SocketType::MGM_IN, [&](const std::string& regReply) -> std::string {
+		return regReply;
+	});
 	if (regMessage != "__NULL_RECV_FAILED__") {
 		std::vector<std::string> tokens;
 		boost::split(tokens, regMessage, boost::is_any_of(" "));

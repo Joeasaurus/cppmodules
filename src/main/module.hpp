@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 #include <zmq.hpp>
+#include <functional>
 
 #include <boost/algorithm/string.hpp>
 
@@ -113,7 +114,7 @@ class Module {
 
 			return sendErr;
 		};
-		std::string recvMessage(SocketType sockT, long timeout=1000) {
+		std::string recvMessage(SocketType sockT, std::function<std::string(std::string)> callback, long timeout=1000) {
 			std::string messageText;
 
 			zmq::socket_t* pollSocket;
@@ -143,7 +144,7 @@ class Module {
 				messageText = std::string(static_cast<char*>(message.data()), message.size());
 			}
 
-			return messageText;
+			return callback(messageText);
 		};
 };
 
