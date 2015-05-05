@@ -4,7 +4,7 @@ project(cppmodules)
 ### CMAKE FLAGS ###
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(warnings "-Wall -Wextra -Werror")
+    set(warnings "-Wall -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
@@ -37,10 +37,24 @@ include_directories("${CMAKE_SOURCE_DIR}/src")
 set(BOTH_LINK_LIBRARIES
     -lzmq
 )
-set(MAIN_LINK_LIBRARIES
+set(LINUX_LINK_LIBRARIES
+    -lboost_filesystem
+    -lboost_system
+    -ldl
+)
+set(OSX_LINK_LIBRARIES
     -lboost_filesystem-mt
     -lboost_system-mt
 )
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(MAIN_LINK_LIBRARIES
+         ${LINUX_LINK_LIBRARIES}
+    )
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(MAIN_LINK_LIBRARIES
+         ${OSX_LINK_LIBRARIES}
+    )
+endif()
 set(OUTPUT_DIRS
     LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/modules"
     RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
