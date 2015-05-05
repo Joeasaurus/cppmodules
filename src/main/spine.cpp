@@ -9,6 +9,11 @@ Spine::Spine() {
 Spine::~Spine() {
 	int position = 0;
 	std::string closeMessage;
+	// Here the Spine sends a message out on it's publish socket
+	// Each message directs a 'close' message to a module registered 
+	//  in the Spine as 'loaded'
+	// It then waits for the module to join. It relies on the module closing 
+	//  cleanly else it will lock up waiting. 
 	for (auto& modName : this->loadedModules) {
 		closeMessage = modName + " close";
 		this->sendMessage(SocketType::PUB, closeMessage);
@@ -16,6 +21,8 @@ Spine::~Spine() {
 		delete this->threads[position];
 		position += 1;
 	}
+	// After all modules are closed we don't need our sockets
+	//  so we should close them before exit, to be nice
 	this->closeSockets();
 	std::cout << "[Spine] Closed" << std::endl;
 }
@@ -27,6 +34,8 @@ std::string Spine::name() {
 std::vector<std::string> Spine::listModules(std::string directory) {
 	std::vector<std::string> moduleFiles;
 
+	// Here we list a directory and built a vector of files that match 
+	//  our platform specific dynamic lib extension (e.g., .so)
 	try {
 		boost::filesystem::directory_iterator startd(directory), endd;
 		auto files = boost::make_iterator_range(startd, endd);
@@ -45,6 +54,7 @@ std::vector<std::string> Spine::listModules(std::string directory) {
 }
 
 int Spine::openModuleFile(std::string moduleFile, SpineModule& spineModule) {
+	// Here we use dlopen to load the dynamic library (that is, a compiled module)
 	spineModule.module_so = dlopen(moduleFile.c_str(), RTLD_NOW | RTLD_GLOBAL);
 	if (!spineModule.module_so) {
 		std::cerr << dlerror() << std::endl;
@@ -99,13 +109,13 @@ bool Spine::loadModules(std::string directory) {
 			std::string regMessage = "register " + moduleName;
 			spineModule.module->sendMessage(SocketType::MGM_OUT, regMessage);
 
-			std::string moduleLoaded = spineModule.module->recvMessage(SocketType::MGM_OUT, [&](const std::string& regReply) -> std::string {
+			std::string moduleRun = spineModule.module->recvMessage(SocketType::MGM_OUT, [&](const std::string& regReply) -> std::string {
+				if (regReply == "success") {
+					spineModule.module->run();
+				}
 				return regReply;
 			}, 3000);
-
-			if (moduleLoaded == "success") {
-				spineModule.module->run();
-			}
+			
 			spineModule.unloadModule(spineModule.module);
 			if (dlclose(spineModule.module_so) != 0) {
 				exit(EXIT_FAILURE);
@@ -123,22 +133,22 @@ bool Spine::loadModules(std::string directory) {
 }
 
 bool Spine::registerModule() {
-	std::string regMessage = this->recvMessage(SocketType::MGM_IN, [&](const std::string& regReply) -> std::string {
-		return regReply;
-	});
-	if (regMessage != "__NULL_RECV_FAILED__") {
-		std::vector<std::string> tokens;
-		boost::split(tokens, regMessage, boost::is_any_of(" "));
-		if (tokens.at(0) == "register") {
-			if (tokens.at(1) != "") {
-				this->loadedModules.push_back(tokens.at(1));
-				this->notify(SocketType::PUB, tokens.at(1));
-				this->sendMessage(SocketType::MGM_IN, "success");
-				return true;
+	std::string regReturn = this->recvMessage(SocketType::MGM_IN, [&](const std::string& regReply) -> std::string {
+		if (regReply != "__NULL_RECV_FAILED__") {
+			std::vector<std::string> tokens;
+			boost::split(tokens, regReply, boost::is_any_of(" "));
+			if (tokens.at(0) == "register") {
+				if (tokens.at(1) != "") {
+					this->loadedModules.push_back(tokens.at(1));
+					this->notify(SocketType::PUB, tokens.at(1));
+					this->sendMessage(SocketType::MGM_IN, "success");
+					return "true";
+				}
 			}
 		}
-	}
-	return false;
+		return "false";
+	});
+	return (regReturn == "true") ? true : false;
 }
 
 void Spine::run() {
