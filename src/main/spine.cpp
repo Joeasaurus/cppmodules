@@ -64,6 +64,8 @@ int Spine::openModuleFile(std::string moduleFile, SpineModule& spineModule) {
 }
 
 int Spine::resolveModuleFunctions(SpineModule& spineModule) {
+	// Here we use dlsym to hook into exported functions of the module
+	// One to load the module class and one to unload it
 	spineModule.loadModule = (Module_loader*)dlsym(spineModule.module_so, "loadModule");
 	if (!spineModule.loadModule) {
 		 return 1;
@@ -78,6 +80,13 @@ int Spine::resolveModuleFunctions(SpineModule& spineModule) {
 }
 
 bool Spine::loadModules(std::string directory) {
+	// Here we gather a list of relevant module binaries 
+	//  and then create a new thread for each.
+	// In the threads we load the binary and hook into it's exported functions.
+	// We use the load function to create an instance of it's Module-derived class
+	// We then set up an interface with the module using our input/output sockets
+	//  which are a management Rep and Req socket for message in and out
+	//  and a chain-building pair of Pub and Sub sockets for message passing.
 	std::vector<std::string> moduleFiles = this->listModules(directory);
 
 	for (auto filename : moduleFiles)
@@ -101,14 +110,22 @@ bool Spine::loadModules(std::string directory) {
 
 			spineModule.module->setSocketContext(this->inp_context);
 			spineModule.module->openSockets();
-
+	
+			// Here we set the module to subscribe to it's name on it's subscriber socket
+			// Then configure the module to connect it's publish output to the Spine input
+			//  and it's mgmt output too 
 			spineModule.module->subscribe(moduleName);
 			spineModule.module->notify(SocketType::PUB, "Spine");
 			spineModule.module->notify(SocketType::MGM_OUT, "Spine");
 
+			// Here we send a 'register' message to Spine via our now-connected MGM_OUT socket.
+			// If the Spine succeeds in registering us, we will recieve a success message.
 			std::string regMessage = "register " + moduleName;
+			//TODO: This should be a callback!
 			spineModule.module->sendMessage(SocketType::MGM_OUT, regMessage);
 
+			// If the registration is a success,
+			//  we call the module's 'run' function -- it's main run loop.
 			std::string moduleRun = spineModule.module->recvMessage(SocketType::MGM_OUT, [&](const std::string& regReply) -> std::string {
 				if (regReply == "success") {
 					spineModule.module->run();
@@ -116,11 +133,17 @@ bool Spine::loadModules(std::string directory) {
 				return regReply;
 			}, 3000);
 			
+			// Once here, the module's run function must have quit,
+			//  so we should unload the binary. Then the thread will exit and close.
 			spineModule.unloadModule(spineModule.module);
+			// A failure here will (I think!) exit the thread badly!
 			if (dlclose(spineModule.module_so) != 0) {
 				exit(EXIT_FAILURE);
 			}
 		});
+		// While the thread is running, we will wait for it's registration message
+		// If it succeeds, we'll stick the thread object on our vector and carry on
+		// If it fails, we'll wait for the thread to join, expecting it to be clean.
 		if (this->registerModule()) {
 			this->threads.push_back(moduleThread);
 		} else {
