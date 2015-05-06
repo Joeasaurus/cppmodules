@@ -6,7 +6,7 @@ class CoreModule : public Module {
 		CoreModule();
 		~CoreModule();
 		std::string name();
-		void run();
+		bool run();
 };
 
 // Init/Del functions.

@@ -10,10 +10,10 @@ Spine::~Spine() {
 	int position = 0;
 	std::string closeMessage;
 	// Here the Spine sends a message out on it's publish socket
-	// Each message directs a 'close' message to a module registered 
+	// Each message directs a 'close' message to a module registered
 	//  in the Spine as 'loaded'
-	// It then waits for the module to join. It relies on the module closing 
-	//  cleanly else it will lock up waiting. 
+	// It then waits for the module to join. It relies on the module closing
+	//  cleanly else it will lock up waiting.
 	for (auto& modName : this->loadedModules) {
 		closeMessage = modName + " close";
 		this->sendMessage(SocketType::PUB, closeMessage);
@@ -34,7 +34,7 @@ std::string Spine::name() {
 std::vector<std::string> Spine::listModules(std::string directory) {
 	std::vector<std::string> moduleFiles;
 
-	// Here we list a directory and built a vector of files that match 
+	// Here we list a directory and built a vector of files that match
 	//  our platform specific dynamic lib extension (e.g., .so)
 	try {
 		boost::filesystem::directory_iterator startd(directory), endd;
@@ -80,7 +80,7 @@ int Spine::resolveModuleFunctions(SpineModule& spineModule) {
 }
 
 bool Spine::loadModules(std::string directory) {
-	// Here we gather a list of relevant module binaries 
+	// Here we gather a list of relevant module binaries
 	//  and then create a new thread for each.
 	// In the threads we load the binary and hook into it's exported functions.
 	// We use the load function to create an instance of it's Module-derived class
@@ -110,10 +110,10 @@ bool Spine::loadModules(std::string directory) {
 
 			spineModule.module->setSocketContext(this->inp_context);
 			spineModule.module->openSockets();
-	
+
 			// Here we set the module to subscribe to it's name on it's subscriber socket
 			// Then configure the module to connect it's publish output to the Spine input
-			//  and it's mgmt output too 
+			//  and it's mgmt output too
 			spineModule.module->subscribe(moduleName);
 			spineModule.module->notify(SocketType::PUB, "Spine");
 			spineModule.module->notify(SocketType::MGM_OUT, "Spine");
@@ -126,13 +126,16 @@ bool Spine::loadModules(std::string directory) {
 
 			// If the registration is a success,
 			//  we call the module's 'run' function -- it's main run loop.
-			std::string moduleRun = spineModule.module->recvMessage(SocketType::MGM_OUT, [&](const std::string& regReply) -> std::string {
+			bool moduleRun = spineModule.module->recvMessage<bool>(
+				SocketType::MGM_OUT,
+				[&](const std::string& regReply)
+			{
 				if (regReply == "success") {
-					spineModule.module->run();
+					return spineModule.module->run();
 				}
-				return regReply;
+				return false;
 			}, 3000);
-			
+
 			// Once here, the module's run function must have quit,
 			//  so we should unload the binary. Then the thread will exit and close.
 			spineModule.unloadModule(spineModule.module);
@@ -156,7 +159,11 @@ bool Spine::loadModules(std::string directory) {
 }
 
 bool Spine::registerModule() {
-	std::string regReturn = this->recvMessage(SocketType::MGM_IN, [&](const std::string& regReply) -> std::string {
+	// Here we wait to receive a "register" message from a module.
+	// We stick it in the list of leaded modules,
+	//  configure out publish socket to connect to their subscribe socket,
+	//  and then return with a "success" message
+	return this->recvMessage<bool>(SocketType::MGM_IN, [&](const std::string& regReply) {
 		if (regReply != "__NULL_RECV_FAILED__") {
 			std::vector<std::string> tokens;
 			boost::split(tokens, regReply, boost::is_any_of(" "));
@@ -165,22 +172,23 @@ bool Spine::registerModule() {
 					this->loadedModules.push_back(tokens.at(1));
 					this->notify(SocketType::PUB, tokens.at(1));
 					this->sendMessage(SocketType::MGM_IN, "success");
-					return "true";
+					return true;
 				}
 			}
 		}
-		return "false";
+		return false;
 	});
-	return (regReturn == "true") ? true : false;
 }
 
-void Spine::run() {
+bool Spine::run() {
+	// Our function here just sleeps for a bit
+	//  and then sends a close message to all modules ('Module' channel)
 	for (int count = 0;count<3;count++) {
 		std::cout << "Sleeping..." << std::endl;
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
-	// Dummy close to make sure our subscription is correct
 	this->sendMessage(SocketType::PUB, "Module close");
 	std::this_thread::sleep_for(std::chrono::seconds(1));
+	return true;
 }
 

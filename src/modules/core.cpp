@@ -15,25 +15,28 @@ std::string CoreModule::name() {
 	return this->__info.name;
 }
 
-void CoreModule::run() {
-	while (true) {
-		std::string breakOut = this->recvMessage(SocketType::PUB, [&](const std::string& messageText) -> std::string {
-			if (!messageText.empty()) {
-				std::vector<std::string> messageTokens;
-				boost::split(messageTokens, messageText, boost::is_any_of(" "));
-				if (messageTokens.size() > 0) {
-					if (messageTokens.at(1) == "close") {
-						std::cout << "[" << this->name() << "] Closing..." << std::endl;
-						return "break";
+bool CoreModule::run() {
+	try {
+		while (true) {
+			if (this->recvMessage<bool>(SocketType::PUB, [&](const std::string& messageText) {
+				if (!messageText.empty()) {
+					std::vector<std::string> messageTokens;
+					boost::split(messageTokens, messageText, boost::is_any_of(" "));
+					if (messageTokens.size() > 0) {
+						if (messageTokens.at(1) == "close") {
+							std::cout << "[" << this->name() << "] Closing..." << std::endl;
+							return true;
+						}
 					}
-					std::cout << "RUN" << std::endl;
 				}
+				return false;
+			}, 500)) {
+				break;
 			}
-			return "";
-		}, 500);
-		if (breakOut == "break") {
-			break;
 		}
+		return true;
+	} catch(...) {
+		return false;
 	}
 }
 

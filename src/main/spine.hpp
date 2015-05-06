@@ -12,6 +12,7 @@
 
 #include "main/module.hpp"
 
+// A little struct to hold pointers relevant to a module.
 typedef struct SpineModule {
 	void* module_so;
 	Module_loader* loadModule;
@@ -26,8 +27,7 @@ class Spine : public Module {
 		#else
 			#if BOOST_OS_WINDOWS
 				std::string moduleFileExtension = ".dll";
-			#else
-				// Linux
+			#else // Linux
 				std::string moduleFileExtension = ".so";
 			#endif
 		#endif
@@ -44,6 +44,6 @@ class Spine : public Module {
 		Spine();
 		~Spine();
 		std::string name();
-		void run();
+		bool run();
 		bool loadModules(std::string directory);
 };

@@ -1,13 +1,15 @@
 #pragma once
-#include <string>
-#include <iostream>
+// Compiler-provided
 #include <thread>
 #include <chrono>
-#include <sstream>
-#include <vector>
-#include <zmq.hpp>
 #include <functional>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <iostream>
 
+// External dependencies
+#include <zmq.hpp>
 #include <boost/algorithm/string.hpp>
 
 typedef struct ModuleInfo {
@@ -38,7 +40,7 @@ class Module {
 	public:
 		virtual ~Module(){};
 		virtual std::string name()=0;
-		virtual void run()=0;
+		virtual bool run()=0;
 		void setSocketContext(zmq::context_t* context) {
 			this->inp_context = context;
 		};
@@ -114,7 +116,18 @@ class Module {
 
 			return sendErr;
 		};
-		std::string recvMessage(SocketType sockT, std::function<std::string(std::string)> callback, long timeout=1000) {
+		std::string recvMessage(SocketType sockT, long timeout=1000) {
+			return this->recvMessage<std::string>(
+				sockT, [](const std::string& message) {
+					return message;
+				}, timeout
+			);
+		};
+		template<typename retType>
+		retType recvMessage(SocketType sockT,
+							std::function<retType(const std::string&)> callback,
+							long timeout=1000
+		) {
 			std::string messageText;
 
 			zmq::socket_t* pollSocket;
