@@ -13,8 +13,8 @@
 #include <boost/algorithm/string.hpp>
 
 typedef struct ModuleInfo {
-	std::string name;
-	std::string author;
+	std::string name = "undefined module";
+	std::string author = "mainline";
 } ModuleInfo;
 
 enum class MgmtCommands {
@@ -39,8 +39,10 @@ class Module {
 		zmq::socket_t* inp_out;
 	public:
 		virtual ~Module(){};
-		virtual std::string name()=0;
 		virtual bool run()=0;
+		virtual std::string name() {
+			return this->__info.name;
+		};
 		void setSocketContext(zmq::context_t* context) {
 			this->inp_context = context;
 		};
