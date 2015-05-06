@@ -55,7 +55,7 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
          ${OSX_LINK_LIBRARIES}
     )
 endif()
-set(OUTPUT_DIRS
+set(RUNTIME_OUTPUT_DIRS
     LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/modules"
     RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
 )
@@ -70,7 +70,7 @@ set(MAIN_SOURCE_FILES
 add_executable(main ${MAIN_SOURCE_FILES})
 set_target_properties(main
     PROPERTIES
-    ${OUTPUT_DIRS}
+    ${RUNTIME_OUTPUT_DIRS}
 )
 target_link_libraries(main
     ${BOTH_LINK_LIBRARIES}
@@ -97,19 +97,30 @@ foreach(module ${MODULES})
 	)
 	set_target_properties(${module}
 	    PROPERTIES
-	    ${OUTPUT_DIRS}
+	    ${RUNTIME_OUTPUT_DIRS}
 	)
  	target_link_libraries(${module}
         ${BOTH_LINK_LIBRARIES}
     )
 endforeach(module)
 
-#### PHONY ####
-option(CLEAN_OUTPUT "Clean the output directory (${OUTPUT_DIR}) before build" OFF)
-if(CLEAN_OUTPUT)
-    set(CLEAN_OUTPUT_ALL ALL)
-endif(CLEAN_OUTPUT)
-add_custom_target(clean-output ${CLEAN_OUTPUT_ALL}
-                  rm -rf build && mkdir -p build/modules
-                  COMMENT "Cleaning previous build" VERBATIM
+#### TESTS ####
+set(TEST_OUTPUT_DIRS
+    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests/modules"
+    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests"
 )
+set(TEST_LINK_LIBRARIES
+)
+set(TEST_FILES
+    ModuleTests
+)
+foreach(test ${TEST_FILES})
+    add_executable(test-${test} src/tests/${test}.cpp)
+    set_target_properties(test-${test}
+        PROPERTIES
+        ${TEST_OUTPUT_DIRS}
+    )
+    target_link_libraries(test-${test}
+        ${TEST_LINK_LIBRARIES}
+    )
+endforeach(test)
