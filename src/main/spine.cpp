@@ -27,14 +27,10 @@ Spine::~Spine() {
 	std::cout << "[Spine] Closed" << std::endl;
 }
 
-std::string Spine::name() {
-	return this->__info.name;
-}
-
 std::vector<std::string> Spine::listModules(std::string directory) {
 	std::vector<std::string> moduleFiles;
 
-	// Here we list a directory and built a vector of files that match
+	// Here we list a directory and build a vector of files that match
 	//  our platform specific dynamic lib extension (e.g., .so)
 	try {
 		boost::filesystem::directory_iterator startd(directory), endd;

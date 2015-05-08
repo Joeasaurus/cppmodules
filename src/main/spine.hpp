@@ -43,7 +43,6 @@ class Spine : public Module {
 	public:
 		Spine();
 		~Spine();
-		std::string name();
 		bool run();
 		bool loadModules(std::string directory);
 };

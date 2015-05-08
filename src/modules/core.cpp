@@ -11,10 +11,6 @@ CoreModule::~CoreModule() {
 	std::cout << "[" << this->name() << "] Closed!" << std::endl;
 }
 
-std::string CoreModule::name() {
-	return this->__info.name;
-}
-
 bool CoreModule::run() {
 	try {
 		while (true) {

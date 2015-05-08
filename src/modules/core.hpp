@@ -5,7 +5,6 @@ class CoreModule : public Module {
 	public:
 		CoreModule();
 		~CoreModule();
-		std::string name();
 		bool run();
 };
 
