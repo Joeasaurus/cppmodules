@@ -81,7 +81,7 @@ bool Spine::loadModules(std::string directory) {
 	// In the threads we load the binary and hook into it's exported functions.
 	// We use the load function to create an instance of it's Module-derived class
 	// We then set up an interface with the module using our input/output sockets
-	//  which are a management Rep and Req socket for message in and out
+	//  which are a management Rep and Req socket for commands in and out
 	//  and a chain-building pair of Pub and Sub sockets for message passing.
 	std::vector<std::string> moduleFiles = this->listModules(directory);
 
@@ -177,6 +177,29 @@ bool Spine::registerModule() {
 }
 
 bool Spine::run() {
+	try {
+		while (true) {
+			if (this->recvMessage<bool>(SocketType::PUB, [&](const std::string& messageText) {
+				if (!messageText.empty()) {
+					std::vector<std::string> messageTokens;
+					boost::split(messageTokens, messageText, boost::is_any_of(" "));
+					if (messageTokens.size() > 0) {
+						// What was the 'command'?
+						if (messageTokens.at(1) == "log") {
+							std::cout << "[" << this->name() << "] Closing..." << std::endl;
+							return true;
+						}
+					}
+				}
+				return false;
+			}, 500)) {
+				break;
+			}
+		}
+		return true;
+	} catch(...) {
+		return false;
+	}
 	// Our function here just sleeps for a bit
 	//  and then sends a close message to all modules ('Module' channel)
 	for (int count = 0;count<3;count++) {
