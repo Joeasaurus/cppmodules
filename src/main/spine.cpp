@@ -3,7 +3,6 @@
 Spine::Spine() {
 	this->__info.name = "Spine";
 	this->__info.author = "mainline";
-	std::cout << "[Spine] Spine Open" << std::endl;
 }
 
 Spine::~Spine() {
@@ -24,7 +23,7 @@ Spine::~Spine() {
 	// After all modules are closed we don't need our sockets
 	//  so we should close them before exit, to be nice
 	this->closeSockets();
-	std::cout << "[Spine] Closed" << std::endl;
+	logger->info("{}: {}", this->name(), "Closed");
 }
 
 std::vector<std::string> Spine::listModules(std::string directory) {
@@ -102,6 +101,7 @@ bool Spine::loadModules(std::string directory) {
 			}
 
 			spineModule.module = spineModule.loadModule();
+			spineModule.module->setLogger(this->logger);
 			std::string moduleName = spineModule.module->name();
 
 			spineModule.module->setSocketContext(this->inp_context);
@@ -110,6 +110,7 @@ bool Spine::loadModules(std::string directory) {
 			// Here we set the module to subscribe to it's name on it's subscriber socket
 			// Then configure the module to connect it's publish output to the Spine input
 			//  and it's mgmt output too
+			spineModule.module->subscribe("Module");
 			spineModule.module->subscribe(moduleName);
 			spineModule.module->notify(SocketType::PUB, "Spine");
 			spineModule.module->notify(SocketType::MGM_OUT, "Spine");
@@ -147,7 +148,7 @@ bool Spine::loadModules(std::string directory) {
 			this->threads.push_back(moduleThread);
 		} else {
 			moduleThread->join();
-			std::cerr << "[Spine] Failed to register module: " << filename << std::endl;
+			this->logger->error("[Spine] Failed to register module: {}", filename);
 		}
 	}
 
@@ -159,6 +160,7 @@ bool Spine::registerModule() {
 	// We stick it in the list of leaded modules,
 	//  configure out publish socket to connect to their subscribe socket,
 	//  and then return with a "success" message
+	this->logger->info("{}: {}", this->name(), "Listening for registrations...");
 	return this->recvMessage<bool>(SocketType::MGM_IN, [&](const std::string& regReply) {
 		if (regReply != "__NULL_RECV_FAILED__") {
 			std::vector<std::string> tokens;
@@ -168,6 +170,7 @@ bool Spine::registerModule() {
 					this->loadedModules.push_back(tokens.at(1));
 					this->notify(SocketType::PUB, tokens.at(1));
 					this->sendMessage(SocketType::MGM_IN, "success");
+					this->logger->info("{}: {}", this->name(), tokens.at(1) + " registered!");
 					return true;
 				}
 			}
@@ -178,36 +181,19 @@ bool Spine::registerModule() {
 
 bool Spine::run() {
 	try {
-		while (true) {
-			if (this->recvMessage<bool>(SocketType::PUB, [&](const std::string& messageText) {
-				if (!messageText.empty()) {
-					std::vector<std::string> messageTokens;
-					boost::split(messageTokens, messageText, boost::is_any_of(" "));
-					if (messageTokens.size() > 0) {
-						// What was the 'command'?
-						if (messageTokens.at(1) == "log") {
-							std::cout << "[" << this->name() << "] Closing..." << std::endl;
-							return true;
-						}
-					}
-				}
-				return false;
-			}, 500)) {
-				break;
-			}
+		// Our function here just sleeps for a bit
+		//  and then sends a close message to all modules ('Module' channel)
+		for (int count = 0;count<3;count++) {
+			this->logger->info("{}: {}", this->name(), "Sleeping...");
+			std::this_thread::sleep_for(std::chrono::seconds(2));
 		}
+		// LEts make sure the close command works!
+		this->logger->info("{}: {}", this->name(), "Closing 'Module'");
+		this->sendMessage(SocketType::PUB, "Module close");
+		std::this_thread::sleep_for(std::chrono::seconds(5));
 		return true;
 	} catch(...) {
 		return false;
 	}
-	// Our function here just sleeps for a bit
-	//  and then sends a close message to all modules ('Module' channel)
-	for (int count = 0;count<3;count++) {
-		std::cout << "Sleeping..." << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(2));
-	}
-	this->sendMessage(SocketType::PUB, "Module close");
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-	return true;
 }
 

@@ -11,7 +11,6 @@
 #include <dlfcn.h>
 
 #include "main/module.hpp"
-#include "lib/spdlog/spdlog.h"
 
 // A little struct to hold pointers relevant to a module.
 typedef struct SpineModule {

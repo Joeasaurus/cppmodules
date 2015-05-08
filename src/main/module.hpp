@@ -11,6 +11,7 @@
 // External dependencies
 #include <zmq.hpp>
 #include <boost/algorithm/string.hpp>
+#include "lib/spdlog/spdlog.h"
 
 typedef struct ModuleInfo {
 	std::string name = "undefined module";
@@ -37,18 +38,22 @@ class Module {
 		zmq::socket_t* inp_manage_out;
 		zmq::socket_t* inp_in;
 		zmq::socket_t* inp_out;
+		std::shared_ptr<spdlog::logger> logger;
 	public:
 		virtual ~Module(){};
 		virtual bool run()=0;
 		virtual std::string name() {
 			return this->__info.name;
 		};
+		void setLogger(const std::shared_ptr<spdlog::logger> loggerHandle) {
+			this->logger = loggerHandle;
+			this->logger->info("{}: Open", this->name());
+		};
 		void setSocketContext(zmq::context_t* context) {
 			this->inp_context = context;
 		};
 		void openSockets() {
 			std::string inPoint = "inproc://" + this->name() + ".in";
-			std::string outPoint = "inproc://" + this->name() + ".out";
 			std::string managePoint = "inproc://" + this->name() + ".manage";
 			try {
 				this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB);
