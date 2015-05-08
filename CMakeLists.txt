@@ -114,8 +114,15 @@ set(TEST_LINK_LIBRARIES
 set(TEST_FILES
     ModuleTests
 )
+set(TEST_EXTRA_FILES
+    "ModuleTests\;"
+)
 foreach(test ${TEST_FILES})
-    add_executable(test-${test} src/tests/${test}.cpp)
+    createExtraFilesList(test-${test} ${TEST_EXTRA_FILES})
+    add_executable(test-${test}
+        src/tests/${test}.cpp
+        ${test-${test}_EXTRA_FILES}
+    )
     set_target_properties(test-${test}
         PROPERTIES
         ${TEST_OUTPUT_DIRS}

@@ -2,7 +2,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include "main/module.hpp"
-#include "tests/support/testmodule.hpp"
+#include "tests/support/testmodule_headeronly.hpp"
 
 BOOST_AUTO_TEST_CASE(module_create)
 {
