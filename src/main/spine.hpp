@@ -37,7 +37,7 @@ class Spine : public Module {
 
 		bool isModuleFile(std::string filename);
 		std::vector<std::string> listModules(std::string directory);
-		int openModuleFile(std::string fileName, SpineModule& spineModule);
+		bool openModuleFile(std::string fileName, SpineModule& spineModule);
 		int resolveModuleFunctions(SpineModule& spineModule);
 		bool registerModule();
 	public:
@@ -45,4 +45,5 @@ class Spine : public Module {
 		~Spine();
 		bool run();
 		bool loadModules(std::string directory);
+		bool loadModule(std::string filename);
 };

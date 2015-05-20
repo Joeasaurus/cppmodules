@@ -25,8 +25,9 @@ int main(int argc, char **argv) {
 
 	logger->info("Loading spine modules");
 	spine->loadModules("./modules");
+	logger->info("{}: {}", "Main", "Running spine");
 	bool spineReturn = spine->run();
 
 	delete spine;
-	return spineReturn;
+	return spineReturn ? 0 : 1;
 }
