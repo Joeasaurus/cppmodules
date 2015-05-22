@@ -25,7 +25,7 @@ bool CoreModule::run() {
 				}
 				return false;
 			}, 500)) {
-				this->logger->info("{}: {}", this->name(), "Closing...");
+				this->logger->debug("{}: {}", this->name(), "Closing...");
 				return true;
 			}
 		}

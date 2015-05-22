@@ -1,8 +1,12 @@
 #pragma once
+// Common
+#include "main/module.hpp"
+// Module Specific
 #include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <set>
 
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range_core.hpp>
@@ -10,7 +14,6 @@
 
 #include <dlfcn.h>
 
-#include "main/module.hpp"
 
 // A little struct to hold pointers relevant to a module.
 typedef struct SpineModule {
@@ -33,17 +36,17 @@ class Spine : public Module {
 		#endif
 
 		std::vector<std::thread*> threads;
-		std::vector<std::string> loadedModules;
+		std::set<std::string> loadedModules;
 
-		bool isModuleFile(std::string filename);
-		std::vector<std::string> listModules(std::string directory);
-		bool openModuleFile(std::string fileName, SpineModule& spineModule);
+		bool isModuleFile(const std::string& filename);
+		std::set<std::string> listModules(const std::string& directory);
+		bool openModuleFile(const std::string& fileName, SpineModule& spineModule);
 		int resolveModuleFunctions(SpineModule& spineModule);
 		bool registerModule();
 	public:
 		Spine();
 		~Spine();
 		bool run();
-		bool loadModules(std::string directory);
-		bool loadModule(std::string filename);
+		bool loadModules(const std::string& directory);
+		bool loadModule(const std::string& filename);
 };

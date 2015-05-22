@@ -1,5 +1,7 @@
 #pragma once
+// Common
 #include "main/module.hpp"
+// Module Specific
 
 class CoreModule : public Module {
 	public:

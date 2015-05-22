@@ -28,8 +28,8 @@ Spine::~Spine() {
 	logger->info("{}: {}", this->name(), "Closed");
 }
 
-std::vector<std::string> Spine::listModules(std::string directory) {
-	std::vector<std::string> moduleFiles;
+std::set<std::string> Spine::listModules(const std::string& directory) {
+	std::set<std::string> moduleFiles;
 
 	// Here we list a directory and build a vector of files that match
 	//  our platform specific dynamic lib extension (e.g., .so)
@@ -39,7 +39,7 @@ std::vector<std::string> Spine::listModules(std::string directory) {
 
 		for(boost::filesystem::path p : files){
 			if (p.extension() == this->moduleFileExtension) {
-				moduleFiles.push_back(p.string());
+				moduleFiles.insert(p.string());
 			}
 		}
 	} catch(boost::filesystem::filesystem_error e) {
@@ -50,7 +50,7 @@ std::vector<std::string> Spine::listModules(std::string directory) {
 	return moduleFiles;
 }
 
-bool Spine::openModuleFile(std::string moduleFile, SpineModule& spineModule) {
+bool Spine::openModuleFile(const std::string& moduleFile, SpineModule& spineModule) {
 	// Here we use dlopen to load the dynamic library (that is, a compiled module)
 	spineModule.module_so = dlopen(moduleFile.c_str(), RTLD_NOW | RTLD_GLOBAL);
 	if (!spineModule.module_so) {
@@ -79,7 +79,7 @@ int Spine::resolveModuleFunctions(SpineModule& spineModule) {
 	return 0;
 }
 
-bool Spine::loadModule(std::string filename) {
+bool Spine::loadModule(const std::string& filename) {
 	// We create a thread for our module.
 	// In the threads we load the binary and hook into it's exported functions.
 	// We use the load function to create an instance of it's Module-derived class
@@ -148,7 +148,9 @@ bool Spine::loadModule(std::string filename) {
 	// If it succeeds, we'll stick the thread object on our vector and carry on
 	// If it fails, we'll wait for the thread to join, expecting it to be clean.
 	if (this->registerModule()) {
-		this->logger->info("{}: {}", this->name(), "Registered module: " + this->loadedModules.back() + "!");
+		auto it = this->loadedModules.end();
+		it--;
+		this->logger->info("{}: {}", this->name(), "Registered module: " + *it + "!");
 		this->threads.push_back(moduleThread);
 		return true;
 	} else {
@@ -158,10 +160,10 @@ bool Spine::loadModule(std::string filename) {
 	}
 }
 
-bool Spine::loadModules(std::string directory) {
+bool Spine::loadModules(const std::string& directory) {
 	// Here we gather a list of relevant module binaries
 	//  and then call the load function on each path
-	std::vector<std::string> moduleFiles = this->listModules(directory);
+	std::set<std::string> moduleFiles = this->listModules(directory);
 
 	for (auto filename : moduleFiles)
 	{
@@ -184,11 +186,15 @@ bool Spine::registerModule() {
 			std::vector<std::string> tokens;
 			boost::split(tokens, regReply, boost::is_any_of(" "));
 			if (tokens.at(0) == "register") {
-				if (tokens.at(1) != "") {
-					this->loadedModules.push_back(tokens.at(1));
+				auto it = this->loadedModules.find(tokens.at(1));
+				if (tokens.at(1) != "" && *it != tokens.at(1)) {
+					this->loadedModules.insert(tokens.at(1));
 					this->notify(SocketType::PUB, tokens.at(1));
 					this->sendMessage(SocketType::MGM_IN, "success");
 					return true;
+				} else {
+					this->sendMessage(SocketType::MGM_IN, "error");
+					this->logger->debug("{}: {}", this->name(), *it + " cannot be loaded!");
 				}
 			}
 		}
