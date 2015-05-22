@@ -1,16 +1,17 @@
 #pragma once
-// Compiler-provided
-#include <thread>
-#include <chrono>
-#include <functional>
-#include <vector>
+// Common
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <vector>
 
-// External dependencies
+#include <thread>
+#include <chrono>
+#include <functional>
+
 #include <zmq.hpp>
 #include <boost/algorithm/string.hpp>
+// Module Specific
 #include "lib/spdlog/spdlog.h"
 
 typedef struct ModuleInfo {
@@ -47,7 +48,7 @@ class Module {
 		};
 		void setLogger(const std::shared_ptr<spdlog::logger> loggerHandle) {
 			this->logger = loggerHandle;
-			this->logger->info("{}: Open", this->name());
+			this->logger->debug("{}: Logger Open", this->name());
 		};
 		void setSocketContext(zmq::context_t* context) {
 			this->inp_context = context;
@@ -63,6 +64,7 @@ class Module {
 
 				this->inp_in->bind(inPoint.c_str());
 				this->inp_manage_in->bind(managePoint.c_str());
+				this->logger->debug("{}: Sockets Open", this->name());
 			} catch (const zmq::error_t &e) {
 				std::cout << e.what() << std::endl;
 			}
