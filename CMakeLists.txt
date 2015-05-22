@@ -17,18 +17,25 @@ endif()
 
 ### FUNCTIONS & VARS ###
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
-function(createExtraFilesList name mappings)
-    foreach(files ${mappings})
-        foreach(file ${files})
-            if (NOT "${name}" STREQUAL "${file}")
-                set(${name}_EXTRA_FILES "${file} ${${name}_EXTRA_FILES}")
-            endif()
-        endforeach(file)
+macro(createExtrasList name output mappings)
+    foreach(files ${${mappings}})
+        list(GET files 0 ${name}_mapping)
+        if ("${name}" STREQUAL "${${name}_mapping}")
+            foreach(file ${files})
+                if (NOT "${name}" STREQUAL "${file}")
+                    if ("${${name}_${output}}" STREQUAL "")
+                        set(${name}_${output} "${file}")
+                    else()
+                        set(${name}_${output} "${${name}_${output}} ${file}")
+                    endif()
+                endif()
+            endforeach(file)
+        endif()
     endforeach(files)
-    if (NOT "${${name}_EXTRA_FILES}" STREQUAL "")
-        message(STATUS "Included for module ${name}: ${${name}_EXTRA_FILES}")
+    if (NOT "${${name}_${output}}" STREQUAL "")
+        message(STATUS "Included for module ${name}: ${${name}_${output}}")
     endif()
-endfunction(createExtraFilesList)
+endmacro(createExtrasList)
 
 
 ### BUILD TARGETS ###
@@ -55,10 +62,7 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
          ${OSX_LINK_LIBRARIES}
     )
 endif()
-set(RUNTIME_OUTPUT_DIRS
-    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/modules"
-    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
-)
+
 
 #### MAIN ####
 set(MAIN_SOURCE_FILES
@@ -70,7 +74,7 @@ set(MAIN_SOURCE_FILES
 add_executable(main ${MAIN_SOURCE_FILES})
 set_target_properties(main
     PROPERTIES
-    ${RUNTIME_OUTPUT_DIRS}
+    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
 )
 target_link_libraries(main
     ${BOTH_LINK_LIBRARIES}
@@ -80,15 +84,23 @@ target_link_libraries(main
 
 #### MODULES ####
 set(MODULES
-	core
+    core
+    settings
 )
 # This contains escaped lists of extra files to build for you modules
+# Lists are \; seperated
 # The first item in each list should be your module name
 set(MODULES_EXTRA_FILES
     "core\;"
+    "settings\;"
+)
+set(MODULES_EXTRA_LINK_LIBRARIES
+    "core\;"
+    "settings\;-lconfig++"
 )
 foreach(module ${MODULES})
-    createExtraFilesList(${module} ${MODULES_EXTRA_FILES})
+    createExtrasList(${module} EXTRA_FILES MODULES_EXTRA_FILES)
+    createExtrasList(${module} EXTRA_LINK_LIBRARIES MODULES_EXTRA_LINK_LIBRARIES)
 	add_library(${module} SHARED
         src/main/module.hpp
 		src/modules/${module}.hpp
@@ -97,10 +109,11 @@ foreach(module ${MODULES})
 	)
 	set_target_properties(${module}
 	    PROPERTIES
-	    ${RUNTIME_OUTPUT_DIRS}
+	    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/modules"
 	)
  	target_link_libraries(${module}
         ${BOTH_LINK_LIBRARIES}
+        ${${module}_EXTRA_LINK_LIBRARIES}
     )
 endforeach(module)
 
@@ -118,16 +131,16 @@ set(TEST_EXTRA_FILES
     "ModuleTests\;"
 )
 foreach(test ${TEST_FILES})
-    createExtraFilesList(test-${test} ${TEST_EXTRA_FILES})
-    add_executable(test-${test}
+    createExtrasList(${test} EXTRA_FILES TEST_EXTRA_FILES)
+    add_executable(${test}
         src/tests/${test}.cpp
-        ${test-${test}_EXTRA_FILES}
+        ${${test}_EXTRA_FILES}
     )
-    set_target_properties(test-${test}
+    set_target_properties(${test}
         PROPERTIES
         ${TEST_OUTPUT_DIRS}
     )
-    target_link_libraries(test-${test}
+    target_link_libraries(${test}
         ${TEST_LINK_LIBRARIES}
     )
 endforeach(test)
