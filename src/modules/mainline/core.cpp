@@ -1,4 +1,4 @@
-#include "modules/core.hpp"
+#include "modules/mainline/core.hpp"
 
 CoreModule::CoreModule() {
 	this->__info.name   = "Core";
@@ -7,7 +7,7 @@ CoreModule::CoreModule() {
 
 CoreModule::~CoreModule() {
 	this->closeSockets();
-	this->logger->info("{}: {}", this->name(), "Closed");
+	this->logger->debug("{}: {}", this->name(), "Closed");
 }
 
 bool CoreModule::run() {

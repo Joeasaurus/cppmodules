@@ -1,16 +1,16 @@
-#include "modules/settings.hpp"
+#include "modules/mainline/config.hpp"
 
-SettingsModule::SettingsModule() {
-	this->__info.name   = "Settings";
+ConfigModule::ConfigModule() {
+	this->__info.name   = "Config";
 	this->__info.author = "mainline";
 }
 
-SettingsModule::~SettingsModule() {
+ConfigModule::~ConfigModule() {
 	this->closeSockets();
-	this->logger->info("{}: {}", this->name(), "Closed");
+	this->logger->debug("{}: {}", this->name(), "Closed");
 }
 
-bool SettingsModule::loadSettingsFile(std::string filepath) {
+bool ConfigModule::loadConfigFile(std::string filepath) {
 	try {
 		this->config.readFile(filepath.c_str());
 		return true;
@@ -24,7 +24,7 @@ bool SettingsModule::loadSettingsFile(std::string filepath) {
 	}
 }
 
-bool SettingsModule::run() {
+bool ConfigModule::run() {
 	try {
 		while (true) {
 			if (this->recvMessage<bool>(SocketType::PUB, [&](const std::string& messageText) {
@@ -48,10 +48,10 @@ bool SettingsModule::run() {
 	}
 }
 
-SettingsModule* loadModule() {
-	return new SettingsModule;
+ConfigModule* loadModule() {
+	return new ConfigModule;
 }
 
-void unloadModule(SettingsModule* module) {
+void unloadModule(ConfigModule* module) {
 	delete module;
 }

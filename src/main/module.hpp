@@ -126,8 +126,8 @@ class Module {
 			return sendErr;
 		};
 		std::string recvMessage(SocketType sockT, long timeout=1000) {
-			return this->recvMessage<std::string>(
-				sockT, [](const std::string& message) {
+			return this->recvMessage<std::string>(sockT,
+				[](const std::string& message) {
 					return message;
 				}, timeout
 			);

@@ -6,7 +6,14 @@
 int main(int argc, char **argv) {
 	// Configure the global logger
     spdlog::set_async_mode(1048576); //queue size must be power of 2
-    spdlog::set_level(spdlog::level::info);
+
+    // This is a quick fix for debug logging by managing argv ourselves
+    // We'll move to an option parser later
+    spdlog::level::level_enum logLevel = spdlog::level::info;
+    if (argc > 1 && strcmp(argv[1], "debug") == 0) {
+    	logLevel = spdlog::level::debug;
+    }
+    spdlog::set_level(logLevel);
 
     // Create a stdout logger, multi threaded
 	std::shared_ptr<spdlog::logger> logger = spdlog::stdout_logger_mt("Logger");
@@ -32,8 +39,8 @@ int main(int argc, char **argv) {
 	}
 
 	// Load all the modules we wrote
-	spine->loadModules("./modules");
-	logger->info("{}: {}", "Main", "Running spine");
+	spine->loadModules(spine->moduleFileLocation);
+	logger->debug("{}: {}", "Main", "Running spine");
 	bool spineReturn = spine->run();
 
 	delete spine;

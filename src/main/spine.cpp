@@ -34,17 +34,19 @@ std::set<std::string> Spine::listModules(const std::string& directory) {
 	// Here we list a directory and build a vector of files that match
 	//  our platform specific dynamic lib extension (e.g., .so)
 	try {
-		boost::filesystem::directory_iterator startd(directory), endd;
+		boost::filesystem::recursive_directory_iterator startd(directory), endd;
 		auto files = boost::make_iterator_range(startd, endd);
 
 		for(boost::filesystem::path p : files){
-			if (p.extension() == this->moduleFileExtension) {
+			if (p.extension() == this->moduleFileExtension &&
+				!boost::filesystem::is_directory(p)
+			) {
 				moduleFiles.insert(p.string());
 			}
 		}
 	} catch(boost::filesystem::filesystem_error e) {
-		std::cerr << "[Spine] WARNING! Could not load modules!" << std::endl;
-		std::cerr << "    - " << e.what() << std::endl;
+		this->logger->warn("{}: {}", this->name(), "WARNING! Could not load modules!");
+		this->logger->warn("{}: {}{}", this->name(), "    - ", e.what());
 	}
 
 	return moduleFiles;
@@ -54,7 +56,7 @@ bool Spine::openModuleFile(const std::string& moduleFile, SpineModule& spineModu
 	// Here we use dlopen to load the dynamic library (that is, a compiled module)
 	spineModule.module_so = dlopen(moduleFile.c_str(), RTLD_NOW | RTLD_GLOBAL);
 	if (!spineModule.module_so) {
-		std::cerr << dlerror() << std::endl;
+		this->logger->error("{}: {}", this->name(), dlerror());
 		return false;
 	}
 	return true;
@@ -86,19 +88,20 @@ bool Spine::loadModule(const std::string& filename) {
 	// We then set up an interface with the module using our input/output sockets
 	//  which are a management Rep and Req socket for commands in and out
 	//  and a chain-building pair of Pub and Sub sockets for message passing.
-	this->logger->info("{}: {}", this->name(), "Loading " + filename + "...");
+	this->logger->debug("{}: {}", this->name(), "Loading " + boost::filesystem::basename(filename) + "...");
 	std::thread* moduleThread = new std::thread([this, filename]() {
 		int failure = 0;
 		SpineModule spineModule;
 
 		if (! this->openModuleFile(filename, spineModule)) {
+			this->logger->error("{}: {}", this->name(), "<Module> Failiure " + filename + "..");
 			exit(EXIT_FAILURE);
 		}
 		this->logger->debug("{}: {}", this->name(), "<Module> Opened file " + filename + "..");
 
 		failure = this->resolveModuleFunctions(spineModule);
 		if (failure != 0) {
-			this->logger->info("{}: {}", this->name(), "<Module> Failiure " + filename + "..");
+			this->logger->error("{}: {}", this->name(), "<Module> Failiure " + filename + "..");
 			exit(EXIT_FAILURE);
 		}
 		this->logger->debug("{}: {}", this->name(), "<Module> Functions resolved");
@@ -117,7 +120,7 @@ bool Spine::loadModule(const std::string& filename) {
 		spineModule.module->subscribe(moduleName);
 		spineModule.module->notify(SocketType::PUB, "Spine");
 		spineModule.module->notify(SocketType::MGM_OUT, "Spine");
-		this->logger->debug("{}: <{}>", this->name(), moduleName, " Sockets Registered");
+		this->logger->debug("{}: <{}> {}", this->name(), moduleName, "Sockets Registered");
 		// Here we send a 'register' message to Spine via our now-connected MGM_OUT socket.
 		// If the Spine succeeds in registering us, we will recieve a success message.
 		std::string regMessage = "register " + moduleName;
@@ -131,6 +134,8 @@ bool Spine::loadModule(const std::string& filename) {
 			[&](const std::string& regReply)
 		{
 			if (regReply == "success") {
+				this->logger->debug("{}: <{}> {}", this->name(), moduleName,
+					"Registration successful, executing module::run()");
 				return spineModule.module->run();
 			}
 			return false;
@@ -148,14 +153,13 @@ bool Spine::loadModule(const std::string& filename) {
 	// If it succeeds, we'll stick the thread object on our vector and carry on
 	// If it fails, we'll wait for the thread to join, expecting it to be clean.
 	if (this->registerModule()) {
-		auto it = this->loadedModules.end();
-		it--;
+		auto it = this->loadedModules.end(); it--;
 		this->logger->info("{}: {}", this->name(), "Registered module: " + *it + "!");
 		this->threads.push_back(moduleThread);
 		return true;
 	} else {
-		moduleThread->join();
 		this->logger->error("{}: {}", this->name(), "Registration failed for " + filename);
+		moduleThread->join();
 		return false;
 	}
 }
@@ -179,7 +183,7 @@ bool Spine::registerModule() {
 	// We stick it in the list of leaded modules,
 	//  configure out publish socket to connect to their subscribe socket,
 	//  and then return with a "success" message
-	this->logger->info("{}: {}", this->name(), "Listening for registration...");
+	this->logger->debug("{}: {}", this->name(), "Listening for registration...");
 	return this->recvMessage<bool>(SocketType::MGM_IN, [&](const std::string& regReply) {
 		this->logger->debug("{}: {}", this->name(), "Heard " + regReply);
 		if (regReply != "__NULL_RECV_FAILED__") {
@@ -193,13 +197,13 @@ bool Spine::registerModule() {
 					this->sendMessage(SocketType::MGM_IN, "success");
 					return true;
 				} else {
-					this->sendMessage(SocketType::MGM_IN, "error");
-					this->logger->debug("{}: {}", this->name(), *it + " cannot be loaded!");
+					this->sendMessage(SocketType::MGM_IN, "failure");
+					this->logger->warn("{}: {}", this->name(), *it + " cannot be loaded!");
 				}
 			}
 		}
 		return false;
-	});
+	}, 4000);
 }
 
 bool Spine::run() {
