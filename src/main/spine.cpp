@@ -169,6 +169,19 @@ bool Spine::loadModules(const std::string& directory) {
 	//  and then call the load function on each path
 	std::set<std::string> moduleFiles = this->listModules(directory);
 
+	// Before we iterate for loading, we will try loading a few required modules
+	//  in our pre-defined order. If any fail, we don't load the rest.
+	boost::filesystem::path moduleLoc(this->moduleFileLocation);
+	boost::filesystem::path configModule(moduleLoc /
+							("libmainline_config" + this->moduleFileExtension));
+
+	bool configLoaded = this->loadModule(configModule.string());
+	if (configLoaded) {
+		moduleFiles.erase(configModule.string());
+	} else {
+		return false;
+	}
+
 	for (auto filename : moduleFiles)
 	{
 		// We should check error messages here better!
