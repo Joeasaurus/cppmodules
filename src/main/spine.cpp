@@ -17,8 +17,13 @@ Spine::~Spine() {
 		closeMessage = modName + " close";
 		this->sendMessage(SocketType::PUB, closeMessage);
 		this->logger->debug("{}: {}", this->name(), "Joining " + modName);
-		this->threads.at(position)->join();
+		this->threads.at(position)->thread_pointer->join();
 		this->logger->debug("{}: {}", this->name(), "Joined");
+		this->threads.at(position)->module.unloadModule(this->threads.at(position)->module.module);
+		if (dlclose(this->threads.at(position)->module.module_so) != 0) {
+			this->logger->error("{}: {}", this->name(), "Could not dlclose module file");
+		}
+		delete this->threads[position]->thread_pointer;
 		delete this->threads[position];
 		position += 1;
 	}
@@ -82,86 +87,59 @@ int Spine::resolveModuleFunctions(SpineModule& spineModule) {
 }
 
 bool Spine::loadModule(const std::string& filename) {
-	// We create a thread for our module.
+	SpineThread* spineThread = new SpineThread;
+	SpineModule spineModule;
+	this->logger->debug("{}: {}", this->name(), "Loading " + boost::filesystem::basename(filename) + "...");
 	// In the threads we load the binary and hook into it's exported functions.
 	// We use the load function to create an instance of it's Module-derived class
 	// We then set up an interface with the module using our input/output sockets
 	//  which are a management Rep and Req socket for commands in and out
 	//  and a chain-building pair of Pub and Sub sockets for message passing.
-	this->logger->debug("{}: {}", this->name(), "Loading " + boost::filesystem::basename(filename) + "...");
-	std::thread* moduleThread = new std::thread([this, filename]() {
-		int failure = 0;
-		SpineModule spineModule;
-
-		if (! this->openModuleFile(filename, spineModule)) {
-			this->logger->error("{}: {}", this->name(), "<Module> Failiure " + filename + "..");
-			exit(EXIT_FAILURE);
-		}
-		this->logger->debug("{}: {}", this->name(), "<Module> Opened file " + filename + "..");
-
-		failure = this->resolveModuleFunctions(spineModule);
-		if (failure != 0) {
-			this->logger->error("{}: {}", this->name(), "<Module> Failiure " + filename + "..");
-			exit(EXIT_FAILURE);
-		}
-		this->logger->debug("{}: {}", this->name(), "<Module> Functions resolved");
-
-		spineModule.module = spineModule.loadModule();
-		std::string moduleName = spineModule.module->name();
-
-		spineModule.module->setLogger(this->logger);
-		spineModule.module->setSocketContext(this->inp_context);
-		spineModule.module->openSockets();
-
-		// Here we set the module to subscribe to it's name on it's subscriber socket
-		// Then configure the module to connect it's publish output to the Spine input
-		//  and it's mgmt output too
-		spineModule.module->subscribe("Module");
-		spineModule.module->subscribe(moduleName);
-		spineModule.module->notify(SocketType::PUB, "Spine");
-		spineModule.module->notify(SocketType::MGM_OUT, "Spine");
-		this->logger->debug("{}: <{}> {}", this->name(), moduleName, "Sockets Registered");
-		// Here we send a 'register' message to Spine via our now-connected MGM_OUT socket.
-		// If the Spine succeeds in registering us, we will recieve a success message.
-		std::string regMessage = "register " + moduleName;
-		//TODO: This should be a callback!
-		spineModule.module->sendMessage(SocketType::MGM_OUT, regMessage);
-
-		// If the registration is a success,
-		//  we call the module's 'run' function -- it's main run loop.
-		bool moduleRun = spineModule.module->recvMessage<bool>(
-			SocketType::MGM_OUT,
-			[&](const std::string& regReply)
-		{
-			if (regReply == "success") {
-				this->logger->debug("{}: <{}> {}", this->name(), moduleName,
-					"Registration successful, executing module::run()");
-				return spineModule.module->run();
-			}
-			return false;
-		}, 3000);
-
-		// Once here, the module's run function must have quit,
-		//  so we should unload the binary. Then the thread will exit and close.
-		spineModule.unloadModule(spineModule.module);
-		// A failure here will (I think!) exit the thread badly!
-		if (dlclose(spineModule.module_so) != 0) {
-			exit(EXIT_FAILURE);
-		}
-	});
-	// While the thread is running, we will wait for it's registration message
-	// If it succeeds, we'll stick the thread object on our vector and carry on
-	// If it fails, we'll wait for the thread to join, expecting it to be clean.
-	if (this->registerModule()) {
-		auto it = this->loadedModules.end(); it--;
-		this->logger->info("{}: {}", this->name(), "Registered module: " + *it + "!");
-		this->threads.push_back(moduleThread);
-		return true;
-	} else {
-		this->logger->error("{}: {}", this->name(), "Registration failed for " + filename);
-		moduleThread->join();
+	// Now we run it's run() function in a new thread and push that on to our list.
+	if (! this->openModuleFile(filename, spineModule)) {
+		this->logger->error("{}: {}", this->name(), "Failiure " + filename + "..");
+		delete spineThread;
 		return false;
 	}
+	this->logger->debug("{}: {}", this->name(), "Opened file " + filename + "..");
+
+	int failure = 0;
+	failure = this->resolveModuleFunctions(spineModule);
+	if (failure != 0) {
+		this->logger->error("{}: {}", this->name(), "Failiure " + filename + "..");
+		delete spineThread;
+		return false;
+	}
+	this->logger->debug("{}: {}", this->name(), "Functions resolved");
+
+	spineModule.module = spineModule.loadModule();
+	std::string moduleName = spineModule.module->name();
+
+	spineModule.module->setLogger(this->logger);
+	spineModule.module->setSocketContext(this->inp_context);
+	spineModule.module->openSockets();
+
+	// Here we set the module to subscribe to it's name on it's subscriber socket
+	// Then configure the module to connect it's publish output to the Spine input
+	//  and it's mgmt output too
+	spineModule.module->subscribe("Module");
+	spineModule.module->subscribe(moduleName);
+	spineModule.module->notify(SocketType::PUB, "Spine");
+	spineModule.module->notify(SocketType::MGM_OUT, "Spine");
+	this->logger->debug("{}: {}", this->name(), "Sockets Registered for: " + moduleName + "!");
+
+	this->notify(SocketType::PUB, moduleName);
+	this->loadedModules.insert(moduleName);
+	this->logger->info("{}: {}", this->name(), "Registered module: " + moduleName + "!");
+
+	spineThread->thread_pointer = new std::thread([&spineModule] () {
+		spineModule.module->run();
+	});
+
+	spineThread->module = spineModule;
+	this->threads.push_back(spineThread);
+
+	return true;
 }
 
 bool Spine::loadModules(const std::string& directory) {
@@ -189,34 +167,6 @@ bool Spine::loadModules(const std::string& directory) {
 	}
 
 	return true;
-}
-
-bool Spine::registerModule() {
-	// Here we wait to receive a "register" message from a module.
-	// We stick it in the list of leaded modules,
-	//  configure out publish socket to connect to their subscribe socket,
-	//  and then return with a "success" message
-	this->logger->debug("{}: {}", this->name(), "Listening for registration...");
-	return this->recvMessage<bool>(SocketType::MGM_IN, [&](const std::string& regReply) {
-		this->logger->debug("{}: {}", this->name(), "Heard " + regReply);
-		if (regReply != "__NULL_RECV_FAILED__") {
-			std::vector<std::string> tokens;
-			boost::split(tokens, regReply, boost::is_any_of(" "));
-			if (tokens.at(0) == "register") {
-				auto it = this->loadedModules.find(tokens.at(1));
-				if (tokens.at(1) != "" && *it != tokens.at(1)) {
-					this->loadedModules.insert(tokens.at(1));
-					this->notify(SocketType::PUB, tokens.at(1));
-					this->sendMessage(SocketType::MGM_IN, "success");
-					return true;
-				} else {
-					this->sendMessage(SocketType::MGM_IN, "failure");
-					this->logger->warn("{}: {}", this->name(), *it + " cannot be loaded!");
-				}
-			}
-		}
-		return false;
-	}, 4000);
 }
 
 bool Spine::run() {

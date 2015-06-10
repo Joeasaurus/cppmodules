@@ -23,6 +23,12 @@ typedef struct SpineModule {
 	Module* module;
 } SpineModule;
 
+// A little struct to hold pointers for our module and thread
+typedef struct SpineThread {
+	SpineModule module;
+	std::thread* thread_pointer;
+} SpineThread;
+
 class Spine : public Module {
 	private:
 		#if BOOST_OS_MACOS
@@ -35,7 +41,7 @@ class Spine : public Module {
 			#endif
 		#endif
 
-		std::vector<std::thread*> threads;
+		std::vector<SpineThread*> threads;
 		std::set<std::string> loadedModules;
 
 		bool isModuleFile(const std::string& filename);
