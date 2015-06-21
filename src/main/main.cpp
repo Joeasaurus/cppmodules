@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 	std::shared_ptr<spdlog::logger> logger = spdlog::stdout_logger_mt("Logger");
 	logger->debug("{}: {}", "Main", "Logger initialised");
 
-	// Open the spine and pass it out logger
+	// Open the spine and pass it our logger
 	Spine *spine = new Spine;
 	spine->setLogger(logger);
 

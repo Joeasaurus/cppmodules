@@ -174,17 +174,24 @@ bool Spine::run() {
 		// Our function here just sleeps for a bit
 		//  and then sends a close message to all modules ('Module' channel)
 		for (int count = 0;count<3;count++) {
+			this->pollAndProcess();
 			this->logger->info("{}: {}", this->name(), "Sleeping...");
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		}
-		// LEts make sure the close command works!
+		// Lets make sure the close command works!
 		this->logger->info("{}: {}", this->name(), "Closing 'Module'");
 		this->sendMessage(SocketType::PUB, "Module close");
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		this->logger->info("{}: {}", this->name(), "All modules closed");
 		return true;
 	} catch(...) {
+		this->logger->info("EXIT");
 		return false;
 	}
+}
+
+bool Spine::process_message(const std::string& message, const std::vector<std::string>& tokens) {
+	this->logger->info("{}: {}", this->name(), message);
+	return true;
 }
 

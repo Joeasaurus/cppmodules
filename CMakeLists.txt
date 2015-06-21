@@ -10,7 +10,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
 if (NOT CONFIGURED_ONCE)
-    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings}"
+    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -g"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
     set(CMAKE_C_FLAGS   "${warnings}"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
@@ -141,6 +141,7 @@ set(TEST_OUTPUT_DIRS
     RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests"
 )
 set(TEST_LINK_LIBRARIES
+    -lzmq
 )
 set(TEST_FILES
     ModuleTests
@@ -150,7 +151,7 @@ set(TEST_EXTRA_FILES
 )
 foreach(test ${TEST_FILES})
     createExtrasList(${test} EXTRA_FILES TEST_EXTRA_FILES)
-    add_executable(${test}
+    add_executable(${test} EXCLUDE_FROM_ALL
         src/tests/${test}.cpp
         ${${test}_EXTRA_FILES}
     )

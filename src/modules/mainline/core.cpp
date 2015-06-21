@@ -11,27 +11,17 @@ CoreModule::~CoreModule() {
 }
 
 bool CoreModule::run() {
-	try {
-		while (true) {
-			if (this->recvMessage<bool>(SocketType::PUB, [&](const std::string& messageText) {
-				if (!messageText.empty()) {
-					std::vector<std::string> messageTokens;
-					boost::split(messageTokens, messageText, boost::is_any_of(" "));
-					if (messageTokens.size() > 0) {
-						if (messageTokens.at(1) == "close") {
-							return true;
-						}
-					}
-				}
-				return false;
-			}, 500)) {
-				this->logger->debug("{}: {}", this->name(), "Closing...");
-				return true;
-			}
-		}
-	} catch(...) {
-		return false;
+	bool runAgain = true;
+	while (runAgain) {
+		runAgain = this->pollAndProcess();
 	}
+	return false;
+}
+
+
+bool CoreModule::process_message(const std::string& message, const std::vector<std::string>& tokens) {
+	this->logger->info("{}: {}", this->name(), message);
+	return true;
 }
 
 CoreModule* loadModule() {

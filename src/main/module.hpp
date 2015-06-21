@@ -19,9 +19,16 @@ typedef struct ModuleInfo {
 	std::string author = "mainline";
 } ModuleInfo;
 
-enum class MgmtCommands {
+enum class MgmtCommand {
 	REGISTER,
 	CLOSE
+};
+
+enum class CatchState {
+	NO_TOKENS,
+	CLOSE_HEARD,
+	NOT_FOR_ME,
+	FOR_ME
 };
 
 enum class SocketType {
@@ -43,6 +50,7 @@ class Module {
 	public:
 		virtual ~Module(){};
 		virtual bool run()=0;
+		virtual bool process_message(const std::string& message, const std::vector<std::string>& tokens)=0;
 		virtual std::string name() {
 			return this->__info.name;
 		};
@@ -146,7 +154,7 @@ class Module {
 			zmq::message_t message;
 			bool recvErr = false;
 
-			if (sockT == SocketType::PUB) {
+			if (sockT == SocketType::SUB || sockT == SocketType::PUB) {
 				pollSocketItems[0].socket = *this->inp_in;
 				pollSocket = this->inp_in;
 			} else if (sockT == SocketType::MGM_IN) {
@@ -168,6 +176,90 @@ class Module {
 
 			return callback(messageText);
 		};
+		template<typename retType>
+		retType recvMessage(zmq::socket_t* socket,
+						std::function<retType(const std::string&)> callback,
+						long timeout=1000
+		) {
+			std::string messageText;
+			zmq::message_t message;
+
+			if(socket->recv(&message)) {
+				messageText = std::string(static_cast<char*>(message.data()), message.size());
+			}
+
+			return callback(messageText);
+		};
+		CatchState catchCloseMessage(const std::string& message, const std::vector<std::string>& tokens) {
+			if (tokens.size() > 0) {
+				auto modName = tokens.at(0);
+				if (modName == "Module" || modName == this->name()) {
+					if (tokens.at(1) == "close") {
+						this->logger->debug("Close heard");
+						return CatchState::CLOSE_HEARD;
+					} else {
+						return CatchState::FOR_ME;
+					}
+				} else {
+					return CatchState::NOT_FOR_ME;
+				}
+			}
+			return CatchState::NO_TOKENS;
+		};
+		bool pollAndProcess(long timeout=1000) {
+			int pollSocketCount = 2;
+			zmq::pollitem_t pollSocketItems[] = {
+				{ *this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
+				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
+			};
+
+			if (zmq::poll(pollSocketItems, pollSocketCount, timeout) > 0) {
+				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
+					if(! this->recvMessage<bool>(this->inp_manage_in,
+						[&](const std::string& message) {
+							auto tokens = tokeniseString(message);
+							CatchState nextMove = this->catchCloseMessage(message, tokens);
+							if (nextMove == CatchState::FOR_ME) {
+								return this->process_message(message, tokens);
+							} else if (nextMove == CatchState::CLOSE_HEARD) {
+								return false;
+							}
+							return true;
+						}, 0)
+					) {
+						// should throw
+						return false;
+					};
+				}
+				if (pollSocketItems[1].revents & ZMQ_POLLIN) {
+					if(! this->recvMessage<bool>(this->inp_in,
+						[&](const std::string& message) {
+							auto tokens = tokeniseString(message);
+							CatchState nextMove = this->catchCloseMessage(message, tokens);
+							if (nextMove == CatchState::FOR_ME) {
+								return this->process_message(message, tokens);
+							} else if (nextMove == CatchState::CLOSE_HEARD) {
+								return false;
+							}
+							return true;
+						}, 0)
+					) {
+						//should throw
+						return false;
+					};
+				}
+			}
+			return true;
+		};
+		std::vector<std::string> tokeniseString(const std::string& message) {
+			std::vector<std::string> messageTokens;
+			if (!message.empty()) {
+				boost::split(messageTokens, message, boost::is_any_of(" "));
+ 			}
+
+			return messageTokens;
+		};
+
 };
 
 typedef Module* Module_loader(void);

@@ -53,6 +53,7 @@ class Spine : public Module {
 		Spine();
 		~Spine();
 		bool run();
+		bool process_message(const std::string& message, const std::vector<std::string>& tokens);
 		bool loadModules(const std::string& directory);
 		bool loadModule(const std::string& filename);
 		const std::string moduleFileLocation = "@MODULES_LOCATION@";
