@@ -156,6 +156,7 @@ bool Spine::loadModules(const std::string& directory) {
 	bool configLoaded = this->loadModule(configModule.string());
 	if (configLoaded) {
 		moduleFiles.erase(configModule.string());
+
 	} else {
 		return false;
 	}

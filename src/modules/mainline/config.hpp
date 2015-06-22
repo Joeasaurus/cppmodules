@@ -2,6 +2,7 @@
 // Common
 #include "main/module.hpp"
 // Module Specific
+#include <boost/filesystem.hpp>
 #include <libconfig.h++>
 
 class ConfigModule : public Module {

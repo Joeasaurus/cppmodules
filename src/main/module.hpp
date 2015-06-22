@@ -120,7 +120,7 @@ class Module {
 			memcpy(zmqObject.data(), message.data(), message.size());
 
 			try {
-				if (sockT == SocketType::PUB) {
+				if (sockT == SocketType::PUB || sockT == SocketType::SUB) {
 					sendErr = this->inp_out->send(zmqObject);
 				} else if (sockT == SocketType::MGM_IN) {
 					sendErr = this->inp_manage_in->send(zmqObject);
@@ -190,21 +190,28 @@ class Module {
 
 			return callback(messageText);
 		};
-		CatchState catchCloseMessage(const std::string& message, const std::vector<std::string>& tokens) {
-			if (tokens.size() > 0) {
-				auto modName = tokens.at(0);
-				if (modName == "Module" || modName == this->name()) {
-					if (tokens.at(1) == "close") {
-						this->logger->debug("Close heard");
-						return CatchState::CLOSE_HEARD;
-					} else {
-						return CatchState::FOR_ME;
+		bool catchCloseAndProcess(zmq::socket_t* socket) {
+			// Here we listen on the socket we're told to for close messages
+			// false will close us so we return that for a close message
+			// If the message is not a close but is for us,
+			//   we return the module's process_message
+			// Else just return true to keep running but not care for the message
+			return this->recvMessage<bool>(socket,
+				[&](const std::string& message) {
+					auto tokens = tokeniseString(message);
+					if (tokens.size() > 0) {
+						auto modName = tokens.at(0);
+						if (modName == "Module" || modName == this->name()) {
+							if (tokens.at(1) == "close") {
+								this->logger->debug("Close heard");
+								return false;
+							} else {
+								return this->process_message(message, tokens);
+							}
+						}
 					}
-				} else {
-					return CatchState::NOT_FOR_ME;
-				}
-			}
-			return CatchState::NO_TOKENS;
+					return true;
+				}, 0);
 		};
 		bool pollAndProcess(long timeout=1000) {
 			int pollSocketCount = 2;
@@ -215,38 +222,10 @@ class Module {
 
 			if (zmq::poll(pollSocketItems, pollSocketCount, timeout) > 0) {
 				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
-					if(! this->recvMessage<bool>(this->inp_manage_in,
-						[&](const std::string& message) {
-							auto tokens = tokeniseString(message);
-							CatchState nextMove = this->catchCloseMessage(message, tokens);
-							if (nextMove == CatchState::FOR_ME) {
-								return this->process_message(message, tokens);
-							} else if (nextMove == CatchState::CLOSE_HEARD) {
-								return false;
-							}
-							return true;
-						}, 0)
-					) {
-						// should throw
-						return false;
-					};
+					return this->catchCloseAndProcess(this->inp_manage_in);
 				}
 				if (pollSocketItems[1].revents & ZMQ_POLLIN) {
-					if(! this->recvMessage<bool>(this->inp_in,
-						[&](const std::string& message) {
-							auto tokens = tokeniseString(message);
-							CatchState nextMove = this->catchCloseMessage(message, tokens);
-							if (nextMove == CatchState::FOR_ME) {
-								return this->process_message(message, tokens);
-							} else if (nextMove == CatchState::CLOSE_HEARD) {
-								return false;
-							}
-							return true;
-						}, 0)
-					) {
-						//should throw
-						return false;
-					};
+					return this->catchCloseAndProcess(this->inp_in);
 				}
 			}
 			return true;

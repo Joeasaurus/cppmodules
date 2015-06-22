@@ -94,42 +94,64 @@ target_link_libraries(main
 set(MODULES
     "mainline\;core\;config"
 )
-set(mainline_EXTRA_FILES
+set(mainline_EXTRA_COMPILE_FILES
     "core\;"
     "config\;"
 )
 set(mainline_EXTRA_LINK_LIBRARIES
     "core\;"
-    "config\;-lconfig++"
+    "config\;config++\;boost_filesystem-mt\;boost_system-mt"
+)
+set(mainline_EXTRA_COPY_FILES
+    "core\;"
+    "config\;main.cfg"
 )
 
 foreach(group ${MODULES})
     list(GET group 0 MODULE_GROUP_NAME)
     createExtrasList(${MODULE_GROUP_NAME} GROUP_MODULES MODULES)
     foreach(module ${${MODULE_GROUP_NAME}_GROUP_MODULES})
-        createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_FILES
-                        ${MODULE_GROUP_NAME}_EXTRA_FILES
+        createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_COMPILE_FILES
+                        ${MODULE_GROUP_NAME}_EXTRA_COMPILE_FILES
         )
         createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_LINK_LIBRARIES
                         ${MODULE_GROUP_NAME}_EXTRA_LINK_LIBRARIES
         )
-        if(EXISTS "src/modules/${group}/${module}.hpp.in")
-            configure_file("src/modules/${group}/${module}.hpp.in"
+        createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_COPY_FILES
+                        ${MODULE_GROUP_NAME}_EXTRA_COPY_FILES
+        )
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/${group}/${module}.hpp.in")
+            configure_file("${CMAKE_CURRENT_SOURCE_DIR}/modules/${group}/${module}.hpp.in"
                         "${CMAKE_BINARY_DIR}/gen/modules/${group}/${module}.hpp"
             )
         endif()
     	add_library(${MODULE_GROUP_NAME}_${module} SHARED
-    		src/modules/${MODULE_GROUP_NAME}/${module}.cpp
-            ${${MODULE_GROUP_NAME}_${module}_EXTRA_FILES}
+    		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}/${module}.cpp
+            ${${MODULE_GROUP_NAME}_${module}_EXTRA_COMPILE_FILES}
     	)
     	set_target_properties(${MODULE_GROUP_NAME}_${module}
     	    PROPERTIES
-    	    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/modules/"
+    	    LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
     	)
      	target_link_libraries(${MODULE_GROUP_NAME}_${module}
             ${BOTH_LINK_LIBRARIES}
             ${${MODULE_GROUP_NAME}_${module}_EXTRA_LINK_LIBRARIES}
         )
+        foreach(file_to_copy ${${MODULE_GROUP_NAME}_${module}_EXTRA_COPY_FILES})
+                add_custom_command(
+                    OUTPUT ${OUTPUT_DIR}/modules/${file_to_copy}
+                    COMMAND ${CMAKE_COMMAND}
+                        -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}/${file_to_copy}
+                        ${OUTPUT_DIR}/modules/${file_to_copy}
+                    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}/${file_to_copy}
+                )
+                add_custom_target(${MODULE_GROUP_NAME}_${module}_${file_to_copy} ALL
+                    DEPENDS ${OUTPUT_DIR}/modules/${file_to_copy}
+                )
+                add_dependencies(${MODULE_GROUP_NAME}_${module}
+                    ${MODULE_GROUP_NAME}_${module}_${file_to_copy}
+                )
+        endforeach(file_to_copy)
     endforeach(module)
 endforeach(group)
 
@@ -146,14 +168,14 @@ set(TEST_LINK_LIBRARIES
 set(TEST_FILES
     ModuleTests
 )
-set(TEST_EXTRA_FILES
+set(TEST_EXTRA_COMPILE_FILES
     "ModuleTests\;"
 )
 foreach(test ${TEST_FILES})
-    createExtrasList(${test} EXTRA_FILES TEST_EXTRA_FILES)
+    createExtrasList(${test} EXTRA_FILES TEST_EXTRA_COMPILE_FILES)
     add_executable(${test} EXCLUDE_FROM_ALL
         src/tests/${test}.cpp
-        ${${test}_EXTRA_FILES}
+        ${${test}_EXTRA_COMPILE_FILES}
     )
     set_target_properties(${test}
         PROPERTIES

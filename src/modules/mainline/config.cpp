@@ -3,6 +3,8 @@
 ConfigModule::ConfigModule() {
 	this->__info.name   = "Config";
 	this->__info.author = "mainline";
+
+	this->loadConfigFile("./modules/main.cfg");
 }
 
 ConfigModule::~ConfigModule() {
@@ -11,15 +13,19 @@ ConfigModule::~ConfigModule() {
 }
 
 bool ConfigModule::loadConfigFile(std::string filepath) {
-	try {
-		this->config.readFile(filepath.c_str());
-		return true;
-	} catch(const libconfig::FileIOException &fioex) {
-		this->logger->debug("{}: {}", this->name(), "Error: I/O error while reading " + filepath);
-		return false;
-	} catch(const libconfig::ParseException &pex) {
-		this->logger->debug() << "{}: {}" << this->name() << "Error: Parse failed at " <<
-			pex.getFile() << ":" << pex.getLine() << " - " << pex.getError();
+	if (boost::filesystem::is_regular_file(filepath)) {
+		try {
+			this->config.readFile(filepath.c_str());
+			return true;
+		} catch(const libconfig::FileIOException &fioex) {
+			this->logger->debug("{}: {}", this->name(), "Error: I/O error while reading " + filepath);
+			return false;
+		} catch(const libconfig::ParseException &pex) {
+			this->logger->debug() << "{}: {}" << this->name() << "Error: Parse failed at " <<
+				pex.getFile() << ":" << pex.getLine() << " - " << pex.getError();
+			return false;
+		}
+	} else {
 		return false;
 	}
 }
