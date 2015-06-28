@@ -52,7 +52,7 @@ class Spine : public Module {
 		Spine();
 		~Spine();
 		bool run();
-		bool process_message(const json::value& message);
+		bool process_message(const json::value& message, CatchState cought);
 		bool loadModules(const std::string& directory);
 		bool loadModule(const std::string& filename);
 		bool loadConfig(std::string location);

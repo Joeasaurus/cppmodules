@@ -19,8 +19,8 @@ bool CoreModule::run() {
 }
 
 
-bool CoreModule::process_message(const json::value& message) {
-	//this->logger->info("{}: {}", this->name(), message);
+bool CoreModule::process_message(const json::value& message, CatchState cought) {
+	this->logger->debug("{}: {}", this->name(), stringify(message));
 	return true;
 }
 

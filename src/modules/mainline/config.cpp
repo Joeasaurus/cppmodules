@@ -3,8 +3,6 @@
 ConfigModule::ConfigModule() {
 	this->__info.name   = "Config";
 	this->__info.author = "mainline";
-
-	this->loadConfigFile("./modules/main.cfg");
 }
 
 ConfigModule::~ConfigModule() {
@@ -16,6 +14,7 @@ bool ConfigModule::loadConfigFile(std::string filepath) {
 	if (boost::filesystem::is_regular_file(filepath)) {
 		try {
 			this->config.readFile(filepath.c_str());
+			this->logger->debug("{}: {}", this->name(), "Config " + filepath + " loaded!");
 			return true;
 		} catch(const libconfig::FileIOException &fioex) {
 			this->logger->debug("{}: {}", this->name(), "Error: I/O error while reading " + filepath);
@@ -38,8 +37,15 @@ bool ConfigModule::run() {
 	return false;
 }
 
-bool ConfigModule::process_message(const json::value& message) {
-	//this->logger->info("{}: {}", this->name(), message);
+bool ConfigModule::process_message(const json::value& message, CatchState cought) {
+	this->logger->debug("{}: {}", this->name(), stringify(message));
+	auto messageData = to_string(message["data"]);
+	if (cought == CatchState::FOR_ME) {
+		std::smatch matches;
+		if (std::regex_search(messageData, matches, std::regex("^load (.*)$"))) {
+			this->loadConfigFile(matches[1]);
+		}
+	}
 	return true;
 }
 

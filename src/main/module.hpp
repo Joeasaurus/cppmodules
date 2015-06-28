@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <regex>
 
 #include <thread>
 #include <chrono>
@@ -55,7 +56,7 @@ class Module {
 	public:
 		virtual ~Module(){};
 		virtual bool run()=0;
-		virtual bool process_message(const json::value& message)=0;
+		virtual bool process_message(const json::value& message, CatchState cought)=0;
 		virtual std::string name() {
 			return this->__info.name;
 		};
@@ -207,7 +208,7 @@ class Module {
 			// tokeniseString needs replacing with something that will only grab the module name
 			std::vector<std::string> jsonMsg = tokeniseString(messageText);
 			jsonMsg.erase(jsonMsg.begin());
-			return callback(json::parse(boost::algorithm::join(jsonMsg, "")));
+			return callback(json::parse(boost::algorithm::join(jsonMsg, " ")));
 		};
 		bool catchCloseAndProcess(zmq::socket_t* socket) {
 			// Here we listen on the socket we're told to for close messages
@@ -217,16 +218,18 @@ class Module {
 			// Else just return true to keep running but not care for the message
 			return this->recvMessage<bool>(socket,
 				[&](const json::value& message) {
+					CatchState cought = CatchState::NOT_FOR_ME;
 					// this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
 					if (to_string(message["source"]) == "Spine" &&
 						(to_string(message["destination"]) == "Modules" ||
 						 to_string(message["destination"]) == this->name()
 					)) {
+						cought = CatchState::FOR_ME;
 						if (to_string(message["data"]) == "close") {
 							return false;
 						}
 					}
-					return this->process_message(message);
+					return this->process_message(message, cought);
 				});
 		};
 		bool pollAndProcess(long timeout=1000) {
