@@ -14,8 +14,7 @@ Spine::~Spine() {
 	// It then waits for the module to join. It relies on the module closing
 	//  cleanly else it will lock up waiting.
 	for (auto& modName : this->loadedModules) {
-		closeMessage = modName + " close";
-		this->sendMessage(SocketType::PUB, closeMessage);
+		this->sendMessage(SocketType::PUB, modName, "close");
 		this->logger->debug("{}: {}", this->name(), "Joining " + modName);
 		this->threads.at(position)->thread_pointer->join();
 		this->logger->debug("{}: {}", this->name(), "Joined");
@@ -122,13 +121,14 @@ bool Spine::loadModule(const std::string& filename) {
 	// Here we set the module to subscribe to it's name on it's subscriber socket
 	// Then configure the module to connect it's publish output to the Spine input
 	//  and it's mgmt output too
-	spineModule.module->subscribe("Module");
+	spineModule.module->subscribe("Modules");
 	spineModule.module->subscribe(moduleName);
 	spineModule.module->notify(SocketType::PUB, "Spine");
 	spineModule.module->notify(SocketType::MGM_OUT, "Spine");
 	this->logger->debug("{}: {}", this->name(), "Sockets Registered for: " + moduleName + "!");
 
 	this->notify(SocketType::PUB, moduleName);
+	this->notify(SocketType::MGM_OUT, moduleName);
 	this->loadedModules.insert(moduleName);
 	this->logger->info("{}: {}", this->name(), "Registered module: " + moduleName + "!");
 
@@ -170,6 +170,11 @@ bool Spine::loadModules(const std::string& directory) {
 	return true;
 }
 
+bool Spine::loadConfig(std::string location) {
+	this->sendMessage(SocketType::MGM_OUT, "Config", "load " + location);
+	return true;
+}
+
 bool Spine::run() {
 	try {
 		// Our function here just sleeps for a bit
@@ -180,8 +185,8 @@ bool Spine::run() {
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		}
 		// Lets make sure the close command works!
-		this->logger->info("{}: {}", this->name(), "Closing 'Module'");
-		this->sendMessage(SocketType::PUB, "Module close");
+		this->logger->info("{}: {}", this->name(), "Closing 'Modules'");
+		this->sendMessage(SocketType::PUB, "Modules", "close");
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		this->logger->info("{}: {}", this->name(), "All modules closed");
 		return true;
@@ -191,8 +196,8 @@ bool Spine::run() {
 	}
 }
 
-bool Spine::process_message(const std::string& message, const std::vector<std::string>& tokens) {
-	this->logger->info("{}: {}", this->name(), message);
+bool Spine::process_message(const json::value& message) {
+	//this->logger->info("{}: {}", this->name(), message);
 	return true;
 }
 

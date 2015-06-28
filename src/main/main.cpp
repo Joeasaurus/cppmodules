@@ -2,6 +2,7 @@
 #include "main/spine.hpp"
 
 #include "lib/spdlog/spdlog.h"
+#include "lib/cpp-json/json.h"
 
 int main(int argc, char **argv) {
 	// Configure the global logger
@@ -40,6 +41,7 @@ int main(int argc, char **argv) {
 
 	// Load all the modules we wrote
 	spine->loadModules(spine->moduleFileLocation);
+	//spine->loadConfig("./modules/main.cfg");
 	logger->debug("{}: {}", "Main", "Running spine");
 	bool spineReturn = spine->run();
 

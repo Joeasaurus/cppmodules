@@ -38,8 +38,8 @@ bool ConfigModule::run() {
 	return false;
 }
 
-bool ConfigModule::process_message(const std::string& message, const std::vector<std::string>& tokens) {
-	this->logger->info("{}: {}", this->name(), message);
+bool ConfigModule::process_message(const json::value& message) {
+	//this->logger->info("{}: {}", this->name(), message);
 	return true;
 }
 

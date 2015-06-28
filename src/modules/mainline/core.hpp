@@ -8,7 +8,7 @@ class CoreModule : public Module {
 		CoreModule();
 		~CoreModule();
 		bool run();
-		bool process_message(const std::string& message, const std::vector<std::string>& tokens);
+		bool process_message(const json::value& message);
 };
 
 // Init/Del functions.

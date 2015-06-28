@@ -14,7 +14,6 @@
 
 #include <dlfcn.h>
 
-
 // A little struct to hold pointers relevant to a module.
 typedef struct SpineModule {
 	void* module_so;
@@ -53,8 +52,9 @@ class Spine : public Module {
 		Spine();
 		~Spine();
 		bool run();
-		bool process_message(const std::string& message, const std::vector<std::string>& tokens);
+		bool process_message(const json::value& message);
 		bool loadModules(const std::string& directory);
 		bool loadModule(const std::string& filename);
+		bool loadConfig(std::string location);
 		const std::string moduleFileLocation = "@MODULES_LOCATION@";
 };

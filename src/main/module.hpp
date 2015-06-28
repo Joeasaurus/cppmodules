@@ -11,13 +11,18 @@
 
 #include <zmq.hpp>
 #include <boost/algorithm/string.hpp>
-// Module Specific
+
 #include "lib/spdlog/spdlog.h"
+#include "lib/cpp-json/json.h"
 
 typedef struct ModuleInfo {
 	std::string name = "undefined module";
 	std::string author = "mainline";
 } ModuleInfo;
+
+typedef struct M_Message {
+	json::object message;
+} M_Message;
 
 enum class MgmtCommand {
 	REGISTER,
@@ -50,7 +55,7 @@ class Module {
 	public:
 		virtual ~Module(){};
 		virtual bool run()=0;
-		virtual bool process_message(const std::string& message, const std::vector<std::string>& tokens)=0;
+		virtual bool process_message(const json::value& message)=0;
 		virtual std::string name() {
 			return this->__info.name;
 		};
@@ -113,11 +118,23 @@ class Module {
 				std::cout << e.what() << std::endl;
 			}
 		};
-		bool sendMessage(SocketType sockT, std::string message) {
+		M_Message newMessage(std::string destination, std::string data) {
+			return M_Message{
+				json::object{
+					{ "source", this->name() },
+					{ "destination", destination },
+					{ "data",  data }
+				}
+			};
+		};
+		bool sendMessage(SocketType sockT, std::string destination, std::string msg) {
 			bool sendErr = false;
 
-			zmq::message_t zmqObject(message.size());
-			memcpy(zmqObject.data(), message.data(), message.size());
+			M_Message message = newMessage(destination, msg);
+			std::string message_string = destination + " " + json::stringify(message.message);
+
+			zmq::message_t zmqObject(message_string.length());
+			memcpy(zmqObject.data(), message_string.data(), message_string.length());
 
 			try {
 				if (sockT == SocketType::PUB || sockT == SocketType::SUB) {
@@ -133,16 +150,9 @@ class Module {
 
 			return sendErr;
 		};
-		std::string recvMessage(SocketType sockT, long timeout=1000) {
-			return this->recvMessage<std::string>(sockT,
-				[](const std::string& message) {
-					return message;
-				}, timeout
-			);
-		};
 		template<typename retType>
 		retType recvMessage(SocketType sockT,
-							std::function<retType(const std::string&)> callback,
+							std::function<retType(const json::value&)> callback,
 							long timeout=1000
 		) {
 			std::string messageText;
@@ -174,12 +184,16 @@ class Module {
 				messageText = std::string(static_cast<char*>(message.data()), message.size());
 			}
 
-			return callback(messageText);
+			// I know this is silly, we can't rely on pretty print because values are arbitray
+			//  and may have spaces.
+			// tokeniseString needs replacing with something that will only grab the module name
+			std::vector<std::string> jsonMsg = tokeniseString(messageText);
+			jsonMsg.erase(jsonMsg.begin());
+			return callback(json::parse(boost::algorithm::join(jsonMsg, "")));
 		};
 		template<typename retType>
 		retType recvMessage(zmq::socket_t* socket,
-						std::function<retType(const std::string&)> callback,
-						long timeout=1000
+						std::function<retType(const json::value&)> callback
 		) {
 			std::string messageText;
 			zmq::message_t message;
@@ -188,7 +202,12 @@ class Module {
 				messageText = std::string(static_cast<char*>(message.data()), message.size());
 			}
 
-			return callback(messageText);
+			// I know this is silly, we can't rely on pretty print because values are arbitray
+			//  and may have spaces.
+			// tokeniseString needs replacing with something that will only grab the module name
+			std::vector<std::string> jsonMsg = tokeniseString(messageText);
+			jsonMsg.erase(jsonMsg.begin());
+			return callback(json::parse(boost::algorithm::join(jsonMsg, "")));
 		};
 		bool catchCloseAndProcess(zmq::socket_t* socket) {
 			// Here we listen on the socket we're told to for close messages
@@ -197,21 +216,18 @@ class Module {
 			//   we return the module's process_message
 			// Else just return true to keep running but not care for the message
 			return this->recvMessage<bool>(socket,
-				[&](const std::string& message) {
-					auto tokens = tokeniseString(message);
-					if (tokens.size() > 0) {
-						auto modName = tokens.at(0);
-						if (modName == "Module" || modName == this->name()) {
-							if (tokens.at(1) == "close") {
-								this->logger->debug("Close heard");
-								return false;
-							} else {
-								return this->process_message(message, tokens);
-							}
+				[&](const json::value& message) {
+					// this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
+					if (to_string(message["source"]) == "Spine" &&
+						(to_string(message["destination"]) == "Modules" ||
+						 to_string(message["destination"]) == this->name()
+					)) {
+						if (to_string(message["data"]) == "close") {
+							return false;
 						}
 					}
-					return true;
-				}, 0);
+					return this->process_message(message);
+				});
 		};
 		bool pollAndProcess(long timeout=1000) {
 			int pollSocketCount = 2;

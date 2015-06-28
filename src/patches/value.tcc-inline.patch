@@ -1,0 +1,35 @@
+--- ../lib/cpp-json/value.tcc	2015-06-28 15:03:55.000000000 +0100
++++ value_inline.tcc	2015-06-28 15:05:11.000000000 +0100
+@@ -212,28 +212,28 @@
+ //------------------------------------------------------------------------------
+ // Name: as_object
+ //------------------------------------------------------------------------------
+-const object &value::as_object() const {
++inline const object &value::as_object() const {
+ 	return *boost::get<object_pointer>(value_);
+ }
+ 
+ //------------------------------------------------------------------------------
+ // Name: as_object
+ //------------------------------------------------------------------------------
+-object &value::as_object() {
++inline object &value::as_object() {
+ 	return *boost::get<object_pointer>(value_);
+ }
+ 
+ //------------------------------------------------------------------------------
+ // Name: as_array
+ //------------------------------------------------------------------------------
+-const array &value::as_array() const {
++inline const array &value::as_array() const {
+ 	return *boost::get<array_pointer>(value_);
+ }
+ 
+ //------------------------------------------------------------------------------
+ // Name: as_array
+ //------------------------------------------------------------------------------
+-array &value::as_array() {
++inline array &value::as_array() {
+ 	return *boost::get<array_pointer>(value_);
+ }
+ 

@@ -1,0 +1,13 @@
+{
+	"source": "Spine",
+	"destination": "Module",
+	"data": [0,1,2]
+}
+
+Spine ------
+EndPoints:
+	- Modules: All Modules
+	- <name>: Module named <name>
+Out:
+	- Close: "<Module Name> close"
+	- Load Config: "Config load <location>"
