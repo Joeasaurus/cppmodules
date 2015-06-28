@@ -39,11 +39,13 @@ bool ConfigModule::run() {
 
 bool ConfigModule::process_message(const json::value& message, CatchState cought) {
 	this->logger->debug("{}: {}", this->name(), stringify(message));
-	auto messageData = to_string(message["data"]);
 	if (cought == CatchState::FOR_ME) {
-		std::smatch matches;
-		if (std::regex_search(messageData, matches, std::regex("^load (.*)$"))) {
-			this->loadConfigFile(matches[1]);
+		if (json::has_key(message["data"], "command")) {
+			if (to_string(message["data"]["command"]) == "load" &&
+				json::has_key(message["data"], "file")
+			) {
+				this->loadConfigFile(to_string(message["data"]["file"]));
+			}
 		}
 	}
 	return true;

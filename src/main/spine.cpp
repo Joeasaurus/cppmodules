@@ -14,7 +14,9 @@ Spine::~Spine() {
 	// It then waits for the module to join. It relies on the module closing
 	//  cleanly else it will lock up waiting.
 	for (auto& modName : this->loadedModules) {
-		this->sendMessage(SocketType::PUB, modName, "close");
+		this->sendMessage(SocketType::PUB, modName, json::object{
+			{ "command", "close" }
+		});
 		this->logger->debug("{}: {}", this->name(), "Joining " + modName);
 		this->threads.at(position)->thread_pointer->join();
 		this->logger->debug("{}: {}", this->name(), "Joined");
@@ -171,7 +173,10 @@ bool Spine::loadModules(const std::string& directory) {
 }
 
 bool Spine::loadConfig(std::string location) {
-	this->sendMessage(SocketType::MGM_OUT, "Config", "load " + location);
+	this->sendMessage(SocketType::MGM_OUT, "Config", json::object{
+		{ "command", "load" },
+		{ "file", location }
+	});
 	return true;
 }
 
@@ -186,7 +191,9 @@ bool Spine::run() {
 		}
 		// Lets make sure the close command works!
 		this->logger->info("{}: {}", this->name(), "Closing 'Modules'");
-		this->sendMessage(SocketType::PUB, "Modules", "close");
+		this->sendMessage(SocketType::PUB, "Modules", json::object{
+			{ "command", "close" }
+		});
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		this->logger->info("{}: {}", this->name(), "All modules closed");
 		return true;

@@ -119,7 +119,7 @@ class Module {
 				std::cout << e.what() << std::endl;
 			}
 		};
-		M_Message newMessage(std::string destination, std::string data) {
+		M_Message newMessage(std::string destination, json::object data) {
 			return M_Message{
 				json::object{
 					{ "source", this->name() },
@@ -128,7 +128,7 @@ class Module {
 				}
 			};
 		};
-		bool sendMessage(SocketType sockT, std::string destination, std::string msg) {
+		bool sendMessage(SocketType sockT, std::string destination, json::object msg) {
 			bool sendErr = false;
 
 			M_Message message = newMessage(destination, msg);
@@ -150,7 +150,7 @@ class Module {
 			}
 
 			return sendErr;
-		};
+		}
 		template<typename retType>
 		retType recvMessage(SocketType sockT,
 							std::function<retType(const json::value&)> callback,
@@ -225,8 +225,10 @@ class Module {
 						 to_string(message["destination"]) == this->name()
 					)) {
 						cought = CatchState::FOR_ME;
-						if (to_string(message["data"]) == "close") {
-							return false;
+						if (json::has_key(message["data"], "command")) {
+							if (to_string(message["data"]["command"]) == "close") {
+								return false;
+							}
 						}
 					}
 					return this->process_message(message, cought);
