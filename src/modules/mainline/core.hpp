@@ -8,7 +8,7 @@ class CoreModule : public Module {
 		CoreModule();
 		~CoreModule();
 		bool run();
-		bool process_message(const json::value& message, CatchState cought);
+		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
 };
 
 // Init/Del functions.

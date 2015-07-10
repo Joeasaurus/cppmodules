@@ -18,8 +18,10 @@ Spine::~Spine() {
 			{ "command", "close" }
 		});
 		this->logger->debug("{}: {}", this->name(), "Joining " + modName);
-		this->threads.at(position)->thread_pointer->join();
-		this->logger->debug("{}: {}", this->name(), "Joined");
+		if (this->threads.at(position)->thread_pointer->joinable()) {
+			this->threads.at(position)->thread_pointer->join();
+			this->logger->debug("{}: {}", this->name(), "Joined");
+		}
 		this->threads.at(position)->module.unloadModule(this->threads.at(position)->module.module);
 		if (dlclose(this->threads.at(position)->module.module_so) != 0) {
 			this->logger->error("{}: {}", this->name(), "Could not dlclose module file");
@@ -137,7 +139,6 @@ bool Spine::loadModule(const std::string& filename) {
 	spineThread->thread_pointer = new std::thread([&spineModule] () {
 		spineModule.module->run();
 	});
-
 	spineThread->module = spineModule;
 	this->threads.push_back(spineThread);
 
@@ -158,7 +159,6 @@ bool Spine::loadModules(const std::string& directory) {
 	bool configLoaded = this->loadModule(configModule.string());
 	if (configLoaded) {
 		moduleFiles.erase(configModule.string());
-
 	} else {
 		return false;
 	}
@@ -173,11 +173,28 @@ bool Spine::loadModules(const std::string& directory) {
 }
 
 bool Spine::loadConfig(std::string location) {
-	this->sendMessage(SocketType::MGM_OUT, "Config", json::object{
+	std::string confMod = "Config";
+	this->sendMessage(SocketType::MGM_OUT, confMod, json::object{
 		{ "command", "load" },
 		{ "file", location }
 	});
-	return true;
+	// Wait 5 secs for config to load!
+	return this->recvMessage<bool>(SocketType::MGM_OUT,
+		[&](const json::value& message) {
+			if (json::has_key(message, "source") &&
+				json::has_key(message, "destination") &&
+				json::has_key(message["data"], "configLoaded")
+			) {
+				if (to_string(message["source"]) == confMod &&
+					to_string(message["destination"]) == this->name()
+				) {
+					if (to_string(message["data"]["configLoaded"]) == "true") {
+						return true;
+					}
+				}
+			}
+			return false;
+		}, 5000);
 }
 
 bool Spine::run() {
@@ -203,7 +220,7 @@ bool Spine::run() {
 	}
 }
 
-bool Spine::process_message(const json::value& message, CatchState cought) {
+bool Spine::process_message(const json::value& message, CatchState cought, SocketType sockT) {
 	this->logger->debug("{}: {}", this->name(), stringify(message));
 	return true;
 }

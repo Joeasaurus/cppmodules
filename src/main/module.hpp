@@ -56,7 +56,7 @@ class Module {
 	public:
 		virtual ~Module(){};
 		virtual bool run()=0;
-		virtual bool process_message(const json::value& message, CatchState cought)=0;
+		virtual bool process_message(const json::value& message, CatchState cought, SocketType sockT)=0;
 		virtual std::string name() {
 			return this->__info.name;
 		};
@@ -156,14 +156,13 @@ class Module {
 							std::function<retType(const json::value&)> callback,
 							long timeout=1000
 		) {
-			std::string messageText;
+			std::string messageText("{}");
 
 			zmq::socket_t* pollSocket;
 			zmq::pollitem_t pollSocketItems[1];
 			pollSocketItems[0].events = ZMQ_POLLIN;
 
 			zmq::message_t message;
-			bool recvErr = false;
 
 			if (sockT == SocketType::SUB || sockT == SocketType::PUB) {
 				pollSocketItems[0].socket = *this->inp_in;
@@ -176,27 +175,31 @@ class Module {
 				pollSocket = this->inp_manage_out;
 			}
 
-			int data = zmq::poll(pollSocketItems, 1, timeout);
-			if (data > 0) {
-				recvErr = pollSocket->recv(&message);
+			try {
+				int data = zmq::poll(pollSocketItems, 1, timeout);
+				if (data > 0) {
+					if(pollSocket->recv(&message)) {
+						messageText = std::string(static_cast<char*>(message.data()), message.size());
+					}
+				}
+			} catch (const zmq::error_t &e) {
+				std::cout << e.what() << std::endl;
 			}
-
-			if(recvErr) {
-				messageText = std::string(static_cast<char*>(message.data()), message.size());
-			}
-
 			// I know this is silly, we can't rely on pretty print because values are arbitray
 			//  and may have spaces.
 			// tokeniseString needs replacing with something that will only grab the module name
-			std::vector<std::string> jsonMsg = tokeniseString(messageText);
-			jsonMsg.erase(jsonMsg.begin());
-			return callback(json::parse(boost::algorithm::join(jsonMsg, "")));
+			if (messageText != "{}" && messageText != "") {
+				std::vector<std::string> jsonMsg = tokeniseString(messageText);
+				jsonMsg.erase(jsonMsg.begin());
+				messageText = boost::algorithm::join(jsonMsg, " ");
+			}
+			return callback(json::parse(messageText));
 		};
 		template<typename retType>
 		retType recvMessage(zmq::socket_t* socket,
 						std::function<retType(const json::value&)> callback
 		) {
-			std::string messageText;
+			std::string messageText("{}");
 			zmq::message_t message;
 
 			if(socket->recv(&message)) {
@@ -206,11 +209,14 @@ class Module {
 			// I know this is silly, we can't rely on pretty print because values are arbitray
 			//  and may have spaces.
 			// tokeniseString needs replacing with something that will only grab the module name
-			std::vector<std::string> jsonMsg = tokeniseString(messageText);
-			jsonMsg.erase(jsonMsg.begin());
-			return callback(json::parse(boost::algorithm::join(jsonMsg, " ")));
+			if (messageText != "{}" && messageText != "") {
+				std::vector<std::string> jsonMsg = tokeniseString(messageText);
+				jsonMsg.erase(jsonMsg.begin());
+				messageText = boost::algorithm::join(jsonMsg, " ");
+			}
+			return callback(json::parse(messageText));
 		};
-		bool catchCloseAndProcess(zmq::socket_t* socket) {
+		bool catchCloseAndProcess(zmq::socket_t* socket, SocketType sockT) {
 			// Here we listen on the socket we're told to for close messages
 			// false will close us so we return that for a close message
 			// If the message is not a close but is for us,
@@ -221,8 +227,8 @@ class Module {
 					CatchState cought = CatchState::NOT_FOR_ME;
 					// this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
 					if (to_string(message["source"]) == "Spine" &&
-						(to_string(message["destination"]) == "Modules" ||
-						 to_string(message["destination"]) == this->name()
+					   (to_string(message["destination"]) == "Modules" ||
+						to_string(message["destination"]) == this->name()
 					)) {
 						cought = CatchState::FOR_ME;
 						if (json::has_key(message["data"], "command")) {
@@ -231,7 +237,7 @@ class Module {
 							}
 						}
 					}
-					return this->process_message(message, cought);
+					return this->process_message(message, cought, sockT);
 				});
 		};
 		bool pollAndProcess(long timeout=1000) {
@@ -243,10 +249,10 @@ class Module {
 
 			if (zmq::poll(pollSocketItems, pollSocketCount, timeout) > 0) {
 				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
-					return this->catchCloseAndProcess(this->inp_manage_in);
+					return this->catchCloseAndProcess(this->inp_manage_in, SocketType::MGM_IN);
 				}
 				if (pollSocketItems[1].revents & ZMQ_POLLIN) {
-					return this->catchCloseAndProcess(this->inp_in);
+					return this->catchCloseAndProcess(this->inp_in, SocketType::SUB);
 				}
 			}
 			return true;

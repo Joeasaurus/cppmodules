@@ -41,9 +41,13 @@ int main(int argc, char **argv) {
 
 	// Load all the modules we wrote
 	spine->loadModules(spine->moduleFileLocation);
-	spine->loadConfig("./modules/main.cfg");
-	logger->debug("{}: {}", "Main", "Running spine");
-	bool spineReturn = spine->run();
+	bool spineReturn = spine->loadConfig("./modules/main.cfg");
+	if (spineReturn) {
+		logger->debug("{}: {}", "Main", "Running spine");
+		spineReturn = spine->run();
+	} else {
+		logger->warn("{}: {}", "Main", "Config failed to load, shutting down");
+	}
 
 	delete spine;
 	return spineReturn ? 0 : 1;

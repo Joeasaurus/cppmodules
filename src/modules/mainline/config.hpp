@@ -10,7 +10,7 @@ class ConfigModule : public Module {
 		ConfigModule();
 		~ConfigModule();
 		bool run();
-		bool process_message(const json::value& message, CatchState cought);
+		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
 
 		bool loadConfigFile(std::string filepath);
 	private:

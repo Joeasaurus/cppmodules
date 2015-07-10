@@ -31,20 +31,26 @@ bool ConfigModule::loadConfigFile(std::string filepath) {
 
 bool ConfigModule::run() {
 	bool runAgain = true;
-	while (runAgain) {
-		runAgain = this->pollAndProcess();
-	}
+	// while (runAgain) {
+	// 	runAgain = this->pollAndProcess();
+	// }
 	return false;
 }
 
-bool ConfigModule::process_message(const json::value& message, CatchState cought) {
-	this->logger->debug("{}: {}", this->name(), stringify(message));
+bool ConfigModule::process_message(const json::value& message, CatchState cought, SocketType sockT) {
+	this->logger->debug("{}: {}", this->name(), json::stringify(message));
 	if (cought == CatchState::FOR_ME) {
-		if (json::has_key(message["data"], "command")) {
-			if (to_string(message["data"]["command"]) == "load" &&
+		if (sockT == SocketType::MGM_IN && json::has_key(message["data"], "command")) {
+			if (json::to_string(message["data"]["command"]) == "load" &&
 				json::has_key(message["data"], "file")
 			) {
-				this->loadConfigFile(to_string(message["data"]["file"]));
+				json::object msg{
+					{ "configLoaded", "false" }
+				};
+				if (this->loadConfigFile(json::to_string(message["data"]["file"]))) {
+					msg["configLoaded"] = "true";
+				}
+				this->sendMessage(SocketType::MGM_IN, "Spine", msg);
 			}
 		}
 	}

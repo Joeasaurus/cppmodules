@@ -19,7 +19,7 @@ bool CoreModule::run() {
 }
 
 
-bool CoreModule::process_message(const json::value& message, CatchState cought) {
+bool CoreModule::process_message(const json::value& message, CatchState cought, SocketType sockT) {
 	this->logger->debug("{}: {}", this->name(), stringify(message));
 	return true;
 }
