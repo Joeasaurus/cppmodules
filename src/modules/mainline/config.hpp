@@ -15,6 +15,7 @@ class ConfigModule : public Module {
 		bool loadConfigFile(std::string filepath);
 	private:
 		libconfig::Config config;
+		std::string configFilepath;
 };
 
 // Init/Del functions.

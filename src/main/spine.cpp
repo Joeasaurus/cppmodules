@@ -100,16 +100,16 @@ bool Spine::loadModule(const std::string& filename) {
 	//  and a chain-building pair of Pub and Sub sockets for message passing.
 	// Now we run it's run() function in a new thread and push that on to our list.
 	if (! this->openModuleFile(filename, spineModule)) {
-		this->logger->error("{}: {}", this->name(), "Failiure " + filename + "..");
+		this->logger->error("{}: {}", this->name(), "Failiure " + boost::filesystem::basename(filename) + "..");
 		delete spineThread;
 		return false;
 	}
-	this->logger->debug("{}: {}", this->name(), "Opened file " + filename + "..");
+	this->logger->debug("{}: {}", this->name(), "Opened file " + boost::filesystem::basename(filename) + "..");
 
 	int failure = 0;
 	failure = this->resolveModuleFunctions(spineModule);
 	if (failure != 0) {
-		this->logger->error("{}: {}", this->name(), "Failiure " + filename + "..");
+		this->logger->error("{}: {}", this->name(), "Failiure " + boost::filesystem::basename(filename) + "..");
 		delete spineThread;
 		return false;
 	}
@@ -174,27 +174,24 @@ bool Spine::loadModules(const std::string& directory) {
 
 bool Spine::loadConfig(std::string location) {
 	std::string confMod = "Config";
-	this->sendMessage(SocketType::MGM_OUT, confMod, json::object{
+	return this->sendMessageRecv(SocketType::MGM_OUT, confMod, json::object{
 		{ "command", "load" },
 		{ "file", location }
-	});
-	// Wait 5 secs for config to load!
-	return this->recvMessage<bool>(SocketType::MGM_OUT,
-		[&](const json::value& message) {
-			if (json::has_key(message, "source") &&
-				json::has_key(message, "destination") &&
-				json::has_key(message["data"], "configLoaded")
+	}, [&](const json::value& message) -> bool{
+		if (json::has_key(message, "source") &&
+			json::has_key(message, "destination") &&
+			json::has_key(message["data"], "configLoaded")
+		) {
+			if (to_string(message["source"]) == confMod &&
+				to_string(message["destination"]) == this->name()
 			) {
-				if (to_string(message["source"]) == confMod &&
-					to_string(message["destination"]) == this->name()
-				) {
-					if (to_string(message["data"]["configLoaded"]) == "true") {
-						return true;
-					}
+				if (to_string(message["data"]["configLoaded"]) == "true") {
+					return true;
 				}
 			}
-			return false;
-		}, 5000);
+		};
+		return false;
+	});
 }
 
 bool Spine::run() {

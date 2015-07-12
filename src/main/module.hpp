@@ -155,7 +155,7 @@ class Module {
 				} else if (sockT == SocketType::MGM_OUT) {
 					this->logger->warn("{}: {}", this->name(),
 						"Module::sendMessage with SocketType::MGM_OUT called, but was missing a callback!");
-					this->logger->warn("{}: {}", this->name(), "Message not sent!!");
+					sendOk = this->inp_manage_out->send(zmqObject);
 				}
 			} catch (const zmq::error_t &e) {
 				std::cout << e.what() << std::endl;
@@ -163,7 +163,7 @@ class Module {
 
 			return sendOk;
 		};
-		bool sendMessage(SocketType sockT, std::string destination,
+		bool sendMessageRecv(SocketType sockT, std::string destination,
 						 json::object msg, std::function<bool(const json::value&)> callback)
 		{
 			bool sendOk = false;
@@ -171,12 +171,16 @@ class Module {
 				sockT == SocketType::MGM_IN
 			) {
 				this->logger->warn("{}: {}", this->name(),
-					"Module::sendMessage called with extraneous callback. Only SocketType::MGM_OUT is supported.");
-				sendOk = sendMessage(sockT, destination, msg);
+					"Module::sendMessageRecv called with extraneous callback. Only SocketType::MGM_OUT is supported.");
+				sendOk = this->sendMessage(sockT, destination, msg);
 			} else if (sockT == SocketType::MGM_OUT)
 			{
 				if (this->sendMessage(sockT, destination, msg)) {
-					sendOk = this->recvMessage(SocketType::MGM_OUT, callback, 5000);
+					sendOk = this->recvMessage<bool>(SocketType::MGM_OUT,
+						[&](const json::value& message)
+					{
+						return callback(message);
+					}, 5000);
 				} else {
 					sendOk = false;
 				}
@@ -274,7 +278,7 @@ class Module {
 					return this->process_message(message, cought, sockT);
 				});
 		};
-		bool pollAndProcess(long timeout=1000)
+		bool pollAndProcess()
 		{
 			int pollSocketCount = 2;
 			zmq::pollitem_t pollSocketItems[] = {
@@ -282,7 +286,7 @@ class Module {
 				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
 			};
 
-			if (zmq::poll(pollSocketItems, pollSocketCount, timeout) > 0) {
+			if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
 				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
 					return this->catchCloseAndProcess(this->inp_manage_in, SocketType::MGM_IN);
 				}

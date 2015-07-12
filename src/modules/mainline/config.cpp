@@ -18,6 +18,7 @@ bool ConfigModule::loadConfigFile(std::string filepath)
 		try {
 			this->config.readFile(filepath.c_str());
 			this->logger->debug("{}: {}", this->name(), "Config " + filepath + " loaded!");
+			this->configFilepath = filepath;
 			return true;
 		} catch(const libconfig::FileIOException &fioex) {
 			this->logger->debug("{}: {}", this->name(), "Error: I/O error while reading " + filepath);
@@ -35,9 +36,20 @@ bool ConfigModule::loadConfigFile(std::string filepath)
 bool ConfigModule::run()
 {
 	bool runAgain = true;
-	// while (runAgain) {
-	// 	runAgain = this->pollAndProcess();
-	// }
+	auto reloadTimer = std::chrono::system_clock::now();
+	auto reloadTimerFinish = reloadTimer + std::chrono::seconds(120);
+
+	while (runAgain) {
+		runAgain = this->pollAndProcess();
+		if (runAgain) {
+			reloadTimer = std::chrono::system_clock::now();
+			if (reloadTimer >= reloadTimerFinish) {
+				runAgain = this->loadConfigFile(this->configFilepath);
+				reloadTimerFinish = reloadTimer + std::chrono::seconds(120);
+			}
+		}
+	}
+
 	return false;
 }
 
