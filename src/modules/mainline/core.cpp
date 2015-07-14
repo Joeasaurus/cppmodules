@@ -2,7 +2,7 @@
 
 CoreModule::CoreModule() {
 	this->__info.name   = "Core";
-	this->__info.author = "Joe Eaves";
+	this->__info.author = "mainline";
 }
 
 CoreModule::~CoreModule() {
@@ -17,7 +17,6 @@ bool CoreModule::run() {
 	}
 	return false;
 }
-
 
 bool CoreModule::process_message(const json::value& message, CatchState cought, SocketType sockT) {
 	this->logger->debug("{}: {}", this->name(), stringify(message));

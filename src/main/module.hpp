@@ -57,17 +57,21 @@ class Module {
 		virtual ~Module(){};
 		virtual bool run()=0;
 		virtual bool process_message(const json::value& message, CatchState cought, SocketType sockT)=0;
-		virtual std::string name() {
+		virtual std::string name()
+		{
 			return this->__info.name;
 		};
-		void setLogger(const std::shared_ptr<spdlog::logger> loggerHandle) {
+		void setLogger(const std::shared_ptr<spdlog::logger> loggerHandle)
+		{
 			this->logger = loggerHandle;
 			this->logger->debug("{}: Logger Open", this->name());
 		};
-		void setSocketContext(zmq::context_t* context) {
+		void setSocketContext(zmq::context_t* context)
+		{
 			this->inp_context = context;
 		};
-		void openSockets() {
+		void openSockets()
+		{
 			std::string inPoint = "inproc://" + this->name() + ".in";
 			std::string managePoint = "inproc://" + this->name() + ".manage";
 			try {
@@ -83,7 +87,8 @@ class Module {
 				std::cout << e.what() << std::endl;
 			}
 		};
-		void closeSockets() {
+		void closeSockets()
+		{
 			try {
 				this->inp_in->close();
 				this->inp_out->close();
@@ -98,7 +103,8 @@ class Module {
 			delete this->inp_manage_in;
 			delete this->inp_manage_out;
 		};
-		void notify(SocketType sockT, std::string endpoint) {
+		void notify(SocketType sockT, std::string endpoint)
+		{
 			endpoint = "inproc://" + endpoint;
 			try {
 				if (sockT == SocketType::PUB) {
@@ -112,14 +118,16 @@ class Module {
 				std::cout << e.what() << std::endl;
 			}
 		};
-		void subscribe(std::string channel) {
-			try{
+		void subscribe(std::string channel)
+		{
+			try {
 				this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 			} catch (const zmq::error_t &e) {
 				std::cout << e.what() << std::endl;
 			}
 		};
-		M_Message newMessage(std::string destination, json::object data) {
+		M_Message newMessage(std::string destination, json::object data)
+		{
 			return M_Message{
 				json::object{
 					{ "source", this->name() },
@@ -128,8 +136,10 @@ class Module {
 				}
 			};
 		};
-		bool sendMessage(SocketType sockT, std::string destination, json::object msg) {
-			bool sendErr = false;
+		bool sendMessage(SocketType sockT, std::string destination,
+						 json::object msg)
+		{
+			bool sendOk = false;
 
 			M_Message message = newMessage(destination, msg);
 			std::string message_string = destination + " " + json::stringify(message.message);
@@ -139,18 +149,45 @@ class Module {
 
 			try {
 				if (sockT == SocketType::PUB || sockT == SocketType::SUB) {
-					sendErr = this->inp_out->send(zmqObject);
+					sendOk = this->inp_out->send(zmqObject);
 				} else if (sockT == SocketType::MGM_IN) {
-					sendErr = this->inp_manage_in->send(zmqObject);
+					sendOk = this->inp_manage_in->send(zmqObject);
 				} else if (sockT == SocketType::MGM_OUT) {
-					sendErr = this->inp_manage_out->send(zmqObject);
+					this->logger->warn("{}: {}", this->name(),
+						"Module::sendMessage with SocketType::MGM_OUT called, but was missing a callback!");
+					sendOk = this->inp_manage_out->send(zmqObject);
 				}
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				this->logger->error(e.what());
 			}
 
-			return sendErr;
-		}
+			return sendOk;
+		};
+		bool sendMessageRecv(SocketType sockT, std::string destination,
+						 json::object msg, std::function<bool(const json::value&)> callback)
+		{
+			bool sendOk = false;
+			if (sockT == SocketType::PUB || sockT == SocketType::SUB ||
+				sockT == SocketType::MGM_IN
+			) {
+				this->logger->warn("{}: {}", this->name(),
+					"Module::sendMessageRecv called with extraneous callback. Only SocketType::MGM_OUT is supported.");
+				sendOk = this->sendMessage(sockT, destination, msg);
+			} else if (sockT == SocketType::MGM_OUT)
+			{
+				if (this->sendMessage(sockT, destination, msg)) {
+					sendOk = this->recvMessage<bool>(SocketType::MGM_OUT,
+						[&](const json::value& message)
+					{
+						return callback(message);
+					}, 5000);
+				} else {
+					sendOk = false;
+				}
+			}
+
+			return sendOk;
+		};
 		template<typename retType>
 		retType recvMessage(SocketType sockT,
 							std::function<retType(const json::value&)> callback,
@@ -216,7 +253,8 @@ class Module {
 			}
 			return callback(json::parse(messageText));
 		};
-		bool catchCloseAndProcess(zmq::socket_t* socket, SocketType sockT) {
+		bool catchCloseAndProcess(zmq::socket_t* socket, SocketType sockT)
+		{
 			// Here we listen on the socket we're told to for close messages
 			// false will close us so we return that for a close message
 			// If the message is not a close but is for us,
@@ -240,14 +278,15 @@ class Module {
 					return this->process_message(message, cought, sockT);
 				});
 		};
-		bool pollAndProcess(long timeout=1000) {
+		bool pollAndProcess()
+		{
 			int pollSocketCount = 2;
 			zmq::pollitem_t pollSocketItems[] = {
 				{ *this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
 				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
 			};
 
-			if (zmq::poll(pollSocketItems, pollSocketCount, timeout) > 0) {
+			if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
 				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
 					return this->catchCloseAndProcess(this->inp_manage_in, SocketType::MGM_IN);
 				}
@@ -255,9 +294,11 @@ class Module {
 					return this->catchCloseAndProcess(this->inp_in, SocketType::SUB);
 				}
 			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			return true;
 		};
-		std::vector<std::string> tokeniseString(const std::string& message) {
+		std::vector<std::string> tokeniseString(const std::string& message)
+		{
 			std::vector<std::string> messageTokens;
 			if (!message.empty()) {
 				boost::split(messageTokens, message, boost::is_any_of(" "));
