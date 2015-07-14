@@ -158,7 +158,7 @@ class Module {
 					sendOk = this->inp_manage_out->send(zmqObject);
 				}
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				this->logger->error(e.what());
 			}
 
 			return sendOk;
@@ -294,6 +294,7 @@ class Module {
 					return this->catchCloseAndProcess(this->inp_in, SocketType::SUB);
 				}
 			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			return true;
 		};
 		std::vector<std::string> tokeniseString(const std::string& message)

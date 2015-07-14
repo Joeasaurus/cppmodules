@@ -174,10 +174,11 @@ bool Spine::loadModules(const std::string& directory) {
 
 bool Spine::loadConfig(std::string location) {
 	std::string confMod = "Config";
+	//return true;
 	return this->sendMessageRecv(SocketType::MGM_OUT, confMod, json::object{
 		{ "command", "load" },
 		{ "file", location }
-	}, [&](const json::value& message) -> bool{
+	}, [&,confMod](const json::value& message) -> bool{
 		if (json::has_key(message, "source") &&
 			json::has_key(message, "destination") &&
 			json::has_key(message["data"], "configLoaded")
