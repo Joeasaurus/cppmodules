@@ -1,10 +1,5 @@
 #include "modules/mainline/core.hpp"
 
-CoreModule::CoreModule() {
-	this->__info.name   = "Core";
-	this->__info.author = "mainline";
-}
-
 CoreModule::~CoreModule() {
 	this->closeSockets();
 	this->logger->debug("{}: {}", this->name(), "Closed");
@@ -23,10 +18,5 @@ bool CoreModule::process_message(const json::value& message, CatchState cought, 
 	return true;
 }
 
-CoreModule* loadModule() {
-	return new CoreModule;
-}
-
-void unloadModule(CoreModule* module) {
-	delete module;
-}
+CoreModule* createModule() {return new CoreModule;}
+void destroyModule(CoreModule* module) {delete module;}

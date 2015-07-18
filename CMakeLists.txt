@@ -92,22 +92,19 @@ target_link_libraries(main
 #### MODULES ####
 
 set(MODULES
-    "mainline\;core\;config\;events"
+    "mainline\;core\;config"
 )
 set(mainline_EXTRA_COMPILE_FILES
     "core\;"
     "config\;"
-    "events\;"
 )
 set(mainline_EXTRA_LINK_LIBRARIES
     "core\;"
     "config\;config++\;boost_filesystem-mt\;boost_system-mt"
-    "events\;"
 )
 set(mainline_EXTRA_COPY_FILES
     "core\;"
     "config\;main.cfg"
-    "events\;"
 )
 
 foreach(group ${MODULES})

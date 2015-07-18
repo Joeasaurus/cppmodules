@@ -17,35 +17,31 @@
 // A little struct to hold pointers relevant to a module.
 typedef struct SpineModule {
 	void* module_so;
-	Module_loader* loadModule;
-	Module_unloader* unloadModule;
+	Module_ctor* createModule;
+	Module_dctor* destroyModule;
 	Module* module;
+	string moduleName;
 } SpineModule;
-
-// A little struct to hold pointers for our module and thread
-typedef struct SpineThread {
-	SpineModule module;
-	std::thread* thread_pointer;
-} SpineThread;
 
 class Spine : public Module {
 	private:
 		#if BOOST_OS_MACOS
-			std::string moduleFileExtension = ".dylib";
+			string moduleFileExtension = ".dylib";
 		#else
 			#if BOOST_OS_WINDOWS
-				std::string moduleFileExtension = ".dll";
+				string moduleFileExtension = ".dll";
 			#else // Linux
-				std::string moduleFileExtension = ".so";
+				string moduleFileExtension = ".so";
 			#endif
 		#endif
 
-		std::vector<SpineThread*> threads;
-		std::set<std::string> loadedModules;
+		vector<thread> m_threads;
+		vector<SpineModule> m_modules;
+		set<string> loadedModules;
 
-		bool isModuleFile(const std::string& filename);
-		std::set<std::string> listModules(const std::string& directory);
-		bool openModuleFile(const std::string& fileName, SpineModule& spineModule);
+		bool isModuleFile(const string& filename);
+		set<string> listModules(const string& directory);
+		bool openModuleFile(const string& fileName, SpineModule& spineModule);
 		int resolveModuleFunctions(SpineModule& spineModule);
 		bool registerModule();
 	public:
@@ -53,8 +49,8 @@ class Spine : public Module {
 		~Spine();
 		bool run();
 		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
-		bool loadModules(const std::string& directory);
-		bool loadModule(const std::string& filename);
-		bool loadConfig(std::string location);
-		const std::string moduleFileLocation = "@MODULES_LOCATION@";
+		bool loadModules(const string& directory);
+		bool loadModule(const string& filename);
+		bool loadConfig(string location);
+		const string moduleFileLocation = "@MODULES_LOCATION@";
 };

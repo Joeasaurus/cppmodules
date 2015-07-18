@@ -4,7 +4,9 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <regex>
+#include <algorithm>
 
 #include <thread>
 #include <chrono>
@@ -16,14 +18,23 @@
 #include "lib/spdlog/spdlog.h"
 #include "lib/cpp-json/json.h"
 
+using namespace std;
+namespace algorithm = boost::algorithm;
+
 typedef struct ModuleInfo {
-	std::string name = "undefined module";
-	std::string author = "mainline";
+	string name = "undefined module";
+	string author = "mainline";
 } ModuleInfo;
 
 typedef struct M_Message {
 	json::object message;
 } M_Message;
+
+typedef struct Event {
+	chrono::milliseconds interval;
+	chrono::high_resolution_clock::time_point callTime;
+	function<bool(chrono::milliseconds delta)> callback;
+} Event;
 
 enum class MgmtCommand {
 	REGISTER,
@@ -45,23 +56,20 @@ enum class SocketType {
 };
 
 class Module {
-	protected:
-		ModuleInfo __info;
-		zmq::context_t* inp_context;
-		zmq::socket_t* inp_manage_in;
-		zmq::socket_t* inp_manage_out;
-		zmq::socket_t* inp_in;
-		zmq::socket_t* inp_out;
-		std::shared_ptr<spdlog::logger> logger;
 	public:
+		Module(string name, string author)
+		{
+			this->__info.name   = name;
+			this->__info.author = author;
+		};
 		virtual ~Module(){};
 		virtual bool run()=0;
 		virtual bool process_message(const json::value& message, CatchState cought, SocketType sockT)=0;
-		virtual std::string name()
+		string name()
 		{
 			return this->__info.name;
 		};
-		void setLogger(const std::shared_ptr<spdlog::logger> loggerHandle)
+		void setLogger(const shared_ptr<spdlog::logger> loggerHandle)
 		{
 			this->logger = loggerHandle;
 			this->logger->debug("{}: Logger Open", this->name());
@@ -72,8 +80,8 @@ class Module {
 		};
 		void openSockets()
 		{
-			std::string inPoint = "inproc://" + this->name() + ".in";
-			std::string managePoint = "inproc://" + this->name() + ".manage";
+			string inPoint = "inproc://" + this->name() + ".in";
+			string managePoint = "inproc://" + this->name() + ".manage";
 			try {
 				this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB);
 				this->inp_out = new zmq::socket_t(*this->inp_context, ZMQ_PUB);
@@ -84,26 +92,10 @@ class Module {
 				this->inp_manage_in->bind(managePoint.c_str());
 				this->logger->debug("{}: Sockets Open", this->name());
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				cout << e.what() << endl;
 			}
 		};
-		void closeSockets()
-		{
-			try {
-				this->inp_in->close();
-				this->inp_out->close();
-				this->inp_manage_in->close();
-				this->inp_manage_out->close();
-			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
-			}
-
-			delete this->inp_in;
-			delete this->inp_out;
-			delete this->inp_manage_in;
-			delete this->inp_manage_out;
-		};
-		void notify(SocketType sockT, std::string endpoint)
+		void notify(SocketType sockT, string endpoint)
 		{
 			endpoint = "inproc://" + endpoint;
 			try {
@@ -115,18 +107,44 @@ class Module {
 					this->inp_manage_out->connect(endpoint.c_str());
 				}
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				cout << e.what() << endl;
 			}
 		};
-		void subscribe(std::string channel)
+		void subscribe(string channel)
 		{
 			try {
 				this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				cout << e.what() << endl;
 			}
 		};
-		M_Message newMessage(std::string destination, json::object data)
+		bool tickTimer(
+			chrono::high_resolution_clock::time_point newTime,
+			chrono::milliseconds newDelta
+		) {
+			this->timeNow = newTime;
+			this->timeDelta = newDelta;
+			return this->checkEventTimer();
+		};
+
+// PROTECTED
+	protected:
+		ModuleInfo __info;
+		shared_ptr<spdlog::logger> logger;
+		zmq::context_t* inp_context;
+		chrono::high_resolution_clock::time_point timeNow;
+		void createEvent(string title, chrono::milliseconds interval,
+			function<bool(chrono::milliseconds delta)> callback
+		) {
+			this->events.insert(pair<string, Event>(
+				title, Event{
+					interval,
+					chrono::high_resolution_clock::now() + interval,
+					callback
+				}
+			));
+		};
+		M_Message newMessage(string destination, json::object data)
 		{
 			return M_Message{
 				json::object{
@@ -136,13 +154,19 @@ class Module {
 				}
 			};
 		};
-		bool sendMessage(SocketType sockT, std::string destination,
+		string nameMsg(string message) {
+			return this->name() + ": " + message;
+		};
+		void nameMsg(string& message) {
+			message = this->name() + ": " + message;
+		};
+		bool sendMessage(SocketType sockT, string destination,
 						 json::object msg)
 		{
 			bool sendOk = false;
 
 			M_Message message = newMessage(destination, msg);
-			std::string message_string = destination + " " + json::stringify(message.message);
+			string message_string = destination + " " + json::stringify(message.message);
 
 			zmq::message_t zmqObject(message_string.length());
 			memcpy(zmqObject.data(), message_string.data(), message_string.length());
@@ -163,8 +187,8 @@ class Module {
 
 			return sendOk;
 		};
-		bool sendMessageRecv(SocketType sockT, std::string destination,
-						 json::object msg, std::function<bool(const json::value&)> callback)
+		bool sendMessageRecv(SocketType sockT, string destination,
+						 json::object msg, function<bool(const json::value&)> callback)
 		{
 			bool sendOk = false;
 			if (sockT == SocketType::PUB || sockT == SocketType::SUB ||
@@ -190,10 +214,10 @@ class Module {
 		};
 		template<typename retType>
 		retType recvMessage(SocketType sockT,
-							std::function<retType(const json::value&)> callback,
+							function<retType(const json::value&)> callback,
 							long timeout=1000
 		) {
-			std::string messageText("{}");
+			string messageText("{}");
 
 			zmq::socket_t* pollSocket;
 			zmq::pollitem_t pollSocketItems[1];
@@ -216,44 +240,106 @@ class Module {
 				int data = zmq::poll(pollSocketItems, 1, timeout);
 				if (data > 0) {
 					if(pollSocket->recv(&message)) {
-						messageText = std::string(static_cast<char*>(message.data()), message.size());
+						messageText = string(static_cast<char*>(message.data()), message.size());
 					}
 				}
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				cout << e.what() << endl;
 			}
 			// I know this is silly, we can't rely on pretty print because values are arbitray
 			//  and may have spaces.
 			// tokeniseString needs replacing with something that will only grab the module name
 			if (messageText != "{}" && messageText != "") {
-				std::vector<std::string> jsonMsg = tokeniseString(messageText);
+				vector<string> jsonMsg = tokeniseString(messageText);
 				jsonMsg.erase(jsonMsg.begin());
-				messageText = boost::algorithm::join(jsonMsg, " ");
+				messageText = algorithm::join(jsonMsg, " ");
 			}
 			return callback(json::parse(messageText));
 		};
 		template<typename retType>
 		retType recvMessage(zmq::socket_t* socket,
-						std::function<retType(const json::value&)> callback
+						function<retType(const json::value&)> callback
 		) {
-			std::string messageText("{}");
+			string messageText("{}");
 			zmq::message_t message;
 
 			if(socket->recv(&message)) {
-				messageText = std::string(static_cast<char*>(message.data()), message.size());
+				messageText = string(static_cast<char*>(message.data()), message.size());
 			}
 
 			// I know this is silly, we can't rely on pretty print because values are arbitray
 			//  and may have spaces.
 			// tokeniseString needs replacing with something that will only grab the module name
 			if (messageText != "{}" && messageText != "") {
-				std::vector<std::string> jsonMsg = tokeniseString(messageText);
+				vector<string> jsonMsg = tokeniseString(messageText);
 				jsonMsg.erase(jsonMsg.begin());
-				messageText = boost::algorithm::join(jsonMsg, " ");
+				messageText = algorithm::join(jsonMsg, " ");
 			}
 			return callback(json::parse(messageText));
 		};
-		bool catchCloseAndProcess(zmq::socket_t* socket, SocketType sockT)
+		void closeSockets()
+		{
+			try {
+				this->inp_in->close();
+				this->inp_out->close();
+				this->inp_manage_in->close();
+				this->inp_manage_out->close();
+			} catch (const zmq::error_t &e) {
+				cout << e.what() << endl;
+			}
+
+			delete this->inp_in;
+			delete this->inp_out;
+			delete this->inp_manage_in;
+			delete this->inp_manage_out;
+		};
+		bool pollAndProcess()
+		{
+			int pollSocketCount = 2;
+			zmq::pollitem_t pollSocketItems[] = {
+				{ *this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
+				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
+			};
+
+			if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
+				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
+					return this->catchAndProcess(this->inp_manage_in, SocketType::MGM_IN);
+				}
+				if (pollSocketItems[1].revents & ZMQ_POLLIN) {
+					return this->catchAndProcess(this->inp_in, SocketType::SUB);
+				}
+			}
+			this_thread::sleep_for(chrono::milliseconds(10));
+			return true;
+		};
+		vector<string> tokeniseString(const string& message)
+		{
+			vector<string> messageTokens;
+			if (!message.empty()) {
+				boost::split(messageTokens, message, boost::is_any_of(" "));
+ 			}
+
+			return messageTokens;
+		};
+
+// PRIVATE
+	private:
+		zmq::socket_t* inp_manage_in;
+		zmq::socket_t* inp_manage_out;
+		zmq::socket_t* inp_in;
+		zmq::socket_t* inp_out;
+		chrono::milliseconds timeDelta;
+		map<string, Event> events;
+		bool checkEventTimer() {
+			for (auto& event : this->events) {
+				if (this->timeNow >= event.second.callTime) {
+					event.second.callback(this->timeDelta);
+					event.second.callTime = this->timeNow + event.second.interval;
+				}
+			}
+			return true;
+		};
+		bool catchAndProcess(zmq::socket_t* socket, SocketType sockT)
 		{
 			// Here we listen on the socket we're told to for close messages
 			// false will close us so we return that for a close message
@@ -266,11 +352,12 @@ class Module {
 					// this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
 					if (to_string(message["source"]) == "Spine" &&
 					   (to_string(message["destination"]) == "Modules" ||
-						to_string(message["destination"]) == this->name()
-					)) {
+						to_string(message["destination"]) == this->name())
+					   ) {
 						cought = CatchState::FOR_ME;
 						if (json::has_key(message["data"], "command")) {
-							if (to_string(message["data"]["command"]) == "close") {
+							auto command = to_string(message["data"]["command"]);
+							if (command == "close") {
 								return false;
 							}
 						}
@@ -278,36 +365,7 @@ class Module {
 					return this->process_message(message, cought, sockT);
 				});
 		};
-		bool pollAndProcess()
-		{
-			int pollSocketCount = 2;
-			zmq::pollitem_t pollSocketItems[] = {
-				{ *this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
-				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
-			};
-
-			if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
-				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
-					return this->catchCloseAndProcess(this->inp_manage_in, SocketType::MGM_IN);
-				}
-				if (pollSocketItems[1].revents & ZMQ_POLLIN) {
-					return this->catchCloseAndProcess(this->inp_in, SocketType::SUB);
-				}
-			}
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			return true;
-		};
-		std::vector<std::string> tokeniseString(const std::string& message)
-		{
-			std::vector<std::string> messageTokens;
-			if (!message.empty()) {
-				boost::split(messageTokens, message, boost::is_any_of(" "));
- 			}
-
-			return messageTokens;
-		};
-
 };
 
-typedef Module* Module_loader(void);
-typedef void Module_unloader(Module*);
+typedef Module* Module_ctor(void);
+typedef void Module_dctor(Module*);
