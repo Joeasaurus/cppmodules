@@ -5,12 +5,12 @@
 
 class CoreModule : public Module {
 	public:
-		CoreModule();
+		CoreModule() : Module("Core", "mainline"){};
 		~CoreModule();
 		bool run();
 		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
 };
 
 // Init/Del functions.
-extern "C" CoreModule* loadModule();
-extern "C" void unloadModule(CoreModule* module);
+extern "C" CoreModule* createModule();
+extern "C" void destroyModule(CoreModule* module);

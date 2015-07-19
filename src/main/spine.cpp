@@ -1,43 +1,50 @@
 #include "main/spine.hpp"
 
-Spine::Spine() {
-	this->__info.name = "Spine";
-	this->__info.author = "mainline";
+Spine::Spine() : Module("Spine", "mainline") {
+	this->createEvent("ClockTick", chrono::milliseconds(1000),
+		[&](chrono::milliseconds delta) {
+			return this->sendMessage(SocketType::PUB, "Modules", json::object{
+				{ "ClockTick", to_string(delta.count()) }
+			});
+		}
+	);
 }
 
 Spine::~Spine() {
 	int position = 0;
-	std::string closeMessage;
+	string closeMessage;
 	// Here the Spine sends a message out on it's publish socket
 	// Each message directs a 'close' message to a module registered
 	//  in the Spine as 'loaded'
 	// It then waits for the module to join. It relies on the module closing
 	//  cleanly else it will lock up waiting.
-	for (auto& modName : this->loadedModules) {
-		this->sendMessage(SocketType::PUB, modName, json::object{
+	for_each(m_modules.begin(), m_modules.end(), [&](SpineModule& mod) {
+		this->sendMessage(SocketType::PUB, mod.moduleName, json::object{
 			{ "command", "close" }
 		});
-		this->logger->debug("{}: {}", this->name(), "Joining " + modName);
-		if (this->threads.at(position)->thread_pointer->joinable()) {
-			this->threads.at(position)->thread_pointer->join();
-			this->logger->debug("{}: {}", this->name(), "Joined");
+		this->logger->debug(this->nameMsg("Joining " + mod.moduleName));
+
+		if (m_threads[position].joinable()) {
+			m_threads[position].join();
+			this->logger->debug(this->nameMsg("Joined"));
 		}
-		this->threads.at(position)->module.unloadModule(this->threads.at(position)->module.module);
-		if (dlclose(this->threads.at(position)->module.module_so) != 0) {
-			this->logger->error("{}: {}", this->name(), "Could not dlclose module file");
+
+		m_modules[position].destroyModule(m_modules[position].module);
+		if (dlclose(m_modules[position].module_so) != 0) {
+			this->logger->error(this->nameMsg("Could not dlclose module file"));
 		}
-		delete this->threads[position]->thread_pointer;
-		delete this->threads[position];
-		position += 1;
-	}
+
+		position++;
+	});
+
 	// After all modules are closed we don't need our sockets
 	//  so we should close them before exit, to be nice
 	this->closeSockets();
-	logger->info("{}: {}", this->name(), "Closed");
+	this->logger->info(this->nameMsg("Closed"));
 }
 
-std::set<std::string> Spine::listModules(const std::string& directory) {
-	std::set<std::string> moduleFiles;
+set<string> Spine::listModules(const string& directory) {
+	set<string> moduleFiles;
 
 	// Here we list a directory and build a vector of files that match
 	//  our platform specific dynamic lib extension (e.g., .so)
@@ -53,18 +60,18 @@ std::set<std::string> Spine::listModules(const std::string& directory) {
 			}
 		}
 	} catch(boost::filesystem::filesystem_error e) {
-		this->logger->warn("{}: {}", this->name(), "WARNING! Could not load modules!");
-		this->logger->warn("{}: {}{}", this->name(), "    - ", e.what());
+		this->logger->warn(this->nameMsg("WARNING! Could not load modules!"));
+		this->logger->warn(this->nameMsg("    - " + static_cast<string>(e.what())));
 	}
 
 	return moduleFiles;
 }
 
-bool Spine::openModuleFile(const std::string& moduleFile, SpineModule& spineModule) {
+bool Spine::openModuleFile(const string& moduleFile, SpineModule& spineModule) {
 	// Here we use dlopen to load the dynamic library (that is, a compiled module)
 	spineModule.module_so = dlopen(moduleFile.c_str(), RTLD_NOW | RTLD_GLOBAL);
 	if (!spineModule.module_so) {
-		this->logger->error("{}: {}", this->name(), dlerror());
+		this->logger->error(this->nameMsg(dlerror()));
 		return false;
 	}
 	return true;
@@ -73,26 +80,25 @@ bool Spine::openModuleFile(const std::string& moduleFile, SpineModule& spineModu
 int Spine::resolveModuleFunctions(SpineModule& spineModule) {
 	// Here we use dlsym to hook into exported functions of the module
 	// One to load the module class and one to unload it
-	spineModule.loadModule = (Module_loader*)dlsym(spineModule.module_so, "loadModule");
-	if (!spineModule.loadModule) {
-		this->logger->error("{}: {}", this->name(), dlerror());
+	spineModule.createModule = (Module_ctor*)dlsym(spineModule.module_so, "createModule");
+	if (!spineModule.createModule) {
+		this->logger->error(this->nameMsg(dlerror()));
 		return 1;
 	}
-	this->logger->debug("{}: {}", this->name(), "Resolved loadModule");
+	this->logger->debug(this->nameMsg("Resolved loadModule"));
 
-	spineModule.unloadModule = (Module_unloader*)dlsym(spineModule.module_so, "unloadModule");
-	if (!spineModule.unloadModule) {
+	spineModule.destroyModule = (Module_dctor*)dlsym(spineModule.module_so, "destroyModule");
+	if (!spineModule.destroyModule) {
 		return 2;
 	}
-	this->logger->debug("{}: {}", this->name(), "Resolved unloadModule");
+	this->logger->debug(this->nameMsg("Resolved unloadModule"));
 
 	return 0;
 }
 
-bool Spine::loadModule(const std::string& filename) {
-	SpineThread* spineThread = new SpineThread;
+bool Spine::loadModule(const string& filename) {
 	SpineModule spineModule;
-	this->logger->debug("{}: {}", this->name(), "Loading " + boost::filesystem::basename(filename) + "...");
+	this->logger->debug(this->nameMsg("Loading " + boost::filesystem::basename(filename) + "..."));
 	// In the threads we load the binary and hook into it's exported functions.
 	// We use the load function to create an instance of it's Module-derived class
 	// We then set up an interface with the module using our input/output sockets
@@ -100,23 +106,21 @@ bool Spine::loadModule(const std::string& filename) {
 	//  and a chain-building pair of Pub and Sub sockets for message passing.
 	// Now we run it's run() function in a new thread and push that on to our list.
 	if (! this->openModuleFile(filename, spineModule)) {
-		this->logger->error("{}: {}", this->name(), "Failiure " + boost::filesystem::basename(filename) + "..");
-		delete spineThread;
+		this->logger->error(this->nameMsg("Failiure " + boost::filesystem::basename(filename) + ".."));
 		return false;
 	}
-	this->logger->debug("{}: {}", this->name(), "Opened file " + boost::filesystem::basename(filename) + "..");
+	this->logger->debug(this->nameMsg("Opened file " + boost::filesystem::basename(filename) + ".."));
 
 	int failure = 0;
 	failure = this->resolveModuleFunctions(spineModule);
 	if (failure != 0) {
-		this->logger->error("{}: {}", this->name(), "Failiure " + boost::filesystem::basename(filename) + "..");
-		delete spineThread;
+		this->logger->error(this->nameMsg("Failiure " + boost::filesystem::basename(filename) + ".."));
 		return false;
 	}
-	this->logger->debug("{}: {}", this->name(), "Functions resolved");
+	this->logger->debug(this->nameMsg("Functions resolved"));
 
-	spineModule.module = spineModule.loadModule();
-	std::string moduleName = spineModule.module->name();
+	spineModule.module = spineModule.createModule();
+	spineModule.moduleName = spineModule.module->name();
 
 	spineModule.module->setLogger(this->logger);
 	spineModule.module->setSocketContext(this->inp_context);
@@ -126,29 +130,29 @@ bool Spine::loadModule(const std::string& filename) {
 	// Then configure the module to connect it's publish output to the Spine input
 	//  and it's mgmt output too
 	spineModule.module->subscribe("Modules");
-	spineModule.module->subscribe(moduleName);
+	spineModule.module->subscribe(spineModule.moduleName);
 	spineModule.module->notify(SocketType::PUB, "Spine");
 	spineModule.module->notify(SocketType::MGM_OUT, "Spine");
-	this->logger->debug("{}: {}", this->name(), "Sockets Registered for: " + moduleName + "!");
+	this->logger->debug(this->nameMsg("Sockets Registered for: " + spineModule.moduleName + "!"));
 
-	this->notify(SocketType::PUB, moduleName);
-	this->notify(SocketType::MGM_OUT, moduleName);
-	this->loadedModules.insert(moduleName);
-	this->logger->info("{}: {}", this->name(), "Registered module: " + moduleName + "!");
+	this->notify(SocketType::PUB, spineModule.moduleName);
+	this->notify(SocketType::MGM_OUT, spineModule.moduleName);
+	this->loadedModules.insert(spineModule.moduleName);
+	this->logger->info(this->nameMsg("Registered module: " + spineModule.moduleName + "!"));
 
-	spineThread->thread_pointer = new std::thread([&spineModule] () {
-		spineModule.module->run();
+	auto newThread = thread([&spineModule] () {
+			spineModule.module->run();
 	});
-	spineThread->module = spineModule;
-	this->threads.push_back(spineThread);
+	m_threads.push_back(move(newThread));
+	m_modules.push_back(spineModule);
 
 	return true;
 }
 
-bool Spine::loadModules(const std::string& directory) {
+bool Spine::loadModules(const string& directory) {
 	// Here we gather a list of relevant module binaries
 	//  and then call the load function on each path
-	std::set<std::string> moduleFiles = this->listModules(directory);
+	set<string> moduleFiles = this->listModules(directory);
 
 	// Before we iterate for loading, we will try loading a few required modules
 	//  in our pre-defined order. If any fail, we don't load the rest.
@@ -172,8 +176,8 @@ bool Spine::loadModules(const std::string& directory) {
 	return true;
 }
 
-bool Spine::loadConfig(std::string location) {
-	std::string confMod = "Config";
+bool Spine::loadConfig(string location) {
+	string confMod = "Config";
 	//return true;
 	return this->sendMessageRecv(SocketType::MGM_OUT, confMod, json::object{
 		{ "command", "load" },
@@ -199,18 +203,24 @@ bool Spine::run() {
 	try {
 		// Our function here just sleeps for a bit
 		//  and then sends a close message to all modules ('Module' channel)
-		for (int count = 0;count<3;count++) {
+		bool runAgain = true;
+		int count = 0;
+		while (count < 120) {
 			this->pollAndProcess();
-			this->logger->info("{}: {}", this->name(), "Sleeping...");
-			std::this_thread::sleep_for(std::chrono::seconds(2));
+			this->logger->debug(this->nameMsg("Sleeping..."));
+			this_thread::sleep_for(chrono::milliseconds(500));
+
+			auto timenow = chrono::system_clock::now();
+			this->tickTimer(
+				chrono::duration_cast<chrono::milliseconds>(timenow - this->timeNow)
+			);
+			count++;
 		}
 		// Lets make sure the close command works!
-		this->logger->info("{}: {}", this->name(), "Closing 'Modules'");
+		this->logger->info(this->nameMsg("Closing 'Modules'"));
 		this->sendMessage(SocketType::PUB, "Modules", json::object{
 			{ "command", "close" }
 		});
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-		this->logger->info("{}: {}", this->name(), "All modules closed");
 		return true;
 	} catch(...) {
 		this->logger->info("EXIT");
@@ -219,7 +229,7 @@ bool Spine::run() {
 }
 
 bool Spine::process_message(const json::value& message, CatchState cought, SocketType sockT) {
-	this->logger->debug("{}: {}", this->name(), stringify(message));
+	this->logger->debug(this->nameMsg(stringify(message)));
 	return true;
 }
 

@@ -1,18 +1,12 @@
 #include "modules/mainline/config.hpp"
 
-ConfigModule::ConfigModule()
-{
-	this->__info.name   = "Config";
-	this->__info.author = "mainline";
-}
-
 ConfigModule::~ConfigModule()
 {
 	this->closeSockets();
 	this->logger->debug("{}: {}", this->name(), "Closed");
 }
 
-bool ConfigModule::loadConfigFile(std::string filepath)
+bool ConfigModule::loadConfigFile(string filepath)
 {
 	if (boost::filesystem::is_regular_file(filepath)) {
 		try {
@@ -35,19 +29,14 @@ bool ConfigModule::loadConfigFile(std::string filepath)
 
 bool ConfigModule::run()
 {
+	this->createEvent("ReloadConfig", chrono::milliseconds(5000),
+		[&](chrono::milliseconds delta) {
+			return this->loadConfigFile(this->configFilepath);
+		}
+	);
 	bool runAgain = true;
-	auto reloadTimer = std::chrono::system_clock::now();
-	auto reloadTimerFinish = reloadTimer + std::chrono::seconds(120);
-
 	while (runAgain) {
 		runAgain = this->pollAndProcess();
-		if (runAgain) {
-			reloadTimer = std::chrono::system_clock::now();
-			if (reloadTimer >= reloadTimerFinish) {
-				runAgain = this->loadConfigFile(this->configFilepath);
-				reloadTimerFinish = reloadTimer + std::chrono::seconds(120);
-			}
-		}
 	}
 
 	return false;
@@ -75,5 +64,5 @@ bool ConfigModule::process_message(const json::value& message,
 	return true;
 }
 
-ConfigModule* loadModule(){return new ConfigModule;}
-void unloadModule(ConfigModule* module) {delete module;}
+ConfigModule* createModule(){return new ConfigModule;}
+void destroyModule(ConfigModule* module) {delete module;}
