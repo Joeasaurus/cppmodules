@@ -207,12 +207,12 @@ bool Spine::run() {
 		int count = 0;
 		while (count < 120) {
 			this->pollAndProcess();
-			this->logger->info(this->nameMsg("Sleeping..."));
+			this->logger->debug(this->nameMsg("Sleeping..."));
 			this_thread::sleep_for(chrono::milliseconds(500));
 
-			auto timenow = chrono::high_resolution_clock::now();
-			this->tickTimer(timenow,
-				chrono::duration_cast<chrono::milliseconds>(this->timeNow - timenow)
+			auto timenow = chrono::system_clock::now();
+			this->tickTimer(
+				chrono::duration_cast<chrono::milliseconds>(timenow - this->timeNow)
 			);
 			count++;
 		}

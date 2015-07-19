@@ -7,17 +7,17 @@
 
 class ConfigModule : public Module {
 	public:
-		ConfigModule();
+		ConfigModule() : Module("Config", "mainline"){};
 		~ConfigModule();
 		bool run();
 		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
 
-		bool loadConfigFile(std::string filepath);
+		bool loadConfigFile(string filepath);
 	private:
 		libconfig::Config config;
-		std::string configFilepath;
+		string configFilepath;
 };
 
 // Init/Del functions.
-extern "C" ConfigModule* loadModule();
-extern "C" void unloadModule(ConfigModule* module);
+extern "C" ConfigModule* createModule();
+extern "C" void destroyModule(ConfigModule* module);

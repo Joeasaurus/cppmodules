@@ -32,7 +32,7 @@ typedef struct M_Message {
 
 typedef struct Event {
 	chrono::milliseconds interval;
-	chrono::high_resolution_clock::time_point callTime;
+	chrono::system_clock::time_point callTime;
 	function<bool(chrono::milliseconds delta)> callback;
 } Event;
 
@@ -61,6 +61,7 @@ class Module {
 		{
 			this->__info.name   = name;
 			this->__info.author = author;
+			this->timeNow = chrono::system_clock::now();
 		};
 		virtual ~Module(){};
 		virtual bool run()=0;
@@ -119,10 +120,9 @@ class Module {
 			}
 		};
 		bool tickTimer(
-			chrono::high_resolution_clock::time_point newTime,
 			chrono::milliseconds newDelta
 		) {
-			this->timeNow = newTime;
+			this->timeNow += newDelta;
 			this->timeDelta = newDelta;
 			return this->checkEventTimer();
 		};
@@ -132,14 +132,16 @@ class Module {
 		ModuleInfo __info;
 		shared_ptr<spdlog::logger> logger;
 		zmq::context_t* inp_context;
-		chrono::high_resolution_clock::time_point timeNow;
+		chrono::system_clock::time_point timeNow;
 		void createEvent(string title, chrono::milliseconds interval,
 			function<bool(chrono::milliseconds delta)> callback
 		) {
+			// auto ttp = chrono::system_clock::to_time_t(chrono::system_clock::now() + interval);
+			// this->logger->debug(ctime(&ttp));
 			this->events.insert(pair<string, Event>(
 				title, Event{
 					interval,
-					chrono::high_resolution_clock::now() + interval,
+					chrono::system_clock::now() + interval,
 					callback
 				}
 			));
@@ -332,6 +334,7 @@ class Module {
 		map<string, Event> events;
 		bool checkEventTimer() {
 			for (auto& event : this->events) {
+				this->logger->debug(this->nameMsg(event.first));
 				if (this->timeNow >= event.second.callTime) {
 					event.second.callback(this->timeDelta);
 					event.second.callTime = this->timeNow + event.second.interval;
@@ -360,6 +363,12 @@ class Module {
 							if (command == "close") {
 								return false;
 							}
+						} else if (json::has_key(message["data"], "ClockTick")) {
+							return this->tickTimer(
+								chrono::milliseconds(
+									stoll(json::to_string(message["data"]["ClockTick"]))
+								)
+							);
 						}
 					}
 					return this->process_message(message, cought, sockT);
