@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.1)
 project(cppmodules)
 
-### CMAKE FLAGS ###
+## cppcheck --force --inline-suppr --template '{file}:{line},{severity},{id},{message}' \
+##  --xml --enable=all --max-configs=25 -i /Users/jme/GDrive/code/cppmodules/src ./ 2> err.xml
+#
+## cppcheck-htmlreport --file=err.xml --title=CppModules --report-dir=cppcheck_reports --source-dir=.
 
+
+### CMAKE FLAGS ###
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(warnings "-Wall -Wextra")
@@ -12,12 +17,11 @@ endif()
 if (NOT CONFIGURED_ONCE)
     set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -g"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
-    set(CMAKE_C_FLAGS   "${warnings}"
+    set(CMAKE_C_FLAGS   "${warnings} -g"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
 endif()
 
 ### FUNCTIONS & VARS ###
-
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
 set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
 macro(createExtrasList name output mappings)
@@ -46,7 +50,6 @@ endmacro(createExtrasList)
 ### BUILD TARGETS ###
 
 #### COMMON ####
-
 include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generated")
 set(BOTH_LINK_LIBRARIES
     -lzmq
@@ -72,7 +75,6 @@ endif()
 
 
 #### MAIN ####
-
 set(MAIN_SOURCE_FILES
     src/main/main.cpp
     src/main/spine.cpp
@@ -90,20 +92,19 @@ target_link_libraries(main
 
 
 #### MODULES ####
-
 set(MODULES
-    "mainline\;core\;config"
+    "mainline\;starter\;config"
 )
 set(mainline_EXTRA_COMPILE_FILES
-    "core\;"
+    "starter\;"
     "config\;"
 )
 set(mainline_EXTRA_LINK_LIBRARIES
-    "core\;"
-    "config\;config++\;boost_filesystem-mt\;boost_system-mt"
+    "starter\;"
+    "config\;boost_filesystem-mt\;boost_system-mt"
 )
 set(mainline_EXTRA_COPY_FILES
-    "core\;"
+    "starter\;"
     "config\;main.cfg"
 )
 
@@ -157,7 +158,6 @@ endforeach(group)
 
 
 #### TESTS ####
-
 set(TEST_OUTPUT_DIRS
     LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests/modules"
     RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests"

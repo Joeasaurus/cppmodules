@@ -3,33 +3,33 @@
 ConfigModule::~ConfigModule()
 {
 	this->closeSockets();
-	this->logger->debug("{}: {}", this->name(), "Closed");
+	this->logger->debug(this->nameMsg("Closed"));
 }
 
 bool ConfigModule::loadConfigFile(string filepath)
 {
 	if (boost::filesystem::is_regular_file(filepath)) {
 		try {
-			this->config.readFile(filepath.c_str());
-			this->logger->debug("{}: {}", this->name(), "Config " + filepath + " loaded!");
-			this->configFilepath = filepath;
-			return true;
-		} catch(const libconfig::FileIOException &fioex) {
-			this->logger->debug("{}: {}", this->name(), "Error: I/O error while reading " + filepath);
-			return false;
-		} catch(const libconfig::ParseException &pex) {
-			this->logger->debug() << "{}: {}" << this->name() << "Error: Parse failed at " <<
-				pex.getFile() << ":" << pex.getLine() << " - " << pex.getError();
+			ifstream configFile(filepath);
+			if (configFile) {
+				this->config = json::to_object(json::parse(configFile));
+				this->logger->debug(this->nameMsg(filepath + " loaded!"));
+				this->logger->debug(this->nameMsg(json::stringify(this->config)));
+				this->configFilepath = filepath;
+				return true;
+			}
+		} catch(const exception &ex) {
+			this->logger->debug(this->nameMsg("Error: loading " + filepath ));
+			this->logger->debug(this->nameMsg(ex.what()));
 			return false;
 		}
-	} else {
-		return false;
 	}
+	return false;
 }
 
 bool ConfigModule::run()
 {
-	this->createEvent("ReloadConfig", chrono::milliseconds(5000),
+	this->createEvent("ReloadConfig", chrono::milliseconds(15000),
 		[&](chrono::milliseconds delta) {
 			return this->loadConfigFile(this->configFilepath);
 		}

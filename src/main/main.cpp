@@ -4,6 +4,12 @@
 #include "lib/spdlog/spdlog.h"
 #include "lib/cpp-json/json.h"
 
+/* NOTES
+ * To save space in modules, spine should provide functions for loading files?
+ *    (SO boost-filesystem + system only need linking once)
+ * Change module loading so we use author + name instead of relying on the filename
+ */
+
 namespace sllevel = spdlog::level;
 
 int main(int argc, char **argv) {

@@ -31,8 +31,8 @@ typedef struct M_Message {
 } M_Message;
 
 typedef struct Event {
+	chrono::milliseconds delta;
 	chrono::milliseconds interval;
-	chrono::system_clock::time_point callTime;
 	function<bool(chrono::milliseconds delta)> callback;
 } Event;
 
@@ -124,7 +124,7 @@ class Module {
 		) {
 			this->timeNow += newDelta;
 			this->timeDelta = newDelta;
-			return this->checkEventTimer();
+			return this->checkEventTimer(newDelta);
 		};
 
 // PROTECTED
@@ -140,8 +140,8 @@ class Module {
 			// this->logger->debug(ctime(&ttp));
 			this->events.insert(pair<string, Event>(
 				title, Event{
+					chrono::milliseconds(0),
 					interval,
-					chrono::system_clock::now() + interval,
 					callback
 				}
 			));
@@ -332,12 +332,13 @@ class Module {
 		zmq::socket_t* inp_out;
 		chrono::milliseconds timeDelta;
 		map<string, Event> events;
-		bool checkEventTimer() {
+		bool checkEventTimer(chrono::milliseconds newDelta) {
 			for (auto& event : this->events) {
-				this->logger->debug(this->nameMsg(event.first));
-				if (this->timeNow >= event.second.callTime) {
-					event.second.callback(this->timeDelta);
-					event.second.callTime = this->timeNow + event.second.interval;
+				//this->logger->debug(this->nameMsg(event.first));
+				event.second.delta += newDelta;
+				if (event.second.delta >= event.second.interval) {
+					event.second.callback(event.second.delta);
+					event.second.delta = chrono::milliseconds(0);
 				}
 			}
 			return true;

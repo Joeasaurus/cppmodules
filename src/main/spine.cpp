@@ -1,6 +1,6 @@
 #include "main/spine.hpp"
 
-Spine::Spine() : Module("Spine", "mainline") {
+Spine::Spine() : Module("Spine", "Joe Eaves") {
 	this->createEvent("ClockTick", chrono::milliseconds(1000),
 		[&](chrono::milliseconds delta) {
 			return this->sendMessage(SocketType::PUB, "Modules", json::object{
@@ -59,7 +59,7 @@ set<string> Spine::listModules(const string& directory) {
 				moduleFiles.insert(p.string());
 			}
 		}
-	} catch(boost::filesystem::filesystem_error e) {
+	} catch(boost::filesystem::filesystem_error& e) {
 		this->logger->warn(this->nameMsg("WARNING! Could not load modules!"));
 		this->logger->warn(this->nameMsg("    - " + static_cast<string>(e.what())));
 	}
@@ -177,7 +177,7 @@ bool Spine::loadModules(const string& directory) {
 }
 
 bool Spine::loadConfig(string location) {
-	string confMod = "Config";
+	string confMod = "mainline_config";
 	//return true;
 	return this->sendMessageRecv(SocketType::MGM_OUT, confMod, json::object{
 		{ "command", "load" },
@@ -205,7 +205,7 @@ bool Spine::run() {
 		//  and then sends a close message to all modules ('Module' channel)
 		bool runAgain = true;
 		int count = 0;
-		while (count < 120) {
+		while (runAgain) {
 			this->pollAndProcess();
 			this->logger->debug(this->nameMsg("Sleeping..."));
 			this_thread::sleep_for(chrono::milliseconds(500));
@@ -214,7 +214,11 @@ bool Spine::run() {
 			this->tickTimer(
 				chrono::duration_cast<chrono::milliseconds>(timenow - this->timeNow)
 			);
-			count++;
+			if (count < 120) {
+				count++;
+			} else {
+				runAgain = false;
+			}
 		}
 		// Lets make sure the close command works!
 		this->logger->info(this->nameMsg("Closing 'Modules'"));
