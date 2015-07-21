@@ -4,3 +4,6 @@
 [submodule "submodules/cpp-json"]
 	path = submodules/cpp-json
 	url = https://github.com/eteran/cpp-json.git
+[submodule "submodules/catch"]
+	path = submodules/catch
+	url = https://github.com/philsquared/Catch.git
