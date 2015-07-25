@@ -5,11 +5,8 @@ compiler:
   - clang
 
 before_install:
-  - mkdir ./.ports
-  - wget https://distfiles.macports.org/MacPorts/MacPorts-2.3.3.tar.gz
-  - tar zxvf MacPorts-2.3.3.tar.gz
-  - cd MacPorts-2.3.3
-  - ./configure --prefix="$(pwd)/.ports" && make && make install
+  - wget https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.9-Mavericks.pkg
+  - sudo installer -pkg MacPorts-2.3.3-10.9-Mavericks.pkg -target /
 
 os:
   - osx
