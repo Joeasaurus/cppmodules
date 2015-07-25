@@ -168,10 +168,10 @@ set(TEST_LINK_LIBRARIES
     -lboost_filesystem-mt
 )
 set(TEST_FILES
-    CreateSpineLogger
+    SpineAPI
 )
 set(TEST_EXTRA_COMPILE_FILES
-    "CreateSpineLogger\;src/main/spine.cpp"
+    "SpineAPI\;src/main/spine.cpp"
 )
 foreach(test ${TEST_FILES})
     createExtrasList(${test} EXTRA_COMPILE_FILES TEST_EXTRA_COMPILE_FILES)

@@ -55,5 +55,6 @@ class Spine : public Module {
 		bool loadModules(const string& directory);
 		bool loadModule(const string& filename);
 		bool loadConfig(string location);
+		bool isModuleLoaded(std::string moduleName);
 		const string moduleFileLocation = "@MODULES_LOCATION@";
 };

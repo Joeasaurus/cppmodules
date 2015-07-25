@@ -194,6 +194,10 @@ bool Spine::loadModules(const string& directory) {
 	return true;
 }
 
+bool Spine::isModuleLoaded(std::string moduleName) {
+	return this->loadedModules.find(moduleName) != this->loadedModules.end();
+}
+
 bool Spine::loadConfig(string location) {
 	string confMod = "mainline_config";
 	//return true;

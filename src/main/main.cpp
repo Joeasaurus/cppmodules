@@ -1,8 +1,6 @@
 #include "main/spine.hpp"
 
 #include "main/segvhandler.hpp"
-#include "lib/spdlog/spdlog.h"
-#include "lib/cpp-json/json.h"
 
 /* NOTES
  * To save space in modules, spine should provide functions for loading files?
@@ -15,6 +13,7 @@ int main(int argc, char **argv) {
 	// Configure the global logger first!!
 	auto logger = Spine::createLogger(argc > 1 && strcmp(argv[1], "debug") == 0);
 
+	logger->debug(ZMQ_VERSION);
 	// Open the spine and pass it our logger
 	Spine spine;
 

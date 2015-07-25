@@ -80,21 +80,35 @@ class Module {
 		{
 			this->inp_context = context;
 		};
+		bool areSocketsOpen() {
+			return this->socketsOpen;
+		};
+		bool areSocketsValid() {
+			if ( this->inp_in == nullptr || this->inp_out == nullptr || this->inp_manage_in == nullptr ||
+				 this->inp_manage_out == nullptr || this->inp_context == nullptr
+			) {
+				return false;
+			}
+			return true;
+		};
 		void openSockets()
 		{
-			string inPoint = "inproc://" + this->name() + ".in";
-			string managePoint = "inproc://" + this->name() + ".manage";
-			try {
-				this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB);
-				this->inp_out = new zmq::socket_t(*this->inp_context, ZMQ_PUB);
-				this->inp_manage_in = new zmq::socket_t(*this->inp_context, ZMQ_REP);
-				this->inp_manage_out = new zmq::socket_t(*this->inp_context, ZMQ_REQ);
+			if (!this->areSocketsOpen()) {
+				string inPoint = "inproc://" + this->name() + ".in";
+				string managePoint = "inproc://" + this->name() + ".manage";
+				try {
+					this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB);
+					this->inp_out = new zmq::socket_t(*this->inp_context, ZMQ_PUB);
+					this->inp_manage_in = new zmq::socket_t(*this->inp_context, ZMQ_REP);
+					this->inp_manage_out = new zmq::socket_t(*this->inp_context, ZMQ_REQ);
 
-				this->inp_in->bind(inPoint.c_str());
-				this->inp_manage_in->bind(managePoint.c_str());
-				this->logger->debug("{}: Sockets Open", this->name());
-			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+					this->inp_in->bind(inPoint.c_str());
+					this->inp_manage_in->bind(managePoint.c_str());
+					this->logger->debug("{}: Sockets Open", this->name());
+					this->socketsOpen = true;
+				} catch (const zmq::error_t &e) {
+					cout << e.what() << endl;
+				}
 			}
 		};
 		void notify(SocketType sockT, string endpoint)
@@ -334,6 +348,7 @@ class Module {
 		zmq::socket_t* inp_out;
 		chrono::milliseconds timeDelta;
 		map<string, Event> events;
+		bool socketsOpen = false;
 		bool checkEventTimer(chrono::milliseconds newDelta) {
 			for (auto& event : this->events) {
 				//this->logger->debug(this->nameMsg(event.first));
