@@ -9,7 +9,7 @@ before_install:
   - wget https://distfiles.macports.org/MacPorts/MacPorts-2.3.3.tar.gz
   - tar zxvf MacPorts-2.3.3.tar.gz
   - cd MacPorts-2.3.3
-  - ./configure --prefix=./ports && make && make install
+  - ./configure --prefix="$(pwd)/.ports" && make && make install
 
 os:
   - osx
