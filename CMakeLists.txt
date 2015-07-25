@@ -158,30 +158,32 @@ endforeach(group)
 
 
 #### TESTS ####
-#set(TEST_OUTPUT_DIRS
-#    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests/modules"
-#    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests"
-#)
-#set(TEST_LINK_LIBRARIES
-#    -lzmq
-#)
-#set(TEST_FILES
-#    ModuleTests
-#)
-#set(TEST_EXTRA_COMPILE_FILES
-#    "ModuleTests\;"
-#)
-#foreach(test ${TEST_FILES})
-#    createExtrasList(${test} EXTRA_FILES TEST_EXTRA_COMPILE_FILES)
-#    add_executable(${test} EXCLUDE_FROM_ALL
-#        src/tests/${test}.cpp
-#        ${${test}_EXTRA_COMPILE_FILES}
-#    )
-#    set_target_properties(${test}
-#        PROPERTIES
-#        ${TEST_OUTPUT_DIRS}
-#    )
-#    target_link_libraries(${test}
-#        ${TEST_LINK_LIBRARIES#}
-#    )
-#endforeach(test)
+set(TEST_OUTPUT_DIRS
+    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests/modules"
+    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests"
+)
+set(TEST_LINK_LIBRARIES
+    -lzmq
+    -lboost_system-mt
+    -lboost_filesystem-mt
+)
+set(TEST_FILES
+    CreateSpineLogger
+)
+set(TEST_EXTRA_COMPILE_FILES
+    "CreateSpineLogger\;src/main/spine.cpp"
+)
+foreach(test ${TEST_FILES})
+    createExtrasList(${test} EXTRA_COMPILE_FILES TEST_EXTRA_COMPILE_FILES)
+    add_executable(${test}
+        src/tests/${test}.cpp
+        ${${test}_EXTRA_COMPILE_FILES}
+    )
+    set_target_properties(${test}
+        PROPERTIES
+        ${TEST_OUTPUT_DIRS}
+    )
+    target_link_libraries(${test}
+        ${TEST_LINK_LIBRARIES}
+    )
+endforeach(test)
