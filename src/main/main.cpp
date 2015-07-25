@@ -3,6 +3,9 @@
 
 #include "lib/spdlog/spdlog.h"
 #include "lib/cpp-json/json.h"
+#include <execinfo.h>
+#include <signal.h>
+#include <stdio.h>
 
 /* NOTES
  * To save space in modules, spine should provide functions for loading files?
@@ -10,53 +13,49 @@
  * Change module loading so we use author + name instead of relying on the filename
  */
 
-namespace sllevel = spdlog::level;
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
 
 int main(int argc, char **argv) {
-	// Configure the global logger
-    spdlog::set_async_mode(1048576); //queue size must be power of 2
-
-    // This is a quick fix for debug logging by managing argv ourselves
-    // We'll move to an option parser later
-    spdlog::level::level_enum logLevel = sllevel::info;
-    if (argc > 1 && strcmp(argv[1], "debug") == 0) {
-    	logLevel = sllevel::debug;
-    }
-    spdlog::set_level(logLevel);
-
-    // Create a stdout logger, multi threaded
-	shared_ptr<spdlog::logger> logger = spdlog::stdout_logger_mt("Logger");
-	logger->debug("{}: {}", "Main", "Logger initialised");
+	signal(SIGSEGV, handler);
+	// Configure the global logger first!!
+	auto logger = Spine::createLogger(argc > 1 && strcmp(argv[1], "debug") == 0);
 
 	// Open the spine and pass it our logger
-	Spine *spine = new Spine;
-	spine->setLogger(logger);
-
-	// Now we create our ZMQ context for all our sockets
-	zmq::context_t spineCtx(1);
+	Spine spine;
 
 	try {
 		// Lets pass the context through and use it to open all out sockets
-		// Then we subscribe the spine to the spine channel
-		spine->setSocketContext(&spineCtx);
-		logger->debug("{}: {}", "Main", "Spine open, ZMQ context set");
-		spine->openSockets();
-		spine->subscribe(spine->name());
+		spine.openSockets();
+		// We used to subscribe to ourselves for introspection
+		//spine.subscribe(spine.name());
 	} catch (const zmq::error_t &e) {
 		logger->info("Exception: {}", e.what());
- 		return 1;
+		return 1;
 	}
 
-	// Load all the modules we wrote
-	spine->loadModules(spine->moduleFileLocation);
-	bool spineReturn = spine->loadConfig("./modules/main.cfg");
-	if (spineReturn) {
-		logger->debug("{}: {}", "Main", "Running spine");
-		spineReturn = spine->run();
-	} else {
-		logger->warn("{}: {}", "Main", "Config failed to load, shutting down");
-	}
+	if (spine.loadModules(spine.moduleFileLocation)) {
+		// We have to run this after loadModules because the config is provided by libmainline_config.
+		bool spineReturn = spine.loadConfig("./modules/main.cfg");
 
-	delete spine;
-	return spineReturn ? 0 : 1;
+		if (spineReturn) {
+			logger->debug("{}: {}", "Main", "Running spine");
+			spineReturn = spine.run();
+		} else {
+			logger->warn("{}: {}", "Main", "Config failed to load, shutting down");
+		}
+
+		//delete spine;
+		return spineReturn ? 0 : 1;
+	}
 }

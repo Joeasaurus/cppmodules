@@ -62,6 +62,7 @@ class Module {
 			this->__info.name   = name;
 			this->__info.author = author;
 			this->timeNow = chrono::system_clock::now();
+			this->setLogger();
 		};
 		virtual ~Module(){};
 		virtual bool run()=0;
@@ -70,9 +71,9 @@ class Module {
 		{
 			return this->__info.name;
 		};
-		void setLogger(const shared_ptr<spdlog::logger> loggerHandle)
+		void setLogger()
 		{
-			this->logger = loggerHandle;
+			this->logger = spdlog::get("SpineLogger");
 			this->logger->debug("{}: Logger Open", this->name());
 		};
 		void setSocketContext(zmq::context_t* context)
@@ -133,6 +134,7 @@ class Module {
 		shared_ptr<spdlog::logger> logger;
 		zmq::context_t* inp_context;
 		chrono::system_clock::time_point timeNow;
+		json::object config;
 		void createEvent(string title, chrono::milliseconds interval,
 			function<bool(chrono::milliseconds delta)> callback
 		) {
@@ -354,26 +356,32 @@ class Module {
 				[&](const json::value& message) {
 					CatchState cought = CatchState::NOT_FOR_ME;
 					// this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
-					if (to_string(message["source"]) == "Spine" &&
-					   (to_string(message["destination"]) == "Modules" ||
-						to_string(message["destination"]) == this->name())
+// Messages from the Spine
+					if (to_string(message["destination"]) == "Modules" ||
+						to_string(message["destination"]) == this->name()
 					   ) {
 						cought = CatchState::FOR_ME;
-						if (json::has_key(message["data"], "command")) {
-							auto command = to_string(message["data"]["command"]);
-							if (command == "close") {
-								return false;
+						if (to_string(message["source"]) == "Spine") {
+							if (json::has_key(message["data"], "command")) {
+								auto command = to_string(message["data"]["command"]);
+								if (command == "close") {
+									return false;
+								} else if (command == "config-update") {
+									if (json::has_key(message["data"], "config")) {
+										this->config = json::as_object(message["data"]["config"]);
+									}
+								}
+							} else if (json::has_key(message["data"], "ClockTick")) {
+								return this->tickTimer(
+									chrono::milliseconds(
+										stoll(json::to_string(message["data"]["ClockTick"]))
+									)
+								);
 							}
-						} else if (json::has_key(message["data"], "ClockTick")) {
-							return this->tickTimer(
-								chrono::milliseconds(
-									stoll(json::to_string(message["data"]["ClockTick"]))
-								)
-							);
 						}
 					}
 					return this->process_message(message, cought, sockT);
-				});
+			});
 		};
 };
 

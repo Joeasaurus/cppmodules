@@ -14,7 +14,7 @@ class ConfigModule : public Module {
 
 		bool loadConfigFile(string filepath);
 	private:
-		json::object config;
+		json::object loadedConfig;
 		string configFilepath;
 };
 

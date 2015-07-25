@@ -1,6 +1,7 @@
 #include "main/spine.hpp"
 
 Spine::Spine() : Module("Spine", "Joe Eaves") {
+	this->inp_context = new zmq::context_t(1);
 	this->createEvent("ClockTick", chrono::milliseconds(1000),
 		[&](chrono::milliseconds delta) {
 			return this->sendMessage(SocketType::PUB, "Modules", json::object{
@@ -40,7 +41,25 @@ Spine::~Spine() {
 	// After all modules are closed we don't need our sockets
 	//  so we should close them before exit, to be nice
 	this->closeSockets();
+	delete this->inp_context;
 	this->logger->info(this->nameMsg("Closed"));
+}
+
+const shared_ptr<spdlog::logger> Spine::createLogger(bool debug) {
+	spdlog::set_async_mode(1048576); //queue size must be power of 2
+
+	// This is a quick fix for debug logging by managing argv ourselves
+	// We'll move to an option parser later
+	spdlog::set_level(debug ? sllevel::debug : sllevel::info);
+
+	// Create a stdout logger, multi threaded
+	shared_ptr<spdlog::logger> newLogger;
+	try {
+		newLogger = spdlog::stdout_logger_mt("SpineLogger");
+	} catch (const spdlog::spdlog_ex& ex) {
+		newLogger = spdlog::get("SpineLogger");
+	}
+	return newLogger;
 }
 
 set<string> Spine::listModules(const string& directory) {
@@ -122,7 +141,6 @@ bool Spine::loadModule(const string& filename) {
 	spineModule.module = spineModule.createModule();
 	spineModule.moduleName = spineModule.module->name();
 
-	spineModule.module->setLogger(this->logger);
 	spineModule.module->setSocketContext(this->inp_context);
 	spineModule.module->openSockets();
 

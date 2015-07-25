@@ -14,7 +14,7 @@ bool StarterModule::run() {
 }
 
 bool StarterModule::process_message(const json::value& message, CatchState cought, SocketType sockT) {
-	this->logger->debug("{}: {}", this->name(), stringify(message));
+	this->logger->debug(this->nameMsg(stringify(message)));
 	return true;
 }
 

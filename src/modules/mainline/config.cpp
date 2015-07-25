@@ -31,7 +31,13 @@ bool ConfigModule::run()
 {
 	this->createEvent("ReloadConfig", chrono::milliseconds(15000),
 		[&](chrono::milliseconds delta) {
-			return this->loadConfigFile(this->configFilepath);
+			if(this->loadConfigFile(this->configFilepath)) {
+				return this->sendMessage(SocketType::PUB, "Modules", json::object{
+					{ "command", "config-update" },
+					{ "config", this->config }
+				});
+			}
+			return false;
 		}
 	);
 	bool runAgain = true;
@@ -42,8 +48,7 @@ bool ConfigModule::run()
 	return false;
 }
 
-bool ConfigModule::process_message(const json::value& message,
-								   CatchState cought, SocketType sockT)
+bool ConfigModule::process_message(const json::value& message, CatchState cought, SocketType sockT)
 {
 	this->logger->debug("{}: {}", this->name(), json::stringify(message));
 	if (cought == CatchState::FOR_ME) {

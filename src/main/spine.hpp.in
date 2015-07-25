@@ -14,6 +14,8 @@
 
 #include <dlfcn.h>
 
+namespace sllevel = spdlog::level;
+
 // A little struct to hold pointers relevant to a module.
 typedef struct SpineModule {
 	void* module_so;
@@ -49,6 +51,7 @@ class Spine : public Module {
 		~Spine();
 		bool run();
 		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
+		const static shared_ptr<spdlog::logger> createLogger(bool debug);
 		bool loadModules(const string& directory);
 		bool loadModule(const string& filename);
 		bool loadConfig(string location);
