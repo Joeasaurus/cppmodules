@@ -10,10 +10,12 @@ os:
 #  - wget https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.9-Mavericks.pkg
 #  - sudo installer -pkg MacPorts-2.3.3-10.9-Mavericks.pkg -target /
 
-before_script:
-  - echo "$TRAVIS_OS_NAME"
-  - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ls ; fi
+# before_script:
+#   - echo "$TRAVIS_OS_NAME"
+#   - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ls ; fi
 
+install:
+if [[ "$os" == "osx" ]]; then ls /opt/local; fi
 script: npm install forever
 
 # after_success:
