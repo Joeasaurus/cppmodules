@@ -11,12 +11,7 @@ class SpineTestsFixture {
 		Spine spine;
 	protected:
 		bool CreateSpine() {
-			if (SpineOpenSockets()) {
-				if (SpineDefaultModulesLoaded()) {
-					return true;
-				}
-			}
-			return false;
+			return SpineOpenSockets();
 		}
 		bool SpineOpenSockets() {
 			REQUIRE_NOTHROW(spine.openSockets());
@@ -30,8 +25,14 @@ class SpineTestsFixture {
 		}
  };
 
-TEST_CASE_METHOD(SpineTestsFixture, "Create Spine", "[spine]") {
-	REQUIRE(CreateSpine());
+TEST_CASE_METHOD(SpineTestsFixture, "Spine functions", "[spine]") {
+	SECTION("Spine is created") {
+		REQUIRE(CreateSpine());
+	}
+	SECTION("Spone loads default modules") {
+		REQUIRE(CreateSpine());
+		REQUIRE(SpineDefaultModulesLoaded());
+	}
 }
 
 TEST_CASE( "SpineLogger is created", "[logger]" ) {
