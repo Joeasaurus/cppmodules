@@ -5,17 +5,17 @@ compiler:
   - clang
 os:
   - osx
-before_install:
-  - echo $TRAVIS_OS_NAME
+# before_install:
+#   - echo $TRAVIS_OS_NAME
 #  - wget https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.9-Mavericks.pkg
 #  - sudo installer -pkg MacPorts-2.3.3-10.9-Mavericks.pkg -target /
 
-# before_script:
-#   - travis_retry bundle
-#   - if [ $TRAVIS_OS_NAME == linux ]; then travis_retry ./configure --llvm-config llvm-config-3.4; fi
-#   - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ./configure; fi
+before_script:
+  - travis_retry bundle
+  - echo "$TRAVIS_OS_NAME"
+  - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ls ; fi
 
-# script: rake ci
+script: npm install forever
 
 # after_success:
 #   - if [ $TRAVIS_BRANCH == $TRAVIS_TAG ]; then rake deploy; fi
