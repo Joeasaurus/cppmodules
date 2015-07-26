@@ -1,10 +1,10 @@
-language: cpp
+os:
+  - osx
 
+language: cpp
 compiler:
 #   - gcc
   - clang
-os:
-  - osx
 # before_install:
 #   - echo $TRAVIS_OS_NAME
 #  - wget https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.9-Mavericks.pkg
