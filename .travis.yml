@@ -15,7 +15,8 @@ os:
 #   - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ls ; fi
 
 install:
-if [[ "$os" == "osx" ]]; then ls /opt/local; fi
+  - if [[ "$os" == "osx" ]]; then ls /opt/local; fi
+  - brew update
 script: npm install forever
 
 # after_success:
