@@ -41,7 +41,6 @@ Spine::~Spine() {
 	// After all modules are closed we don't need our sockets
 	//  so we should close them before exit, to be nice
 	this->closeSockets();
-	delete this->inp_context;
 	this->logger->info(this->nameMsg("Closed"));
 }
 
@@ -118,6 +117,7 @@ int Spine::resolveModuleFunctions(SpineModule& spineModule) {
 bool Spine::loadModule(const string& filename) {
 	SpineModule spineModule;
 	this->logger->debug(this->nameMsg("Loading " + boost::filesystem::basename(filename) + "..."));
+
 	// In the threads we load the binary and hook into it's exported functions.
 	// We use the load function to create an instance of it's Module-derived class
 	// We then set up an interface with the module using our input/output sockets
@@ -140,10 +140,14 @@ bool Spine::loadModule(const string& filename) {
 
 	spineModule.module = spineModule.createModule();
 	spineModule.moduleName = spineModule.module->name();
-
 	spineModule.module->setSocketContext(this->inp_context);
 	spineModule.module->openSockets();
-
+	if (spineModule.module->areSocketsValid()) {
+		logger->debug("{}: {}", spineModule.moduleName, "Sockets are valid!");
+	} else {
+		logger->debug("{}: {}", spineModule.moduleName, "Sockets are not valid :(");
+		return false;
+	}
 	// Here we set the module to subscribe to it's name on it's subscriber socket
 	// Then configure the module to connect it's publish output to the Spine input
 	//  and it's mgmt output too
@@ -159,8 +163,9 @@ bool Spine::loadModule(const string& filename) {
 	this->logger->info(this->nameMsg("Registered module: " + spineModule.moduleName + "!"));
 
 	auto newThread = thread([&spineModule] () {
-			spineModule.module->run();
+		return spineModule.module->run();
 	});
+
 	m_threads.push_back(move(newThread));
 	m_modules.push_back(spineModule);
 
@@ -200,25 +205,29 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 
 bool Spine::loadConfig(string location) {
 	string confMod = "mainline_config";
-	//return true;
-	return this->sendMessageRecv(SocketType::MGM_OUT, confMod, json::object{
-		{ "command", "load" },
-		{ "file", location }
-	}, [&,confMod](const json::value& message) -> bool{
-		if (json::has_key(message, "source") &&
-			json::has_key(message, "destination") &&
-			json::has_key(message["data"], "configLoaded")
-		) {
-			if (to_string(message["source"]) == confMod &&
-				to_string(message["destination"]) == this->name()
+	if (this->areSocketsValid()) {
+		logger->debug("SOCKETS VALID");
+		return this->sendMessageRecv(SocketType::MGM_OUT, confMod, json::object{
+			{ "command", "load" },
+			{ "file", location }
+		}, [&,confMod](const json::value& message) -> bool{
+			if (json::has_key(message, "source") &&
+				json::has_key(message, "destination") &&
+				json::has_key(message["data"], "configLoaded")
 			) {
-				if (to_string(message["data"]["configLoaded"]) == "true") {
-					return true;
+				if (to_string(message["source"]) == confMod &&
+					to_string(message["destination"]) == this->name()
+				) {
+					if (to_string(message["data"]["configLoaded"]) == "true") {
+						return true;
+					}
 				}
-			}
-		};
+			};
+			return false;
+		});
+	} else {
 		return false;
-	});
+	}
 }
 
 bool Spine::run() {
@@ -248,8 +257,8 @@ bool Spine::run() {
 			{ "command", "close" }
 		});
 		return true;
-	} catch(...) {
-		this->logger->info("EXIT");
+	} catch(zmq::error_t& ex) {
+		this->logger->info(this->nameMsg(ex.what()));
 		return false;
 	}
 }

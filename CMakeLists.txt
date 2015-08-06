@@ -15,7 +15,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
 if (NOT CONFIGURED_ONCE)
-    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -g"
+    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -g -DSPDLOG_TRACE_ON"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
     set(CMAKE_C_FLAGS   "${warnings} -g"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
@@ -93,7 +93,7 @@ target_link_libraries(main
 
 #### MODULES ####
 set(MODULES
-    "mainline\;starter\;config"
+    "mainline\;config"
 )
 set(mainline_EXTRA_COMPILE_FILES
     "starter\;"

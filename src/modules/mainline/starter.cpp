@@ -6,6 +6,7 @@ StarterModule::~StarterModule() {
 }
 
 bool StarterModule::run() {
+	this->logger->debug(this->nameMsg("Run function executed!"));
 	bool runAgain = true;
 	while (runAgain) {
 		runAgain = this->pollAndProcess();

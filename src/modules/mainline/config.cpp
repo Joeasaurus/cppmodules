@@ -29,7 +29,8 @@ bool ConfigModule::loadConfigFile(string filepath)
 
 bool ConfigModule::run()
 {
-	this->createEvent("ReloadConfig", chrono::milliseconds(15000),
+	this->logger->debug(this->nameMsg("Run function executed!"));
+	this->createEvent("ReloadConfig", chrono::milliseconds(1000),
 		[&](chrono::milliseconds delta) {
 			if(this->loadConfigFile(this->configFilepath)) {
 				return this->sendMessage(SocketType::PUB, "Modules", json::object{
@@ -40,6 +41,7 @@ bool ConfigModule::run()
 			return false;
 		}
 	);
+	this->logger->debug(this->nameMsg("ReloadConfig event created"));
 	bool runAgain = true;
 	while (runAgain) {
 		runAgain = this->pollAndProcess();

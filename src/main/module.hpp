@@ -19,6 +19,7 @@
 #include "lib/cpp-json/json.h"
 
 using namespace std;
+using namespace zmq;
 namespace algorithm = boost::algorithm;
 
 typedef struct ModuleInfo {
@@ -84,12 +85,8 @@ class Module {
 			return this->socketsOpen;
 		};
 		bool areSocketsValid() {
-			if ( this->inp_in == nullptr || this->inp_out == nullptr || this->inp_manage_in == nullptr ||
-				 this->inp_manage_out == nullptr || this->inp_context == nullptr
-			) {
-				return false;
-			}
-			return true;
+			return (this->inp_in->connected() && this->inp_out->connected() && this->inp_manage_in->connected() &&
+					this->inp_manage_out->connected());
 		};
 		void openSockets()
 		{
@@ -107,7 +104,7 @@ class Module {
 					this->logger->debug("{}: Sockets Open", this->name());
 					this->socketsOpen = true;
 				} catch (const zmq::error_t &e) {
-					cout << e.what() << endl;
+					this->logger->error(this->nameMsg(e.what()));
 				}
 			}
 		};
@@ -122,8 +119,9 @@ class Module {
 					endpoint += ".manage";
 					this->inp_manage_out->connect(endpoint.c_str());
 				}
+				this->logger->debug(this->nameMsg("NOTIFY " + endpoint));
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
 		};
 		void subscribe(string channel)
@@ -131,7 +129,7 @@ class Module {
 			try {
 				this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
 		};
 		bool tickTimer(
@@ -145,15 +143,15 @@ class Module {
 // PROTECTED
 	protected:
 		ModuleInfo __info;
-		shared_ptr<spdlog::logger> logger;
 		zmq::context_t* inp_context;
+		shared_ptr<spdlog::logger> logger;
 		chrono::system_clock::time_point timeNow;
 		json::object config;
 		void createEvent(string title, chrono::milliseconds interval,
 			function<bool(chrono::milliseconds delta)> callback
 		) {
-			// auto ttp = chrono::system_clock::to_time_t(chrono::system_clock::now() + interval);
-			// this->logger->debug(ctime(&ttp));
+			auto ttp = chrono::system_clock::to_time_t(chrono::system_clock::now() + interval);
+			this->logger->debug(ctime(&ttp));
 			this->events.insert(pair<string, Event>(
 				title, Event{
 					chrono::milliseconds(0),
@@ -178,8 +176,8 @@ class Module {
 		void nameMsg(string& message) {
 			message = this->name() + ": " + message;
 		};
-		bool sendMessage(SocketType sockT, string destination,
-						 json::object msg)
+	public:
+		bool sendMessage(SocketType sockT, string destination, json::object msg)
 		{
 			bool sendOk = false;
 
@@ -200,7 +198,7 @@ class Module {
 					sendOk = this->inp_manage_out->send(zmqObject);
 				}
 			} catch (const zmq::error_t &e) {
-				this->logger->error(e.what());
+				logger->debug(this->nameMsg(e.what()));
 			}
 
 			return sendOk;
@@ -244,25 +242,29 @@ class Module {
 			zmq::message_t message;
 
 			if (sockT == SocketType::SUB || sockT == SocketType::PUB) {
-				pollSocketItems[0].socket = *this->inp_in;
+				pollSocketItems[0].socket = this->inp_in;
 				pollSocket = this->inp_in;
 			} else if (sockT == SocketType::MGM_IN) {
-				pollSocketItems[0].socket = *this->inp_manage_in;
+				pollSocketItems[0].socket = this->inp_manage_in;
 				pollSocket = this->inp_manage_in;
 			} else if (sockT == SocketType::MGM_OUT) {
-				pollSocketItems[0].socket = *this->inp_manage_out;
+				pollSocketItems[0].socket = this->inp_manage_out;
 				pollSocket = this->inp_manage_out;
 			}
 
 			try {
+				this->logger->debug(this->nameMsg("POLL HAPPENING"));
+//TODO: This is throwing "Socket operation on non-socket"
+				this->logger->debug(this->areSocketsValid());
 				int data = zmq::poll(pollSocketItems, 1, timeout);
+				this->logger->debug(this->nameMsg("POLL HAPPENED"));
 				if (data > 0) {
 					if(pollSocket->recv(&message)) {
 						messageText = string(static_cast<char*>(message.data()), message.size());
 					}
 				}
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
 			// I know this is silly, we can't rely on pretty print because values are arbitray
 			//  and may have spaces.
@@ -303,7 +305,7 @@ class Module {
 				this->inp_manage_in->close();
 				this->inp_manage_out->close();
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
 
 			delete this->inp_in;
@@ -315,10 +317,11 @@ class Module {
 		{
 			int pollSocketCount = 2;
 			zmq::pollitem_t pollSocketItems[] = {
-				{ *this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
-				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
+				{ this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
+				{ this->inp_in, 0, ZMQ_POLLIN, 0 }
 			};
 
+return true;
 			if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
 				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
 					return this->catchAndProcess(this->inp_manage_in, SocketType::MGM_IN);
