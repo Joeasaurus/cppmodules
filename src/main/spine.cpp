@@ -2,13 +2,11 @@
 
 Spine::Spine() : Module("Spine", "Joe Eaves") {
 	this->inp_context = new zmq::context_t(1);
-	this->createEvent("ClockTick", chrono::milliseconds(1000),
-		[&](chrono::milliseconds delta) {
-			return this->sendMessage(SocketType::PUB, "Modules", json::object{
-				{ "ClockTick", to_string(delta.count()) }
-			});
-		}
-	);
+	this->createEvent("ClockTick", chrono::milliseconds(1000), [&](chrono::milliseconds delta) {
+		WireMessage wMsg(this->name(), "Modules");
+		wMsg.message["data"]["ClockTick"] = to_string(delta.count());
+		return this->sendMessage(SocketType::PUB, wMsg);
+	});
 }
 
 Spine::~Spine() {
@@ -19,10 +17,11 @@ Spine::~Spine() {
 	//  in the Spine as 'loaded'
 	// It then waits for the module to join. It relies on the module closing
 	//  cleanly else it will lock up waiting.
+	WireMessage wMsg(this->name(), "");
+	wMsg.message["data"]["command"] = "close";
 	for_each(m_modules.begin(), m_modules.end(), [&](SpineModule& mod) {
-		this->sendMessage(SocketType::PUB, mod.moduleName, json::object{
-			{ "command", "close" }
-		});
+		wMsg.message["destination"] = mod.moduleName;
+		this->sendMessage(SocketType::PUB, wMsg);
 		this->logger->debug(this->nameMsg("Joining " + mod.moduleName));
 
 		if (m_threads[position].joinable()) {
@@ -55,7 +54,7 @@ const shared_ptr<spdlog::logger> Spine::createLogger(bool debug) {
 	shared_ptr<spdlog::logger> newLogger;
 	try {
 		newLogger = spdlog::stdout_logger_mt("SpineLogger");
-	} catch (const spdlog::spdlog_ex& ex) {
+	} catch (const spdlog::spdlog_ex) {
 		newLogger = spdlog::get("SpineLogger");
 	}
 	return newLogger;
@@ -207,23 +206,20 @@ bool Spine::loadConfig(string location) {
 	string confMod = "mainline_config";
 	if (this->areSocketsValid()) {
 		logger->debug("SOCKETS VALID");
-		return this->sendMessageRecv(SocketType::MGM_OUT, confMod, json::object{
-			{ "command", "load" },
-			{ "file", location }
-		}, [&,confMod](const json::value& message) -> bool{
-			if (json::has_key(message, "source") &&
-				json::has_key(message, "destination") &&
-				json::has_key(message["data"], "configLoaded")
-			) {
-				if (to_string(message["source"]) == confMod &&
-					to_string(message["destination"]) == this->name()
-				) {
-					if (to_string(message["data"]["configLoaded"]) == "true") {
-						return true;
-					}
-				}
-			};
-			return false;
+		WireMessage wMsg(this->name(), confMod);
+		wMsg.message["data"]["command"] = "load";
+		wMsg.message["data"]["file"] = location;
+		return this->sendMessageRecv(SocketType::MGM_OUT, wMsg, [&,confMod](const WireMessage& wMsg) -> bool{
+			if (!wMsg.message["data"].isMember("configLoaded"))
+				return false;
+
+			if (wMsg.message["source"].asString() != confMod || wMsg.message["destination"].asString() != this->name())
+				return false;
+
+			if (!wMsg.message["data"]["configLoaded"].asBool())
+				return false;
+
+			return true;
 		});
 	} else {
 		return false;
@@ -253,9 +249,9 @@ bool Spine::run() {
 		}
 		// Lets make sure the close command works!
 		this->logger->info(this->nameMsg("Closing 'Modules'"));
-		this->sendMessage(SocketType::PUB, "Modules", json::object{
-			{ "command", "close" }
-		});
+		WireMessage wMsg(this->name(), "Modules");
+		wMsg.message["data"]["command"] = "close";
+		this->sendMessage(SocketType::PUB, wMsg);
 		return true;
 	} catch(zmq::error_t& ex) {
 		this->logger->info(this->nameMsg(ex.what()));
@@ -263,8 +259,8 @@ bool Spine::run() {
 	}
 }
 
-bool Spine::process_message(const json::value& message, CatchState cought, SocketType sockT) {
-	this->logger->debug(this->nameMsg(stringify(message)));
+bool Spine::process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT) {
+	this->logger->debug(this->nameMsg(wMsg.message.asString()));
 	return true;
 }
 

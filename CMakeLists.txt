@@ -1,24 +1,27 @@
 cmake_minimum_required(VERSION 3.1)
 project(cppmodules)
+#find_package(PkgConfig)
+set (CMAKE_VERBOSE_MAKEFILE true)
+set (CMAKE_CONFIGURATION_TYPES Debug;Release)
 
 ## cppcheck --force --inline-suppr --template '{file}:{line},{severity},{id},{message}' \
 ##  --xml --enable=all --max-configs=25 -i /Users/jme/GDrive/code/cppmodules/src ./ 2> err.xml
-#
 ## cppcheck-htmlreport --file=err.xml --title=CppModules --report-dir=cppcheck_reports --source-dir=.
 
-
 ### CMAKE FLAGS ###
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
-    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(warnings "-Wall -Wextra")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    if (NOT CONFIGURED_ONCE)
+        set(warnings "-Wall -Wextra")
+        set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -g")
+    endif()
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(warnings "/W4 /WX /EHsc")
-endif()
-if (NOT CONFIGURED_ONCE)
-    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -g -DSPDLOG_TRACE_ON"
-        CACHE STRING "Flags used by the compiler during all build types." FORCE)
-    set(CMAKE_C_FLAGS   "${warnings} -g"
-        CACHE STRING "Flags used by the compiler during all build types." FORCE)
+    if (NOT CONFIGURED_ONCE)
+		# _CRT_SECURE_NO_WARNINGS stops it complaining about ctime 
+        set(CMAKE_CXX_FLAGS "/W3 /WX /EHsc /sdl /Od /D _SCL_SECURE_NO_WARNINGS /D _CRT_SECURE_NO_WARNINGS")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:library")
+    endif()
 endif()
 
 ### FUNCTIONS & VARS ###
@@ -54,23 +57,39 @@ include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generat
 set(BOTH_LINK_LIBRARIES
     -lzmq
 )
-set(LINUX_LINK_LIBRARIES
-    -lboost_filesystem
-    -lboost_system
-    -ldl
-)
-set(OSX_LINK_LIBRARIES
-    -lboost_filesystem-mt
-    -lboost_system-mt
-)
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(MAIN_LINK_LIBRARIES
-         ${LINUX_LINK_LIBRARIES}
+        -ldl
+        -lboost_filesystem
+        -lboost_system
     )
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(MAIN_LINK_LIBRARIES
-         ${OSX_LINK_LIBRARIES}
+        -lboost_filesystem-mt
+        -lboost_system-mt
     )
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    include_directories(AFTER "C:\\Boost\\include\\boost-1_58" "C:\\Program Files\\ZeroMQ 4.0.4\\include" "D:\\local_scratch\\dlfcn-win32")
+    link_directories("C:\\Boost\\lib" "C:\\Program Files\\ZeroMQ 4.0.4\\lib" "D:\\local_scratch\\dlfcn-win32\\cmake-out\\" "D:\\local_scratch\\cppmodules\\src\\lib\\jsoncpp")
+    set(BOTH_LINK_LIBRARIES_Debug
+            jsoncpp-d.lib
+            libzmq-v120-mt-gd-4_0_4.lib
+        )
+    set(MAIN_LINK_LIBRARIES_Debug
+        dl.lib
+        libboost_system-vc140-mt-sgd-1_58.lib
+        libboost_filesystem-vc140-mt-sgd-1_58.lib
+    )
+    set(BOTH_LINK_LIBRARIES_Release
+        jsoncpp.lib
+        libzmq-v120-mt-4_0_4.lib
+    )
+    set(MAIN_LINK_LIBRARIES_Release
+        dl.lib
+        libboost_system-vc140-mt-s-1_58.lib
+        libboost_filesystem-vc140-mt-s-1_58.lib
+    )
+    message(STATUS "${CMAKE_BUILD_TYPE} ${BOTH_LINK_LIBRARIES_${CMAKE_BUILD_TYPE}}")
 endif()
 
 
@@ -86,8 +105,8 @@ set_target_properties(main
     RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
 )
 target_link_libraries(main
-    ${BOTH_LINK_LIBRARIES}
-    ${MAIN_LINK_LIBRARIES}
+    ${BOTH_LINK_LIBRARIES_${CMAKE_BUILD_TYPE}}
+    ${MAIN_LINK_LIBRARIES_${CMAKE_BUILD_TYPE}}
 )
 
 
@@ -99,15 +118,27 @@ set(mainline_EXTRA_COMPILE_FILES
     "starter\;"
     "config\;"
 )
-set(mainline_EXTRA_LINK_LIBRARIES
-    "starter\;"
-    "config\;boost_filesystem-mt\;boost_system-mt"
-)
 set(mainline_EXTRA_COPY_FILES
     "starter\;"
     "config\;main.cfg"
 )
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(mainline_EXTRA_LINK_LIBRARIES
+        "starter\;"
+        "config\;boost_filesystem-mt\;boost_system-mt"
+    )
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(mainline_EXTRA_LINK_LIBRARIES_Release
+        "starter\;"
+        "config\;libboost_system-vc140-mt-s-1_58.lib\;libboost_filesystem-vc140-mt-s-1_58.lib"
+    )
+    set(mainline_EXTRA_LINK_LIBRARIES_Debug
+        "starter\;"
+        "config\;libboost_system-vc140-mt-sgd-1_58.lib\;libboost_filesystem-vc140-mt-sgd-1_58.lib"
+    )
+endif()
 
+OPTION (BUILD_SHARED_LIBS "Build shared libraries." ON)
 foreach(group ${MODULES})
     list(GET group 0 MODULE_GROUP_NAME)
     createExtrasList(${MODULE_GROUP_NAME} GROUP_MODULES MODULES)
@@ -116,7 +147,7 @@ foreach(group ${MODULES})
                         ${MODULE_GROUP_NAME}_EXTRA_COMPILE_FILES
         )
         createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_LINK_LIBRARIES
-                        ${MODULE_GROUP_NAME}_EXTRA_LINK_LIBRARIES
+                        ${MODULE_GROUP_NAME}_EXTRA_LINK_LIBRARIES_${CMAKE_BUILD_TYPE}
         )
         createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_COPY_FILES
                         ${MODULE_GROUP_NAME}_EXTRA_COPY_FILES
@@ -135,7 +166,7 @@ foreach(group ${MODULES})
     	    LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
     	)
      	target_link_libraries(${MODULE_GROUP_NAME}_${module}
-            ${BOTH_LINK_LIBRARIES}
+            ${BOTH_LINK_LIBRARIES_${CMAKE_BUILD_TYPE}}
             ${${MODULE_GROUP_NAME}_${module}_EXTRA_LINK_LIBRARIES}
         )
         foreach(file_to_copy ${${MODULE_GROUP_NAME}_${module}_EXTRA_COPY_FILES})
@@ -168,7 +199,7 @@ set(TEST_LINK_LIBRARIES
     -lboost_filesystem-mt
 )
 set(TEST_FILES
-    SpineAPI
+#    SpineAPI
 )
 set(TEST_EXTRA_COMPILE_FILES
     "SpineAPI\;src/main/spine.cpp"

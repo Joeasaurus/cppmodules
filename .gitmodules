@@ -1,9 +1,12 @@
 [submodule "submodules/spdlog"]
 	path = submodules/spdlog
 	url = https://github.com/gabime/spdlog.git
-[submodule "submodules/cpp-json"]
-	path = submodules/cpp-json
-	url = https://github.com/eteran/cpp-json.git
 [submodule "submodules/catch"]
 	path = submodules/catch
 	url = https://github.com/philsquared/Catch.git
+[submodule "submodules/cppzmq"]
+	path = submodules/cppzmq
+	url = https://github.com/zeromq/cppzmq.git
+[submodule "submodules/jsoncpp"]
+	path = submodules/jsoncpp
+	url = https://github.com/open-source-parsers/jsoncpp.git

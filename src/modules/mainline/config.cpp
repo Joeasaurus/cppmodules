@@ -12,9 +12,9 @@ bool ConfigModule::loadConfigFile(string filepath)
 		try {
 			ifstream configFile(filepath);
 			if (configFile) {
-				this->config = json::to_object(json::parse(configFile));
+				this->reader.parse(configFile, this->config, false);
 				this->logger->debug(this->nameMsg(filepath + " loaded!"));
-				this->logger->debug(this->nameMsg(json::stringify(this->config)));
+				this->logger->debug(this->nameMsg(this->config.asString()));
 				this->configFilepath = filepath;
 				return true;
 			}
@@ -33,10 +33,10 @@ bool ConfigModule::run()
 	this->createEvent("ReloadConfig", chrono::milliseconds(1000),
 		[&](chrono::milliseconds delta) {
 			if(this->loadConfigFile(this->configFilepath)) {
-				return this->sendMessage(SocketType::PUB, "Modules", json::object{
-					{ "command", "config-update" },
-					{ "config", this->config }
-				});
+				WireMessage configUpdate(this->name(), "Module");
+				configUpdate.message["data"]["command"] = "config-update";
+				configUpdate.message["data"]["config"] = this->config;
+				return this->sendMessage(SocketType::PUB, configUpdate);
 			}
 			return false;
 		}
@@ -50,21 +50,20 @@ bool ConfigModule::run()
 	return false;
 }
 
-bool ConfigModule::process_message(const json::value& message, CatchState cought, SocketType sockT)
+bool ConfigModule::process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT)
 {
-	this->logger->debug("{}: {}", this->name(), json::stringify(message));
+	this->logger->debug("{}: {}", this->name(), wMsg.message.asString());
 	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN && json::has_key(message["data"], "command")) {
-			if (json::to_string(message["data"]["command"]) == "load" &&
-				json::has_key(message["data"], "file")
-			) {
-				json::object msg{
-					{ "configLoaded", "false" }
-				};
-				if (this->loadConfigFile(json::to_string(message["data"]["file"]))) {
-					msg["configLoaded"] = "true";
+		if (sockT == SocketType::MGM_IN && wMsg.message["data"].isMember("command")) {
+			if (wMsg.message["data"]["command"].asString() == "load" && wMsg.message["data"].isMember("file")) {
+				WireMessage reply(this->name(), "Spine");
+				
+				reply.message["data"]["configLoaded"] = false;
+				if (this->loadConfigFile(wMsg.message["data"]["file"].asString())) {
+					reply.message["data"]["configLoaded"] = true;
 				}
-				this->sendMessage(SocketType::MGM_IN, "Spine", msg);
+				
+				this->sendMessage(SocketType::MGM_IN, reply);
 			}
 		}
 	}

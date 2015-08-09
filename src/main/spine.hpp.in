@@ -52,7 +52,7 @@ class Spine : public Module {
 		Spine();
 		~Spine();
 		bool run();
-		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
+		bool process_message(const WireMessage& message, CatchState cought, SocketType sockT);
 		const static shared_ptr<spdlog::logger> createLogger(bool debug);
 		bool loadModules(const string& directory);
 		bool loadModule(const string& filename);
