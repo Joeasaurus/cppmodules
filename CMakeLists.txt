@@ -1,22 +1,29 @@
 cmake_minimum_required(VERSION 3.1)
 project(cppmodules)
+
 #find_package(PkgConfig)
-set (CMAKE_VERBOSE_MAKEFILE true)
-set (CMAKE_CONFIGURATION_TYPES Debug;Release)
+set (CMAKE_VERBOSE_MAKEFILE false)
 
 ## cppcheck --force --inline-suppr --template '{file}:{line},{severity},{id},{message}' \
 ##  --xml --enable=all --max-configs=25 -i /Users/jme/GDrive/code/cppmodules/src ./ 2> err.xml
 ## cppcheck-htmlreport --file=err.xml --title=CppModules --report-dir=cppcheck_reports --source-dir=.
 
 ### CMAKE FLAGS ###
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang"))
+    if(NOT DEFINED CMAKE_BUILD_TYPE)
+        set (CMAKE_BUILD_TYPE Release)
+    endif()
     if (NOT CONFIGURED_ONCE)
-        set(warnings "-Wall -Wextra")
-        set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -g")
+        set(CXX_DEFAULT_FLAGS "-std=c++11")
+        set(CXX_WARNING_FLAGS "-Wall -Wextra")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_DEFAULT_FLAGS} ${CXX_WARNING_FLAGS}")
+        set(CMAKE_CXX_FLAGS_DEBUG "-O0 ${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_RELEASE}")
     endif()
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    set (CMAKE_CONFIGURATION_TYPES Debug;Release)
     if (NOT CONFIGURED_ONCE)
-		# _CRT_SECURE_NO_WARNINGS stops it complaining about ctime 
+		# _CRT_SECURE_NO_WARNINGS stops it complaining about ctime
         set(CMAKE_CXX_FLAGS "/W3 /WX /EHsc /sdl /Od /D _SCL_SECURE_NO_WARNINGS /D _CRT_SECURE_NO_WARNINGS")
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
@@ -54,20 +61,25 @@ endmacro(createExtrasList)
 
 #### COMMON ####
 include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generated")
-set(BOTH_LINK_LIBRARIES
+link_directories("${CMAKE_SOURCE_DIR}/submodules/jsoncpp/cmake-out/src/lib_json")
+set(BOTH_LINK_LIBRARIES_Release
     -lzmq
+    -ljsoncpp
 )
+set(BOTH_LINK_LIBRARIES_Debug ${BOTH_LINK_LIBRARIES_Release})
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    set(MAIN_LINK_LIBRARIES
+    set(MAIN_LINK_LIBRARIES_Release
         -ldl
         -lboost_filesystem
         -lboost_system
     )
+    set(MAIN_LINK_LIBRARIES_Debug ${MAIN_LINK_LIBRARIES_Release})
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-    set(MAIN_LINK_LIBRARIES
+    set(MAIN_LINK_LIBRARIES_Release
         -lboost_filesystem-mt
         -lboost_system-mt
     )
+    set(MAIN_LINK_LIBRARIES_Debug ${MAIN_LINK_LIBRARIES_Release})
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     include_directories(AFTER "C:\\Boost\\include\\boost-1_58" "C:\\Program Files\\ZeroMQ 4.0.4\\include" "D:\\local_scratch\\dlfcn-win32")
     link_directories("C:\\Boost\\lib" "C:\\Program Files\\ZeroMQ 4.0.4\\lib" "D:\\local_scratch\\dlfcn-win32\\cmake-out\\" "D:\\local_scratch\\cppmodules\\src\\lib\\jsoncpp")
@@ -123,7 +135,11 @@ set(mainline_EXTRA_COPY_FILES
     "config\;main.cfg"
 )
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-    set(mainline_EXTRA_LINK_LIBRARIES
+    set(mainline_EXTRA_LINK_LIBRARIES_Release
+        "starter\;"
+        "config\;boost_filesystem-mt\;boost_system-mt"
+    )
+    set(mainline_EXTRA_LINK_LIBRARIES_Debug
         "starter\;"
         "config\;boost_filesystem-mt\;boost_system-mt"
     )

@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 			// spine.subscribe(spine.name());
 			if (spine.loadModules(spine.moduleFileLocation)) {
 				// // We have to run this after loadModules because the config is provided by libmainline_config.
-				
+
 				spineReturn = spine.loadConfig("./modules/main.cfg");
 				if (spineReturn) {
 					logger->debug("{}: {}", "Main", "Running spine");

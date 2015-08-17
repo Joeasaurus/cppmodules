@@ -4,9 +4,6 @@
 [submodule "submodules/catch"]
 	path = submodules/catch
 	url = https://github.com/philsquared/Catch.git
-[submodule "submodules/cppzmq"]
-	path = submodules/cppzmq
-	url = https://github.com/zeromq/cppzmq.git
 [submodule "submodules/jsoncpp"]
 	path = submodules/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
