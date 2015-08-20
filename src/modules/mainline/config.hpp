@@ -14,7 +14,7 @@ class ConfigModule : public Module {
 
 		bool loadConfigFile(string filepath);
 	private:
-		Json::Value loadedConfig = Json::objectValue;
+		WireMessage loadedConfig;
 		string configFilepath;
 };
 

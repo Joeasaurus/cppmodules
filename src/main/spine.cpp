@@ -57,6 +57,9 @@ const shared_ptr<spdlog::logger> Spine::createLogger(bool debug) {
 	} catch (const spdlog::spdlog_ex) {
 		newLogger = spdlog::get("SpineLogger");
 	}
+
+	newLogger->set_pattern("[%T.%e] [%l] %v"); // Custom format
+
 	return newLogger;
 }
 
@@ -205,7 +208,6 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 bool Spine::loadConfig(string location) {
 	string confMod = "mainline_config";
 	if (this->areSocketsValid()) {
-		logger->debug("SOCKETS VALID");
 		WireMessage wMsg(this->name(), confMod);
 		wMsg.message["data"]["command"] = "load";
 		wMsg.message["data"]["file"] = location;
