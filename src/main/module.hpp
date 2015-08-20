@@ -119,7 +119,7 @@ class Module {
 		virtual ~Module(){};
 		virtual bool run()=0;
 		virtual bool process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT)=0;
-		string name()
+		string name() const
 		{
 			return this->__info.name;
 		};
@@ -131,14 +131,14 @@ class Module {
 		shared_ptr<spdlog::logger> getLogger() const {
 			return this->logger;
 		};
-		void setSocketContext(zmq::context_t* context)
+		void setSocketContext(context_t* context)
 		{
 			this->inp_context = context;
 		};
-		bool areSocketsOpen() {
+		bool areSocketsOpen() const {
 			return this->socketsOpen;
 		};
-		bool areSocketsValid() {
+		bool areSocketsValid() const {
 			return (this->inp_in->connected() && this->inp_out->connected() && this->inp_manage_in->connected() &&
 					this->inp_manage_out->connected());
 		};
@@ -148,10 +148,10 @@ class Module {
 				string inPoint = "inproc://" + this->name() + ".in";
 				string managePoint = "inproc://" + this->name() + ".manage";
 				try {
-					this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB); //zmq::socket_type::sub);
-					this->inp_out = new zmq::socket_t(*this->inp_context, ZMQ_PUB); //zmq::socket_type::pub);
-					this->inp_manage_in = new zmq::socket_t(*this->inp_context, ZMQ_REP); //zmq::socket_type::rep);
-					this->inp_manage_out = new zmq::socket_t(*this->inp_context, ZMQ_REQ); //zmq::socket_type::req);
+					this->inp_in = new socket_t(*this->inp_context, socket_type::sub);
+					this->inp_out = new socket_t(*this->inp_context, socket_type::pub);
+					this->inp_manage_in = new socket_t(*this->inp_context, socket_type::rep);
+					this->inp_manage_out = new socket_t(*this->inp_context, socket_type::req);
 
 					this->inp_in->bind(inPoint.c_str());
 					this->inp_manage_in->bind(managePoint.c_str());
@@ -196,7 +196,7 @@ class Module {
 // PROTECTED
 	protected:
 		ModuleInfo __info;
-		zmq::context_t* inp_context;
+		context_t* inp_context;
 		shared_ptr<spdlog::logger> logger;
 		chrono::system_clock::time_point timeNow;
 		WireMessage config;
@@ -218,10 +218,10 @@ class Module {
 				this->logger->warn(this->nameMsg(e.what()));
 			}
 		};
-		string nameMsg(string message) {
+		string nameMsg(string message) const {
 			return this->name() + ": " + message;
 		};
-		void nameMsg(string& message) {
+		void nameMsg(string& message) const {
 			message = this->name() + ": " + message;
 		};
 		bool sendMessage(SocketType sockT, WireMessage wMsg)
@@ -236,7 +236,7 @@ class Module {
 			message_string.erase(message_string.length()-1, 1);
 			message_string += " " + wMsg.asString();
 
-			zmq::message_t zmqObject(message_string.length());
+			message_t zmqObject(message_string.length());
 			memcpy(zmqObject.data(), message_string.data(), message_string.length());
 
 			try {
@@ -286,11 +286,11 @@ class Module {
 		) {
 			WireMessage wMsg;
 
-			zmq::socket_t* pollSocket;
-			zmq::pollitem_t pollSocketItems[1];
+			socket_t* pollSocket;
+			pollitem_t pollSocketItems[1];
 			pollSocketItems[0].events = ZMQ_POLLIN;
 
-			zmq::message_t zMessage;
+			message_t zMessage;
 
 			if (sockT == SocketType::SUB || sockT == SocketType::PUB) {
 				pollSocketItems[0].socket = (void*)*this->inp_in;
@@ -322,11 +322,11 @@ class Module {
 			return callback(wMsg);
 		};
 		template<typename retType>
-		retType recvMessage(zmq::socket_t* socket,
+		retType recvMessage(socket_t* socket,
 						function<retType(const WireMessage&)> callback
 		) {
 			WireMessage wMsg;
-			zmq::message_t zMessage;
+			message_t zMessage;
 
 			if(socket->recv(&zMessage)) {
 				// I know this is silly, we can't rely on pretty print because values are arbitray
@@ -359,7 +359,7 @@ class Module {
 		bool pollAndProcess()
 		{
 			int pollSocketCount = 2;
-			zmq::pollitem_t pollSocketItems[] = {
+			pollitem_t pollSocketItems[] = {
 				{ (void*)*this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
 				{ (void*)*this->inp_in, 0, ZMQ_POLLIN, 0 }
 			};
@@ -386,10 +386,10 @@ class Module {
 
 // PRIVATE
 	private:
-		zmq::socket_t* inp_manage_in;
-		zmq::socket_t* inp_manage_out;
-		zmq::socket_t* inp_in;
-		zmq::socket_t* inp_out;
+		socket_t* inp_manage_in;
+		socket_t* inp_manage_out;
+		socket_t* inp_in;
+		socket_t* inp_out;
 		chrono::milliseconds timeDelta;
 		map<string, Event> events;
 		bool socketsOpen = false;
@@ -404,7 +404,7 @@ class Module {
 			}
 			return true;
 		};
-		bool catchAndProcess(zmq::socket_t* socket, SocketType sockT)
+		bool catchAndProcess(socket_t* socket, SocketType sockT)
 		{
 			// Here we listen on the socket we're told to for close messages
 			// false will close us so we return that for a close message

@@ -149,9 +149,7 @@ bool Spine::loadModule(const string& filename) {
 	spineModule.module->setLogger("SpineLogger");
 	spineModule.module->setSocketContext(this->inp_context);
 	spineModule.module->openSockets();
-	if (spineModule.module->areSocketsValid()) {
-		logger->debug("{}: {}", spineModule.moduleName, "Sockets are valid!");
-	} else {
+	if (! spineModule.module->areSocketsValid()) {
 		logger->debug("{}: {}", spineModule.moduleName, "Sockets are not valid :(");
 		return false;
 	}
@@ -267,7 +265,7 @@ bool Spine::run() {
 }
 
 bool Spine::process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT) {
-	this->logger->debug(this->nameMsg(wMsg.message.asString()));
+	this->logger->debug(this->nameMsg(wMsg.asString()));
 	return true;
 }
 

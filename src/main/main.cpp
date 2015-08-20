@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
 	try {
 		spine.openSockets();
 		if (spine.areSocketsValid()) {
-			// We used to subscribe to ourselves for introspection
+			// We used to subscribe to ourself for introspection
 			//spine.subscribe(spine.name());
 			if (spine.loadModules(spine.moduleFileLocation)) {
 				// We have to run this after loadModules because the config is provided by libmainline_config.
