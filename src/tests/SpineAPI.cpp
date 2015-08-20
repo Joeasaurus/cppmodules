@@ -24,12 +24,16 @@ class SpineTestsFixture {
 		bool SpineDefaultModulesLoaded() {
 			return spine.isModuleLoaded("mainline_config");
 		}
+		bool SpineConfigIsLoaded() {
+			return spine.loadConfig("./modules/main.cfg");
+		}
  };
 
-TEST_CASE_METHOD(SpineTestsFixture, "All", "[spine]") {
-	SECTION("Spine loads default modules") {
+TEST_CASE_METHOD(SpineTestsFixture, "All", "[spine,modules,config]") {
+	SECTION("Public spine functions") {
 		REQUIRE(SpineLoadModules());
 		REQUIRE(SpineDefaultModulesLoaded());
+		REQUIRE(SpineConfigIsLoaded());
 	}
 }
 
