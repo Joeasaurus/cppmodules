@@ -1,7 +1,5 @@
 #include "main/spine.hpp"
 
-//#include "main/segvhandler.hpp"
-
 /* NOTES
  * To save space in modules, spine should provide functions for loading files?
  *    (So boost-filesystem + system only need linking once)
@@ -9,13 +7,12 @@
  */
 
 int main(int argc, char **argv) {
-	//signal(SIGSEGV, handler);
 	bool spineReturn = false;
-	// Configure the global logger first!!
-	auto logger = Spine::createLogger(argc > 1 && strcmp(argv[1], "debug") == 0);
 
-	// Open the spine and pass it our logger
-	Spine spine;
+	// Open the spine and get the logger it creates
+	Spine spine(argc > 1 && strcmp(argv[1], "debug") == 0);
+	auto logger = spine.getLogger();
+
 	try {
 		spine.openSockets();
 		if (spine.areSocketsValid()) {
@@ -23,7 +20,7 @@ int main(int argc, char **argv) {
 			//spine.subscribe(spine.name());
 			if (spine.loadModules(spine.moduleFileLocation)) {
 				// We have to run this after loadModules because the config is provided by libmainline_config.
-				spineReturn = spine.loadConfig("./modules/main.cfg");
+				spineReturn = spine.loadConfig(spine.moduleFileLocation + "/main.cfg");
 				if (spineReturn) {
 					logger->debug("{}: {}", "Main", "Running spine");
 					spineReturn = spine.run();

@@ -49,7 +49,7 @@ class Spine : public Module {
 		int resolveModuleFunctions(SpineModule& spineModule);
 		bool registerModule();
 	public:
-		Spine();
+		Spine(bool debugLogLevel);
 		~Spine();
 		bool run();
 		bool process_message(const WireMessage& message, CatchState cought, SocketType sockT);

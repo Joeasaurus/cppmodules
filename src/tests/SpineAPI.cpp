@@ -1,31 +1,33 @@
-#define CATCH_CONFIG_RUNNER
+#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
 #include "main/spine.hpp"
 
-static std::string LoggerName = "SpineLogger";
-
 class SpineTestsFixture {
 	private:
-		Spine spine;
+		Spine* spine;
 	public:
 		SpineTestsFixture() {
+			spine = new Spine(false);
 			REQUIRE(SpineOpenSockets());
+		}
+		~SpineTestsFixture() {
+			delete spine;
 		}
 	protected:
 		bool SpineOpenSockets() {
-			REQUIRE_NOTHROW(spine.openSockets());
-			REQUIRE(spine.areSocketsValid());
-			return spine.areSocketsOpen();
+			REQUIRE_NOTHROW(spine->openSockets());
+			REQUIRE(spine->areSocketsValid());
+			return spine->areSocketsOpen();
 		}
 		bool SpineLoadModules() {
-			return spine.loadModules(spine.moduleFileLocation);
+			return spine->loadModules(spine->moduleFileLocation);
 		}
 		bool SpineDefaultModulesLoaded() {
-			return spine.isModuleLoaded("mainline_config");
+			return spine->isModuleLoaded("mainline_config");
 		}
 		bool SpineConfigIsLoaded() {
-			return spine.loadConfig("./modules/main.cfg");
+			return spine->loadConfig(spine->moduleFileLocation + "/main.cfg");
 		}
  };
 
@@ -35,11 +37,4 @@ TEST_CASE_METHOD(SpineTestsFixture, "All", "[spine,modules,config]") {
 		REQUIRE(SpineDefaultModulesLoaded());
 		REQUIRE(SpineConfigIsLoaded());
 	}
-}
-
-int main(int argc, char* const argv[]) {
-	// Create the logger we will test later
-	auto logger = Spine::createLogger(false);
-	// run tests
-	return Catch::Session().run(argc, argv);
 }

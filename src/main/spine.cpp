@@ -1,12 +1,14 @@
 #include "main/spine.hpp"
 
-Spine::Spine() : Module("Spine", "Joe Eaves") {
+Spine::Spine(bool debugLogLevel) : Module("Spine", "Joe Eaves") {
+	this->logger = Spine::createLogger(debugLogLevel);
 	this->inp_context = new zmq::context_t(1);
 	this->createEvent("ClockTick", chrono::milliseconds(1000), [&](chrono::milliseconds delta) {
 		WireMessage wMsg(this->name(), "Modules");
 		wMsg.message["data"]["ClockTick"] = to_string(delta.count());
 		return this->sendMessage(SocketType::PUB, wMsg);
 	});
+
 }
 
 Spine::~Spine() {
@@ -44,6 +46,7 @@ Spine::~Spine() {
 }
 
 const shared_ptr<spdlog::logger> Spine::createLogger(bool debug) {
+	string loggerName = "SpineLogger";
 	spdlog::set_async_mode(1048576); //queue size must be power of 2
 
 	// This is a quick fix for debug logging by managing argv ourselves
@@ -53,9 +56,9 @@ const shared_ptr<spdlog::logger> Spine::createLogger(bool debug) {
 	// Create a stdout logger, multi threaded
 	shared_ptr<spdlog::logger> newLogger;
 	try {
-		newLogger = spdlog::stdout_logger_mt("SpineLogger");
+		newLogger = spdlog::stdout_logger_mt(loggerName);
 	} catch (const spdlog::spdlog_ex) {
-		newLogger = spdlog::get("SpineLogger");
+		newLogger = spdlog::get(loggerName);
 	}
 
 	newLogger->set_pattern("[%T.%e] [%l] %v"); // Custom format
@@ -142,6 +145,8 @@ bool Spine::loadModule(const string& filename) {
 
 	spineModule.module = spineModule.createModule();
 	spineModule.moduleName = spineModule.module->name();
+
+	spineModule.module->setLogger("SpineLogger");
 	spineModule.module->setSocketContext(this->inp_context);
 	spineModule.module->openSockets();
 	if (spineModule.module->areSocketsValid()) {

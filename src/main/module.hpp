@@ -115,7 +115,6 @@ class Module {
 			this->__info.name   = name;
 			this->__info.author = author;
 			this->timeNow = chrono::system_clock::now();
-			this->setLogger();
 		};
 		virtual ~Module(){};
 		virtual bool run()=0;
@@ -124,10 +123,13 @@ class Module {
 		{
 			return this->__info.name;
 		};
-		void setLogger()
+		void setLogger(const string& loggerName)
 		{
-			this->logger = spdlog::get("SpineLogger");
+			this->logger = spdlog::get(loggerName);
 			this->logger->debug("{}: Logger Open", this->name());
+		};
+		shared_ptr<spdlog::logger> getLogger() const {
+			return this->logger;
 		};
 		void setSocketContext(zmq::context_t* context)
 		{
