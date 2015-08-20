@@ -10,11 +10,11 @@ class ConfigModule : public Module {
 		ConfigModule() : Module("mainline_config", "Joe Eaves"){};
 		~ConfigModule();
 		bool run();
-		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
+		bool process_message(const WireMessage& message, CatchState cought, SocketType sockT);
 
 		bool loadConfigFile(string filepath);
 	private:
-		json::object loadedConfig;
+		WireMessage loadedConfig;
 		string configFilepath;
 };
 

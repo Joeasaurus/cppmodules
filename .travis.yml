@@ -1,43 +1,7 @@
 os:
-  - osx
-
-# before_install:
-#   - echo $TRAVIS_OS_NAME
-#  - wget https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.9-Mavericks.pkg
-#  - sudo installer -pkg MacPorts-2.3.3-10.9-Mavericks.pkg -target /
-
-# before_script:
-#   - echo "$TRAVIS_OS_NAME"
-#   - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ls ; fi
-
+- osx
 install:
-  - if [[ "$os" == "osx" ]]; then ls /opt/local; fi
-  - brew update
-script: npm install forever
-
-# after_success:
-#   - if [ $TRAVIS_BRANCH == $TRAVIS_TAG ]; then rake deploy; fi
-
-# branches:
-#   only:
-#     - master
-#     - 1.8.7
-#     - 2.2
-#     - /^v\d+\./
-
-# notifications:
-#   email: false
-#   irc:
-#     channels:
-#       - "chat.freenode.net#rubinius"
-#     template:
-#       - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
-#   webhooks:
-#     urls:
-#       - https://webhooks.gitter.im/e/9502afd22ca6c8e85fb3
-#     on_success: change
-#     on_failure: always
-#     on_start: always
-
-# env:
-#   - RVM=2.0.0 LANG="en_US.UTF-8"
+- if [[ "$os" == "osx" ]]; then ls /opt/local; fi
+- [[ "$TRAVIS_OS_NAME" == "linux" ]] && echo "NOOOOOOO"
+script:
+- npm install forever

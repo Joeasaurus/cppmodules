@@ -2,6 +2,7 @@
 // Common
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -12,13 +13,15 @@
 #include <chrono>
 #include <functional>
 
-#include <zmq.hpp>
 #include <boost/algorithm/string.hpp>
+#include <zmq.hpp>
+static_assert(ZMQ_VERSION == 40102, "ZMQ Version 40102 is required!");
 
 #include "lib/spdlog/spdlog.h"
-#include "lib/cpp-json/json.h"
+#include "lib/jsoncpp/json.h"
 
 using namespace std;
+using namespace zmq;
 namespace algorithm = boost::algorithm;
 
 typedef struct ModuleInfo {
@@ -26,9 +29,58 @@ typedef struct ModuleInfo {
 	string author = "mainline";
 } ModuleInfo;
 
-typedef struct M_Message {
-	json::object message;
-} M_Message;
+typedef struct WireMessage {
+	Json::Value message;
+	Json::Reader reader;
+	Json::StreamWriterBuilder wbuilder;
+	WireMessage() {
+		message["data"] = Json::objectValue;
+		message["source"] = "";
+		message["destination"] = "";
+		wbuilder["indentation"] = "";
+	};
+	WireMessage(string name, string destination) {
+		message["data"] = Json::objectValue;
+		message["source"] = name;
+		message["destination"] = destination;
+		wbuilder["indentation"] = "";
+	};
+	void setMessage(Json::Value inMessage) {
+		message = inMessage;
+	};
+	Json::Value& operator[](const string arrayKey) {
+        return message[arrayKey];
+    };
+	const Json::Value& operator[](const string arrayKey) const {
+        return message[arrayKey];
+    };
+    string asString(const Json::Value& printable) {
+		return Json::writeString(wbuilder, printable);
+    };
+    string asString() const {
+    	return Json::writeString(wbuilder, message);
+    };
+    void parseIn(const string& parsable) {
+    	reader.parse(parsable, message, false);
+    };
+    void parseIn(Json::Value& value, const string& parsable) {
+    	reader.parse(parsable, value, false);
+    };
+    void parseInFile(const string& parsable) {
+    	parseInFile(message, parsable);
+    };
+    void parseInFile(Json::Value& value, const string& parsable) {
+    	ifstream fileStream(parsable);
+    	if (fileStream) {
+			stringstream buffer;
+			buffer << fileStream.rdbuf();
+	    	reader.parse(buffer.str(), value, false);
+    	} else {
+    		//TODO: Improve this!
+    		throw 50;
+    	}
+    };
+} WireMessage;
 
 typedef struct Event {
 	chrono::milliseconds delta;
@@ -45,6 +97,7 @@ enum class CatchState {
 	NO_TOKENS,
 	CLOSE_HEARD,
 	NOT_FOR_ME,
+	FOR_ALL,
 	FOR_ME
 };
 
@@ -66,7 +119,7 @@ class Module {
 		};
 		virtual ~Module(){};
 		virtual bool run()=0;
-		virtual bool process_message(const json::value& message, CatchState cought, SocketType sockT)=0;
+		virtual bool process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT)=0;
 		string name()
 		{
 			return this->__info.name;
@@ -84,12 +137,8 @@ class Module {
 			return this->socketsOpen;
 		};
 		bool areSocketsValid() {
-			if ( this->inp_in == nullptr || this->inp_out == nullptr || this->inp_manage_in == nullptr ||
-				 this->inp_manage_out == nullptr || this->inp_context == nullptr
-			) {
-				return false;
-			}
-			return true;
+			return (this->inp_in->connected() && this->inp_out->connected() && this->inp_manage_in->connected() &&
+					this->inp_manage_out->connected());
 		};
 		void openSockets()
 		{
@@ -97,17 +146,17 @@ class Module {
 				string inPoint = "inproc://" + this->name() + ".in";
 				string managePoint = "inproc://" + this->name() + ".manage";
 				try {
-					this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB);
-					this->inp_out = new zmq::socket_t(*this->inp_context, ZMQ_PUB);
-					this->inp_manage_in = new zmq::socket_t(*this->inp_context, ZMQ_REP);
-					this->inp_manage_out = new zmq::socket_t(*this->inp_context, ZMQ_REQ);
+					this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB); //zmq::socket_type::sub);
+					this->inp_out = new zmq::socket_t(*this->inp_context, ZMQ_PUB); //zmq::socket_type::pub);
+					this->inp_manage_in = new zmq::socket_t(*this->inp_context, ZMQ_REP); //zmq::socket_type::rep);
+					this->inp_manage_out = new zmq::socket_t(*this->inp_context, ZMQ_REQ); //zmq::socket_type::req);
 
 					this->inp_in->bind(inPoint.c_str());
 					this->inp_manage_in->bind(managePoint.c_str());
 					this->logger->debug("{}: Sockets Open", this->name());
 					this->socketsOpen = true;
 				} catch (const zmq::error_t &e) {
-					cout << e.what() << endl;
+					this->logger->error(this->nameMsg(e.what()));
 				}
 			}
 		};
@@ -123,7 +172,7 @@ class Module {
 					this->inp_manage_out->connect(endpoint.c_str());
 				}
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
 		};
 		void subscribe(string channel)
@@ -131,7 +180,7 @@ class Module {
 			try {
 				this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
 		};
 		bool tickTimer(
@@ -145,32 +194,27 @@ class Module {
 // PROTECTED
 	protected:
 		ModuleInfo __info;
-		shared_ptr<spdlog::logger> logger;
 		zmq::context_t* inp_context;
+		shared_ptr<spdlog::logger> logger;
 		chrono::system_clock::time_point timeNow;
-		json::object config;
+		WireMessage config;
 		void createEvent(string title, chrono::milliseconds interval,
-			function<bool(chrono::milliseconds delta)> callback
+						 function<bool(chrono::milliseconds delta)> callback
 		) {
 			// auto ttp = chrono::system_clock::to_time_t(chrono::system_clock::now() + interval);
 			// this->logger->debug(ctime(&ttp));
-			this->events.insert(pair<string, Event>(
-				title, Event{
-					chrono::milliseconds(0),
-					interval,
-					callback
-				}
-			));
-		};
-		M_Message newMessage(string destination, json::object data)
-		{
-			return M_Message{
-				json::object{
-					{ "source", this->name() },
-					{ "destination", destination },
-					{ "data",  data }
-				}
-			};
+			try{
+				this->events.insert(pair<string, Event>(
+					title, Event{
+						chrono::milliseconds(0),
+						interval,
+						callback
+					}
+				));
+				this->logger->debug(this->nameMsg(title + " event created"));
+			} catch (const exception& e) {
+				this->logger->warn(this->nameMsg(e.what()));
+			}
 		};
 		string nameMsg(string message) {
 			return this->name() + ": " + message;
@@ -178,13 +222,17 @@ class Module {
 		void nameMsg(string& message) {
 			message = this->name() + ": " + message;
 		};
-		bool sendMessage(SocketType sockT, string destination,
-						 json::object msg)
+		bool sendMessage(SocketType sockT, WireMessage wMsg)
 		{
 			bool sendOk = false;
 
-			M_Message message = newMessage(destination, msg);
-			string message_string = destination + " " + json::stringify(message.message);
+			string message_string = wMsg.asString(wMsg["destination"]);
+			//TODO: This is well ugly, maybe we'll change JSON libraries again later.
+			//      We just need to be able to say "Please print this without the quotes"!
+			// We get "Modules" -> Modules
+			message_string.erase(0, 1);
+			message_string.erase(message_string.length()-1, 1);
+			message_string += " " + wMsg.asString();
 
 			zmq::message_t zmqObject(message_string.length());
 			memcpy(zmqObject.data(), message_string.data(), message_string.length());
@@ -200,13 +248,12 @@ class Module {
 					sendOk = this->inp_manage_out->send(zmqObject);
 				}
 			} catch (const zmq::error_t &e) {
-				this->logger->error(e.what());
+				logger->debug(this->nameMsg(e.what()));
 			}
 
 			return sendOk;
 		};
-		bool sendMessageRecv(SocketType sockT, string destination,
-						 json::object msg, function<bool(const json::value&)> callback)
+		bool sendMessageRecv(SocketType sockT, WireMessage wMsg, function<bool(const  WireMessage&)> callback)
 		{
 			bool sendOk = false;
 			if (sockT == SocketType::PUB || sockT == SocketType::SUB ||
@@ -214,12 +261,12 @@ class Module {
 			) {
 				this->logger->warn("{}: {}", this->name(),
 					"Module::sendMessageRecv called with extraneous callback. Only SocketType::MGM_OUT is supported.");
-				sendOk = this->sendMessage(sockT, destination, msg);
+				sendOk = this->sendMessage(sockT, wMsg);
 			} else if (sockT == SocketType::MGM_OUT)
 			{
-				if (this->sendMessage(sockT, destination, msg)) {
+				if (this->sendMessage(sockT, wMsg)) {
 					sendOk = this->recvMessage<bool>(SocketType::MGM_OUT,
-						[&](const json::value& message)
+						[&](const WireMessage& message)
 					{
 						return callback(message);
 					}, 5000);
@@ -232,68 +279,64 @@ class Module {
 		};
 		template<typename retType>
 		retType recvMessage(SocketType sockT,
-							function<retType(const json::value&)> callback,
+							function<retType(const WireMessage&)> callback,
 							long timeout=1000
 		) {
-			string messageText("{}");
+			WireMessage wMsg;
 
 			zmq::socket_t* pollSocket;
 			zmq::pollitem_t pollSocketItems[1];
 			pollSocketItems[0].events = ZMQ_POLLIN;
 
-			zmq::message_t message;
+			zmq::message_t zMessage;
 
 			if (sockT == SocketType::SUB || sockT == SocketType::PUB) {
-				pollSocketItems[0].socket = *this->inp_in;
+				pollSocketItems[0].socket = (void*)*this->inp_in;
 				pollSocket = this->inp_in;
 			} else if (sockT == SocketType::MGM_IN) {
-				pollSocketItems[0].socket = *this->inp_manage_in;
+				pollSocketItems[0].socket = (void*)*this->inp_manage_in;
 				pollSocket = this->inp_manage_in;
 			} else if (sockT == SocketType::MGM_OUT) {
-				pollSocketItems[0].socket = *this->inp_manage_out;
+				pollSocketItems[0].socket = (void*)*this->inp_manage_out;
 				pollSocket = this->inp_manage_out;
+			} else {
+				this->logger->debug(this->nameMsg("Error! SocketType not supported!"));
+				return false;
 			}
 
 			try {
-				int data = zmq::poll(pollSocketItems, 1, timeout);
-				if (data > 0) {
-					if(pollSocket->recv(&message)) {
-						messageText = string(static_cast<char*>(message.data()), message.size());
+				if (zmq::poll(pollSocketItems, 1, timeout) > 0) {
+					if(pollSocket->recv(&zMessage)) {
+						// tokeniseString needs replacing with something that will only grab the module name
+						vector<string> jsonMsg = tokeniseString(string(static_cast<char*>(zMessage.data()), zMessage.size()));
+						jsonMsg.erase(jsonMsg.begin());
+						auto messageText = algorithm::join(jsonMsg, " ");
+						wMsg.parseIn(messageText);
 					}
 				}
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
-			// I know this is silly, we can't rely on pretty print because values are arbitray
-			//  and may have spaces.
-			// tokeniseString needs replacing with something that will only grab the module name
-			if (messageText != "{}" && messageText != "") {
-				vector<string> jsonMsg = tokeniseString(messageText);
-				jsonMsg.erase(jsonMsg.begin());
-				messageText = algorithm::join(jsonMsg, " ");
-			}
-			return callback(json::parse(messageText));
+			return callback(wMsg);
 		};
 		template<typename retType>
 		retType recvMessage(zmq::socket_t* socket,
-						function<retType(const json::value&)> callback
+						function<retType(const WireMessage&)> callback
 		) {
-			string messageText("{}");
-			zmq::message_t message;
+			WireMessage wMsg;
+			zmq::message_t zMessage;
 
-			if(socket->recv(&message)) {
-				messageText = string(static_cast<char*>(message.data()), message.size());
-			}
-
-			// I know this is silly, we can't rely on pretty print because values are arbitray
-			//  and may have spaces.
-			// tokeniseString needs replacing with something that will only grab the module name
-			if (messageText != "{}" && messageText != "") {
-				vector<string> jsonMsg = tokeniseString(messageText);
+			if(socket->recv(&zMessage)) {
+				// I know this is silly, we can't rely on pretty print because values are arbitray
+				//  and may have spaces.
+				// tokeniseString needs replacing with something that will only grab the module name
+				vector<string> jsonMsg = tokeniseString(string(static_cast<char*>(zMessage.data()), zMessage.size()));
 				jsonMsg.erase(jsonMsg.begin());
-				messageText = algorithm::join(jsonMsg, " ");
+				auto messageText = algorithm::join(jsonMsg, " ");
+				wMsg.parseIn(messageText);
 			}
-			return callback(json::parse(messageText));
+
+			return callback(wMsg);
 		};
 		void closeSockets()
 		{
@@ -303,7 +346,7 @@ class Module {
 				this->inp_manage_in->close();
 				this->inp_manage_out->close();
 			} catch (const zmq::error_t &e) {
-				cout << e.what() << endl;
+				this->logger->error(this->nameMsg(e.what()));
 			}
 
 			delete this->inp_in;
@@ -315,10 +358,9 @@ class Module {
 		{
 			int pollSocketCount = 2;
 			zmq::pollitem_t pollSocketItems[] = {
-				{ *this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
-				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
+				{ (void*)*this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
+				{ (void*)*this->inp_in, 0, ZMQ_POLLIN, 0 }
 			};
-
 			if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
 				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
 					return this->catchAndProcess(this->inp_manage_in, SocketType::MGM_IN);
@@ -368,34 +410,38 @@ class Module {
 			//   we return the module's process_message
 			// Else just return true to keep running but not care for the message
 			return this->recvMessage<bool>(socket,
-				[&](const json::value& message) {
+				[&](const WireMessage& wMsg) {
 					CatchState cought = CatchState::NOT_FOR_ME;
-					// this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
-// Messages from the Spine
-					if (to_string(message["destination"]) == "Modules" ||
-						to_string(message["destination"]) == this->name()
-					   ) {
+
+					if (wMsg.message["destination"].asString() == "Modules") {
+						cought = CatchState::FOR_ALL;
+					}
+					else if (wMsg.message["destination"].asString() == this->name()) {
 						cought = CatchState::FOR_ME;
-						if (to_string(message["source"]) == "Spine") {
-							if (json::has_key(message["data"], "command")) {
-								auto command = to_string(message["data"]["command"]);
-								if (command == "close") {
-									return false;
-								} else if (command == "config-update") {
-									if (json::has_key(message["data"], "config")) {
-										this->config = json::as_object(message["data"]["config"]);
-									}
+					}
+					else {
+						return true;
+					}
+
+					if (wMsg.message["source"].asString() == "Spine") {
+						if (wMsg.message["data"].isMember("command")) {
+							auto command = wMsg.message["data"]["command"].asString();
+							if (command == "close") {
+								return false;
+							} else if (command == "config-update") {
+								if (wMsg.message["data"].isMember("config")) {
+									this->config.setMessage(wMsg["data"]["config"]);
 								}
-							} else if (json::has_key(message["data"], "ClockTick")) {
-								return this->tickTimer(
-									chrono::milliseconds(
-										stoll(json::to_string(message["data"]["ClockTick"]))
-									)
-								);
 							}
+						} else if (wMsg.message["data"].isMember("ClockTick")) {
+							return this->tickTimer(
+								chrono::milliseconds(
+									stoll(wMsg["data"]["ClockTick"].asString())
+								)
+							);
 						}
 					}
-					return this->process_message(message, cought, sockT);
+					return this->process_message(wMsg, cought, sockT);
 			});
 		};
 };

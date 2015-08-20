@@ -10,14 +10,11 @@ bool ConfigModule::loadConfigFile(string filepath)
 {
 	if (boost::filesystem::is_regular_file(filepath)) {
 		try {
-			ifstream configFile(filepath);
-			if (configFile) {
-				this->config = json::to_object(json::parse(configFile));
-				this->logger->debug(this->nameMsg(filepath + " loaded!"));
-				this->logger->debug(this->nameMsg(json::stringify(this->config)));
-				this->configFilepath = filepath;
-				return true;
-			}
+			this->config.parseInFile(filepath);
+			this->logger->debug(this->nameMsg(filepath + " loaded!"));
+			this->logger->debug(this->nameMsg(this->config.asString()));
+			this->configFilepath = filepath;
+			return true;
 		} catch(const exception &ex) {
 			this->logger->debug(this->nameMsg("Error: loading " + filepath ));
 			this->logger->debug(this->nameMsg(ex.what()));
@@ -29,13 +26,14 @@ bool ConfigModule::loadConfigFile(string filepath)
 
 bool ConfigModule::run()
 {
-	this->createEvent("ReloadConfig", chrono::milliseconds(15000),
+	this->createEvent("ReloadConfig", chrono::milliseconds(5000),
 		[&](chrono::milliseconds delta) {
 			if(this->loadConfigFile(this->configFilepath)) {
-				return this->sendMessage(SocketType::PUB, "Modules", json::object{
-					{ "command", "config-update" },
-					{ "config", this->config }
-				});
+				WireMessage configUpdate(this->name(), "Modules");
+				configUpdate["data"]["command"] = "config-update";
+				configUpdate["data"]["config"] = this->config.message;
+				this->logger->debug(this->nameMsg("Config reloaded"));
+				return this->sendMessage(SocketType::PUB, configUpdate);
 			}
 			return false;
 		}
@@ -48,21 +46,20 @@ bool ConfigModule::run()
 	return false;
 }
 
-bool ConfigModule::process_message(const json::value& message, CatchState cought, SocketType sockT)
+bool ConfigModule::process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT)
 {
-	this->logger->debug("{}: {}", this->name(), json::stringify(message));
+	//this->logger->debug("{}: {}", this->name(), wMsg.message.asString());
 	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN && json::has_key(message["data"], "command")) {
-			if (json::to_string(message["data"]["command"]) == "load" &&
-				json::has_key(message["data"], "file")
-			) {
-				json::object msg{
-					{ "configLoaded", "false" }
-				};
-				if (this->loadConfigFile(json::to_string(message["data"]["file"]))) {
-					msg["configLoaded"] = "true";
+		if (sockT == SocketType::MGM_IN && wMsg.message["data"].isMember("command")) {
+			if (wMsg.message["data"]["command"].asString() == "load" && wMsg.message["data"].isMember("file")) {
+				WireMessage reply(this->name(), "Spine");
+
+				reply.message["data"]["configLoaded"] = false;
+				if (this->loadConfigFile(wMsg.message["data"]["file"].asString())) {
+					reply.message["data"]["configLoaded"] = true;
 				}
-				this->sendMessage(SocketType::MGM_IN, "Spine", msg);
+
+				this->sendMessage(SocketType::MGM_IN, reply);
 			}
 		}
 	}
