@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.1)
 project(cppmodules)
-
 #find_package(PkgConfig)
-set (CMAKE_VERBOSE_MAKEFILE false)
+
+set(CMAKE_VERBOSE_MAKEFILE false)
 
 ## cppcheck --force --inline-suppr --template '{file}:{line},{severity},{id},{message}' \
 ##  --xml --enable=all --max-configs=25 -i /Users/jme/GDrive/code/cppmodules/src ./ 2> err.xml
@@ -68,10 +68,13 @@ endmacro(createExtrasList)
 #### COMMON ####
 
 include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generated")
+include_directories(AFTER "${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist")
 link_directories("${CMAKE_SOURCE_DIR}/submodules/jsoncpp/cmake-out/src/lib_json")
+set(BOTH_COMPILE_FILES
+	submodules/jsoncpp/dist/jsoncpp.cpp
+)
 set(BOTH_LINK_LIBRARIES_Release
 	-lzmq
-	-ljsoncpp
 )
 set(BOTH_LINK_LIBRARIES_Debug ${BOTH_LINK_LIBRARIES_Release})
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -114,17 +117,17 @@ endif()
 
 #### MAIN ####
 
-set(MAIN_SOURCE_FILES
+add_executable(cppmodules
 	src/main/main.cpp
 	src/main/spine.cpp
+	${BOTH_COMPILE_FILES}
 )
-add_executable(main ${MAIN_SOURCE_FILES})
 configure_file("src/main/spine.hpp.in" "${CMAKE_BINARY_DIR}/generated/main/spine.hpp")
-set_target_properties(main
+set_target_properties(cppmodules
 	PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
 )
-target_link_libraries(main
+target_link_libraries(cppmodules
 	${BOTH_LINK_LIBRARIES_${CMAKE_BUILD_TYPE}}
 	${MAIN_LINK_LIBRARIES_${CMAKE_BUILD_TYPE}}
 )
@@ -179,12 +182,13 @@ foreach(group ${MODULES})
 		)
 		if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/${group}/${module}.hpp.in")
 			configure_file("${CMAKE_CURRENT_SOURCE_DIR}/modules/${group}/${module}.hpp.in"
-						"${CMAKE_BINARY_DIR}/gen/modules/${group}/${module}.hpp"
+						   "${CMAKE_BINARY_DIR}/gen/modules/${group}/${module}.hpp"
 			)
 		endif()
 		add_library(${MODULE_GROUP_NAME}_${module} SHARED
 			${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}/${module}.cpp
 			${${MODULE_GROUP_NAME}_${module}_EXTRA_COMPILE_FILES}
+			${BOTH_COMPILE_FILES}
 		)
 		set_target_properties(${MODULE_GROUP_NAME}_${module}
 			PROPERTIES
@@ -221,21 +225,33 @@ set(TEST_OUTPUT_DIRS
 )
 set(TEST_LINK_LIBRARIES
 	-lzmq
-	-ljsoncpp
 	-lboost_system-mt
 	-lboost_filesystem-mt
 )
 set(TEST_FILES
     SpineAPI
 )
+set(TEST_COMMON_INCLUDE_DIRS
+)
+set(TEST_COMMON_COMPILE_FILES
+	submodules/jsoncpp/dist/jsoncpp.cpp
+)
+set(TEST_EXTRA_INCLUDE_DIRS
+)
 set(TEST_EXTRA_COMPILE_FILES
 	"SpineAPI\;src/main/spine.cpp"
 )
 foreach(test ${TEST_FILES})
 	createExtrasList(${test} EXTRA_COMPILE_FILES TEST_EXTRA_COMPILE_FILES)
+	createExtrasList(${test} EXTRA_INCLUDE_DIRS TEST_EXTRA_INCLUDE_DIRS)
 	add_executable(${test}
 		src/tests/${test}.cpp
+		${TEST_COMMON_COMPILE_FILES}
 		${${test}_EXTRA_COMPILE_FILES}
+	)
+	include_directories(AFTER
+		${TEST_COMMON_INCLUDE_DIRS}
+		${${test}_EXTRA_INCLUDE_DIRS}
 	)
 	set_target_properties(${test}
 		PROPERTIES
