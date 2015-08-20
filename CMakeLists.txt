@@ -68,8 +68,11 @@ endmacro(createExtrasList)
 #### COMMON ####
 
 include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generated")
-include_directories(AFTER "${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist")
-link_directories("${CMAKE_SOURCE_DIR}/submodules/jsoncpp/cmake-out/src/lib_json")
+include_directories(AFTER
+	"${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist"
+	"${CMAKE_SOURCE_DIR}/submodules/spdlog/include"
+	"${CMAKE_SOURCE_DIR}/submodules/catch/single_include"
+)
 set(BOTH_COMPILE_FILES
 	submodules/jsoncpp/dist/jsoncpp.cpp
 )
@@ -230,6 +233,7 @@ set(TEST_LINK_LIBRARIES
 )
 set(TEST_FILES
     SpineAPI
+    CreateSpineLogger
 )
 set(TEST_COMMON_INCLUDE_DIRS
 )
@@ -240,6 +244,7 @@ set(TEST_EXTRA_INCLUDE_DIRS
 )
 set(TEST_EXTRA_COMPILE_FILES
 	"SpineAPI\;src/main/spine.cpp"
+	"CreateSpineLogger\;src/main/spine.cpp"
 )
 foreach(test ${TEST_FILES})
 	createExtrasList(${test} EXTRA_COMPILE_FILES TEST_EXTRA_COMPILE_FILES)

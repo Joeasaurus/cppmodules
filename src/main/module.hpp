@@ -17,7 +17,7 @@
 #include <zmq.hpp>
 static_assert(ZMQ_VERSION == 40102, "ZMQ Version 40102 is required!");
 
-#include "lib/spdlog/spdlog.h"
+#include "spdlog/spdlog.h"
 #include "json/json.h"
 
 using namespace std;
