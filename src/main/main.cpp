@@ -7,8 +7,6 @@
  */
 
 int main(int argc, char **argv) {
-	bool spineReturn = false;
-
 	// Open the spine and get the logger it creates
 	Spine spine(argc > 1 && strcmp(argv[1], "debug") == 0);
 	auto logger = spine.getLogger();
@@ -17,14 +15,11 @@ int main(int argc, char **argv) {
 	//spine.subscribe(spine.name());
 	if (spine.loadModules()) {
 		// We have to run this after loadModules because the config is provided by libmainline_config.
-		spineReturn = spine.loadConfig(spine.moduleFileLocation + "/main.cfg");
-		if (spineReturn) {
-			logger->debug("{}: {}", "Main", "Running spine");
-			spineReturn = spine.run();
+		if (spine.loadConfig(spine.moduleFileLocation + "/main.cfg")) {
+			return spine.run();
 		} else {
-			logger->warn("{}: {}", "Main", "Config failed to load, shutting down");
-			spineReturn = false;
+			logger->error("{}: {}", "Main", "Config failed to load, shutting down");
 		}
 	}
-	return spineReturn ? 0 : 1;
+	return false;
 }
