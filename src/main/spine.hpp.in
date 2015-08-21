@@ -54,6 +54,7 @@ class Spine : public Module {
 		bool run();
 		bool process_message(const WireMessage& message, CatchState cought, SocketType sockT);
 		const static shared_ptr<spdlog::logger> createLogger(bool debug);
+		bool loadModules();
 		bool loadModules(const string& directory);
 		bool loadModule(const string& filename);
 		bool loadConfig(string location);

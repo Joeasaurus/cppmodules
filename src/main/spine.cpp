@@ -1,6 +1,7 @@
 #include "main/spine.hpp"
 
 Spine::Spine(bool debugLogLevel) : Module("Spine", "Joe Eaves") {
+	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->logger = Spine::createLogger(debugLogLevel);
 	this->inp_context = new zmq::context_t(1);
 	this->createEvent("ClockTick", chrono::milliseconds(1000), [&](chrono::milliseconds delta) {
@@ -8,7 +9,7 @@ Spine::Spine(bool debugLogLevel) : Module("Spine", "Joe Eaves") {
 		wMsg.message["data"]["ClockTick"] = to_string(delta.count());
 		return this->sendMessage(SocketType::PUB, wMsg);
 	});
-
+	this->openSockets();
 }
 
 Spine::~Spine() {
@@ -175,6 +176,10 @@ bool Spine::loadModule(const string& filename) {
 	m_modules.push_back(spineModule);
 
 	return true;
+}
+
+bool Spine::loadModules() {
+	return this->loadModules(this->moduleFileLocation);
 }
 
 bool Spine::loadModules(const string& directory) {
