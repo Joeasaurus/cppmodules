@@ -2,7 +2,6 @@
 // Common
 #include <string>
 #include <sstream>
-#include <fstream>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -17,8 +16,8 @@
 #include <zmq.hpp>
 static_assert(ZMQ_VERSION == 40102, "ZMQ Version 40102 is required!");
 
+#include "main/wiremessage.hpp"
 #include "spdlog/spdlog.h"
-#include "json/json.h"
 
 using namespace std;
 using namespace zmq;
@@ -28,59 +27,6 @@ typedef struct ModuleInfo {
 	string name = "undefined module";
 	string author = "mainline";
 } ModuleInfo;
-
-typedef struct WireMessage {
-	Json::Value message;
-	Json::Reader reader;
-	Json::StreamWriterBuilder wbuilder;
-	WireMessage() {
-		message["data"] = Json::objectValue;
-		message["source"] = "";
-		message["destination"] = "";
-		wbuilder["indentation"] = "";
-	};
-	WireMessage(string name, string destination) {
-		message["data"] = Json::objectValue;
-		message["source"] = name;
-		message["destination"] = destination;
-		wbuilder["indentation"] = "";
-	};
-	void setMessage(Json::Value inMessage) {
-		message = inMessage;
-	};
-	Json::Value& operator[](const string arrayKey) {
-        return message[arrayKey];
-    };
-	const Json::Value& operator[](const string arrayKey) const {
-        return message[arrayKey];
-    };
-    string asString(const Json::Value& printable) {
-		return Json::writeString(wbuilder, printable);
-    };
-    string asString() const {
-    	return Json::writeString(wbuilder, message);
-    };
-    void parseIn(const string& parsable) {
-    	reader.parse(parsable, message, false);
-    };
-    void parseIn(Json::Value& value, const string& parsable) {
-    	reader.parse(parsable, value, false);
-    };
-    void parseInFile(const string& parsable) {
-    	parseInFile(message, parsable);
-    };
-    void parseInFile(Json::Value& value, const string& parsable) {
-    	ifstream fileStream(parsable);
-    	if (fileStream) {
-			stringstream buffer;
-			buffer << fileStream.rdbuf();
-	    	reader.parse(buffer.str(), value, false);
-    	} else {
-    		//TODO: Improve this!
-    		throw 50;
-    	}
-    };
-} WireMessage;
 
 typedef struct Event {
 	chrono::milliseconds delta;
@@ -415,27 +361,28 @@ class Module {
 				[&](const WireMessage& wMsg) {
 					CatchState cought = CatchState::NOT_FOR_ME;
 
-					if (wMsg.message["destination"].asString() == "Modules") {
+					if (wMsg["destination"].asString() == "Modules") {
 						cought = CatchState::FOR_ALL;
 					}
-					else if (wMsg.message["destination"].asString() == this->name()) {
+					else if (wMsg["destination"].asString() == this->name()) {
 						cought = CatchState::FOR_ME;
 					}
 					else {
 						return true;
 					}
 
-					if (wMsg.message["source"].asString() == "Spine") {
-						if (wMsg.message["data"].isMember("command")) {
-							auto command = wMsg.message["data"]["command"].asString();
+					if (wMsg["source"].asString() == "Spine") {
+						if (wMsg["data"].isMember("command")) {
+							auto command = wMsg["data"]["command"].asString();
 							if (command == "close") {
 								return false;
 							} else if (command == "config-update") {
-								if (wMsg.message["data"].isMember("config")) {
+								if (wMsg["data"].isMember("config")) {
 									this->config.setMessage(wMsg["data"]["config"]);
+									this->logger->debug(this->nameMsg(this->config.asString()));
 								}
 							}
-						} else if (wMsg.message["data"].isMember("ClockTick")) {
+						} else if (wMsg["data"].isMember("ClockTick")) {
 							return this->tickTimer(
 								chrono::milliseconds(
 									stoll(wMsg["data"]["ClockTick"].asString())

@@ -31,7 +31,7 @@ bool ConfigModule::run()
 			if(this->loadConfigFile(this->configFilepath)) {
 				WireMessage configUpdate(this->name(), "Modules");
 				configUpdate["data"]["command"] = "config-update";
-				configUpdate["data"]["config"] = this->config.message;
+				configUpdate["data"]["config"] = this->config.getMessage();
 				this->logger->debug(this->nameMsg("Config reloaded"));
 				return this->sendMessage(SocketType::PUB, configUpdate);
 			}
@@ -48,15 +48,15 @@ bool ConfigModule::run()
 
 bool ConfigModule::process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT)
 {
-	//this->logger->debug("{}: {}", this->name(), wMsg.message.asString());
+	//this->logger->debug("{}: {}", this->name(), wMsg.asString());
 	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN && wMsg.message["data"].isMember("command")) {
-			if (wMsg.message["data"]["command"].asString() == "load" && wMsg.message["data"].isMember("file")) {
+		if (sockT == SocketType::MGM_IN && wMsg["data"].isMember("command")) {
+			if (wMsg["data"]["command"].asString() == "load" && wMsg["data"].isMember("file")) {
 				WireMessage reply(this->name(), "Spine");
 
-				reply.message["data"]["configLoaded"] = false;
-				if (this->loadConfigFile(wMsg.message["data"]["file"].asString())) {
-					reply.message["data"]["configLoaded"] = true;
+				reply["data"]["configLoaded"] = false;
+				if (this->loadConfigFile(wMsg["data"]["file"].asString())) {
+					reply["data"]["configLoaded"] = true;
 				}
 
 				this->sendMessage(SocketType::MGM_IN, reply);
