@@ -6,5 +6,7 @@ compiler:
   - clang
 
 install:
+- sudo apt-get install zeromq
+- sudo apt-get update cmake
 - cmake -H. -Bcmake-out -G "Unix Makefiles"
 - make -C cmake-out
