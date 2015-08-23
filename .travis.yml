@@ -10,9 +10,10 @@ addons:
     packages:
     - cmake
     - libzmq3
+    - python
     #- libzmq-dev
 
 install:
-- git submodule init
+- pushd submodules/jsoncpp;python amalgamate.py;popd
 - cmake -H. -Bcmake-out -G "Unix Makefiles"
 - make -C cmake-out
