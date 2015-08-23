@@ -18,7 +18,8 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}
 	if (NOT CONFIGURED_ONCE)
 		set(CXX_DEFAULT_FLAGS "-std=c++11")
 	endif()
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+endif()
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
 	("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang"))
 	if(NOT DEFINED CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
 		set(CMAKE_BUILD_TYPE Release)
@@ -79,6 +80,7 @@ include_directories(AFTER
 	"${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist"
 	"${CMAKE_SOURCE_DIR}/submodules/spdlog/include"
 	"${CMAKE_SOURCE_DIR}/submodules/catch/single_include"
+	"${CMAKE_SOURCE_DIR}/submodules/cppzmq"
 )
 set(BOTH_COMPILE_FILES
 	submodules/jsoncpp/dist/jsoncpp.cpp
