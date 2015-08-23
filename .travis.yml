@@ -13,6 +13,6 @@ addons:
     #- libzmq-dev
 
 install:
-- git submodules init
+- git submodule init
 - cmake -H. -Bcmake-out -G "Unix Makefiles"
 - make -C cmake-out
