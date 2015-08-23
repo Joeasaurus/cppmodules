@@ -2,11 +2,10 @@ language: cpp
 os:
   - linux
 compiler:
-  - gcc
   - clang
 
 install:
-- sudo apt-get install zeromq
-- sudo apt-get update cmake
+- sudo add-apt-repository ppa:bpaquet/zeromq4-precise
+- sudo apt-get install libzmq-dev
 - cmake -H. -Bcmake-out -G "Unix Makefiles"
 - make -C cmake-out
