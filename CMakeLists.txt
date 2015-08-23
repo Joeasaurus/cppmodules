@@ -81,6 +81,7 @@ include_directories(AFTER
 	"${CMAKE_SOURCE_DIR}/submodules/spdlog/include"
 	"${CMAKE_SOURCE_DIR}/submodules/catch/single_include"
 	"${CMAKE_SOURCE_DIR}/submodules/cppzmq"
+	"${CMAKE_SOURCE_DIR}/submodules/boost-predef/include"
 )
 set(BOTH_COMPILE_FILES
 	submodules/jsoncpp/dist/jsoncpp.cpp

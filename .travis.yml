@@ -11,7 +11,7 @@ addons:
     - cmake
     - libzmq3-dev
     - python
-    - libboost1.48-all-dev
+    - libboost-dev
     #- libzmq-dev
 
 install:
