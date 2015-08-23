@@ -13,6 +13,6 @@ addons:
     #- libzmq-dev
 
 install:
-- apt-cache search libzmq # Just trying to see what's available, the PPA seems not to work :()
+- git submodules init
 - cmake -H. -Bcmake-out -G "Unix Makefiles"
 - make -C cmake-out
