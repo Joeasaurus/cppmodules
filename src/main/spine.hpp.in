@@ -24,7 +24,6 @@ typedef struct SpineModule {
 	Module_dctor* destroyModule;
 	Module* module;
 	string moduleName;
-	std::mutex* rMut;
 } SpineModule;
 
 class Spine : public Module {
