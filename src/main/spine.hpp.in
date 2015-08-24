@@ -15,6 +15,7 @@
 
 #include "boost/predef.h"
 
+using namespace cppm;
 namespace sllevel = spdlog::level;
 
 // A little struct to hold pointers relevant to a module.
@@ -51,7 +52,7 @@ class Spine : public Module {
 		Spine(bool debugLogLevel);
 		~Spine();
 		bool run();
-		bool process_message(const WireMessage& message, CatchState cought, SocketType sockT);
+		bool process_message(const Message& message, CatchState cought, SocketType sockT);
 		const static shared_ptr<spdlog::logger> createLogger(bool debug);
 		bool loadModules();
 		bool loadModules(const string& directory);

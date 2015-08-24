@@ -5,16 +5,18 @@
 #include <boost/filesystem.hpp>
 #include <fstream>
 
+using namespace cppm;
+
 class ConfigModule : public Module {
 	public:
 		ConfigModule() : Module("mainline_config", "Joe Eaves"){};
 		~ConfigModule();
 		bool run();
-		bool process_message(const WireMessage& message, CatchState cought, SocketType sockT);
+		bool process_message(const Message& message, CatchState cought, SocketType sockT);
 
 		bool loadConfigFile(string filepath);
 	private:
-		WireMessage loadedConfig;
+		Message configOnDisk;
 		string configFilepath;
 };
 
