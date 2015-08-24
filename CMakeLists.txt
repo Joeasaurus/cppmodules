@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.2)
 project(cppmodules)
 #find_package(PkgConfig)
 
@@ -10,13 +10,21 @@ set(CMAKE_VERBOSE_MAKEFILE false)
 
 ### CMAKE FLAGS ###
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+	if (NOT CONFIGURED_ONCE)
+		set(CXX_DEFAULT_FLAGS "-std=c++0x")
+	endif()
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+	if (NOT CONFIGURED_ONCE)
+		set(CXX_DEFAULT_FLAGS "-std=c++11")
+	endif()
+endif()
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
 	("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang"))
 	if(NOT DEFINED CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
 		set(CMAKE_BUILD_TYPE Release)
 	endif()
 	if (NOT CONFIGURED_ONCE)
-		set(CXX_DEFAULT_FLAGS "-std=c++11")
 		set(CXX_WARNING_FLAGS "-Wall -Wextra")
 		set(CXX_SPDLOG_FLAGS "-DSPDLOG_NO_NAME -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_REGISTRY_MUTEX")
 		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_DEFAULT_FLAGS} ${CXX_WARNING_FLAGS} ${CXX_SPDLOG_FLAGS}")
@@ -72,6 +80,8 @@ include_directories(AFTER
 	"${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist"
 	"${CMAKE_SOURCE_DIR}/submodules/spdlog/include"
 	"${CMAKE_SOURCE_DIR}/submodules/catch/single_include"
+	"${CMAKE_SOURCE_DIR}/submodules/cppzmq"
+	"${CMAKE_SOURCE_DIR}/submodules/boost-predef/include"
 )
 set(BOTH_COMPILE_FILES
 	submodules/jsoncpp/dist/jsoncpp.cpp

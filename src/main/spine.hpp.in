@@ -2,6 +2,7 @@
 // Common
 #include "main/module.hpp"
 // Module Specific
+#include <dlfcn.h>
 #include <mutex>
 #include <cstdlib>
 #include <iostream>
@@ -11,9 +12,8 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range_core.hpp>
-#include <boost/predef.h>
 
-#include <dlfcn.h>
+#include "boost/predef.h"
 
 namespace sllevel = spdlog::level;
 
@@ -24,7 +24,6 @@ typedef struct SpineModule {
 	Module_dctor* destroyModule;
 	Module* module;
 	string moduleName;
-	std::mutex* rMut;
 } SpineModule;
 
 class Spine : public Module {

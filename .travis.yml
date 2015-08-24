@@ -1,7 +1,20 @@
+language: cpp
 os:
-- osx
+  - linux
+compiler:
+  - gcc
+
+sudo: false
+addons:
+  apt:
+    packages:
+    - cmake
+    - libzmq3-dev
+    - python
+    - libboost-dev
+    #- libzmq-dev
+
 install:
-- if [[ "$os" == "osx" ]]; then ls /opt/local; fi
-- [[ "$TRAVIS_OS_NAME" == "linux" ]] && echo "NOOOOOOO"
-script:
-- npm install forever
+- pushd submodules/jsoncpp;python amalgamate.py;popd
+- cmake -H. -Bcmake-out -G "Unix Makefiles"
+- make -C cmake-out

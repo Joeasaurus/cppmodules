@@ -7,3 +7,9 @@
 [submodule "submodules/jsoncpp"]
 	path = submodules/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
+[submodule "submodules/cppzmq"]
+	path = submodules/cppzmq
+	url = https://github.com/zeromq/cppzmq.git
+[submodule "submodules/boost-predef"]
+	path = submodules/boost-predef
+	url = https://github.com/boostorg/predef.git
