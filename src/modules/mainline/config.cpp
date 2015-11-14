@@ -31,9 +31,9 @@ bool ConfigModule::loadConfigFile(std::string filepath) {
 
 bool ConfigModule::run() {
 	bool runAgain = true;
-	// while (runAgain) {
-	// 	runAgain = this->pollAndProcess();
-	// }
+	while (runAgain) {
+		runAgain = this->pollAndProcess();
+	}
 	return false;
 }
 

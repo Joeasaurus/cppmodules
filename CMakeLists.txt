@@ -20,6 +20,10 @@ endif()
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
 set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
+message(STATUS "${CMAKE_VERSION}")
+if (${CMAKE_VERSION} VERSION_GREATER 3.4)
+    set(ZMQ_VOID_CONVERT "*")
+endif() 
 macro(createExtrasList name output mappings)
     foreach(files ${${mappings}})
         list(GET files 0 ${name}_mapping)
@@ -55,6 +59,7 @@ set(LINUX_LINK_LIBRARIES
     -lboost_filesystem
     -lboost_system
     -ldl
+    -lpthread
 )
 set(OSX_LINK_LIBRARIES
     -lboost_filesystem-mt
@@ -94,50 +99,17 @@ target_link_libraries(main
 set(MODULES
     "mainline\;core\;config"
 )
-set(mainline_EXTRA_COMPILE_FILES
-    "core\;"
-    "config\;"
-)
-set(mainline_EXTRA_LINK_LIBRARIES
-    "core\;"
-    "config\;config++\;boost_filesystem-mt\;boost_system-mt"
-)
-set(mainline_EXTRA_COPY_FILES
-    "core\;"
-    "config\;main.cfg"
-)
 
 foreach(group ${MODULES})
     list(GET group 0 MODULE_GROUP_NAME)
     createExtrasList(${MODULE_GROUP_NAME} GROUP_MODULES MODULES)
     foreach(module ${${MODULE_GROUP_NAME}_GROUP_MODULES})
-        createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_COMPILE_FILES
-                        ${MODULE_GROUP_NAME}_EXTRA_COMPILE_FILES
-        )
-        createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_LINK_LIBRARIES
-                        ${MODULE_GROUP_NAME}_EXTRA_LINK_LIBRARIES
-        )
-        createExtrasList(${MODULE_GROUP_NAME}_${module} EXTRA_COPY_FILES
-                        ${MODULE_GROUP_NAME}_EXTRA_COPY_FILES
-        )
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/${group}/${module}.hpp.in")
-            configure_file("${CMAKE_CURRENT_SOURCE_DIR}/modules/${group}/${module}.hpp.in"
-                        "${CMAKE_BINARY_DIR}/gen/modules/${group}/${module}.hpp"
-            )
-        endif()
-    	add_library(${MODULE_GROUP_NAME}_${module} SHARED
-    		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}/${module}.cpp
-            ${${MODULE_GROUP_NAME}_${module}_EXTRA_COMPILE_FILES}
-    	)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}_${module}.cmake)
     	set_target_properties(${MODULE_GROUP_NAME}_${module}
     	    PROPERTIES
     	    LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
     	)
-     	target_link_libraries(${MODULE_GROUP_NAME}_${module}
-            ${BOTH_LINK_LIBRARIES}
-            ${${MODULE_GROUP_NAME}_${module}_EXTRA_LINK_LIBRARIES}
-        )
-        foreach(file_to_copy ${${MODULE_GROUP_NAME}_${module}_EXTRA_COPY_FILES})
+        foreach(file_to_copy ${MODULE_COPY_FILES})
                 add_custom_command(
                     OUTPUT ${OUTPUT_DIR}/modules/${file_to_copy}
                     COMMAND ${CMAKE_COMMAND}

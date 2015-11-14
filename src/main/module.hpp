@@ -165,25 +165,26 @@ class Module {
 			zmq::message_t message;
 
 			if (sockT == SocketType::SUB || sockT == SocketType::PUB) {
-				pollSocketItems[0].socket = *this->inp_in;
+				pollSocketItems[0].socket = static_cast<void*>(*this->inp_in);
 				pollSocket = this->inp_in;
 			} else if (sockT == SocketType::MGM_IN) {
-				pollSocketItems[0].socket = *this->inp_manage_in;
+				pollSocketItems[0].socket = static_cast<void*>(*this->inp_manage_in);
 				pollSocket = this->inp_manage_in;
 			} else if (sockT == SocketType::MGM_OUT) {
-				pollSocketItems[0].socket = *this->inp_manage_out;
+				pollSocketItems[0].socket = static_cast<void*>(*this->inp_manage_out);
 				pollSocket = this->inp_manage_out;
 			}
 
 			try {
 				int data = zmq::poll(pollSocketItems, 1, timeout);
 				if (data > 0) {
+					std::cout << "DATA" << std::endl;
 					if(pollSocket->recv(&message)) {
 						messageText = std::string(static_cast<char*>(message.data()), message.size());
 					}
 				}
 			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
+				std::cout << "RECV " << e.what() << std::endl;
 			}
 			// I know this is silly, we can't rely on pretty print because values are arbitray
 			//  and may have spaces.
@@ -225,7 +226,7 @@ class Module {
 			return this->recvMessage<bool>(socket,
 				[&](const json::value& message) {
 					CatchState cought = CatchState::NOT_FOR_ME;
-					// this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
+					this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
 					if (to_string(message["source"]) == "Spine" &&
 					   (to_string(message["destination"]) == "Modules" ||
 						to_string(message["destination"]) == this->name()
@@ -243,11 +244,12 @@ class Module {
 		bool pollAndProcess(long timeout=1000) {
 			int pollSocketCount = 2;
 			zmq::pollitem_t pollSocketItems[] = {
-				{ *this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
-				{ *this->inp_in, 0, ZMQ_POLLIN, 0 }
+				{ static_cast<void*>(*this->inp_manage_in), 0, ZMQ_POLLIN, 0 },
+				{ static_cast<void*>(*this->inp_in), 0, ZMQ_POLLIN, 0 }
 			};
 
 			if (zmq::poll(pollSocketItems, pollSocketCount, timeout) > 0) {
+				std::cout << "DATA! " << std::endl;
 				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
 					return this->catchCloseAndProcess(this->inp_manage_in, SocketType::MGM_IN);
 				}

@@ -178,7 +178,7 @@ bool Spine::loadConfig(std::string location) {
 		{ "command", "load" },
 		{ "file", location }
 	});
-	// Wait 5 secs for config to load!
+	//Wait 5 secs for config to load!
 	return this->recvMessage<bool>(SocketType::MGM_OUT,
 		[&](const json::value& message) {
 			if (json::has_key(message, "source") &&
