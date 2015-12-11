@@ -1,5 +1,7 @@
 #include "main/spine.hpp"
 
+namespace cppm {
+
 Spine::Spine(bool debugLogLevel) : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->logger = Spine::createLogger(debugLogLevel);
@@ -214,7 +216,7 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 }
 
 bool Spine::loadConfig(string location) {
-	string confMod = "mainline_config";
+	string confMod = "config";
 	if (this->areSocketsValid()) {
 		Message wMsg(this->name(), confMod);
 		wMsg["data"]["command"] = "load";
@@ -274,3 +276,4 @@ bool Spine::process_message(const Message& wMsg, CatchState cought, SocketType s
 	return true;
 }
 
+}

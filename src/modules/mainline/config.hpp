@@ -9,7 +9,7 @@ using namespace cppm;
 
 class ConfigModule : public Module {
 	public:
-		ConfigModule() : Module("mainline_config", "Joe Eaves"){};
+		ConfigModule() : Module("config", "Joe Eaves"){};
 		~ConfigModule();
 		bool run();
 		bool process_message(const Message& message, CatchState cought, SocketType sockT);

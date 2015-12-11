@@ -15,7 +15,6 @@
 
 #include "boost/predef.h"
 
-using namespace cppm;
 namespace sllevel = spdlog::level;
 
 // A little struct to hold pointers relevant to a module.
@@ -23,41 +22,43 @@ typedef struct SpineModule {
 	void* module_so;
 	Module_ctor* createModule;
 	Module_dctor* destroyModule;
-	Module* module;
+	cppm::Module* module;
 	string moduleName;
-} SpineModule;
-
-class Spine : public Module {
-	private:
-		#if BOOST_OS_MACOS
-			string moduleFileExtension = ".dylib";
-		#else
-			#if BOOST_OS_WINDOWS
-				string moduleFileExtension = ".dll";
-			#else // Linux
-				string moduleFileExtension = ".so";
-			#endif
-		#endif
-
-		vector<thread> m_threads;
-		vector<SpineModule> m_modules;
-		set<string> loadedModules;
-
-		bool isModuleFile(const string& filename);
-		set<string> listModules(const string& directory);
-		bool openModuleFile(const string& fileName, SpineModule& spineModule);
-		int resolveModuleFunctions(SpineModule& spineModule);
-		bool registerModule();
-	public:
-		Spine(bool debugLogLevel);
-		~Spine();
-		bool run();
-		bool process_message(const Message& message, CatchState cought, SocketType sockT);
-		const static shared_ptr<spdlog::logger> createLogger(bool debug);
-		bool loadModules();
-		bool loadModules(const string& directory);
-		bool loadModule(const string& filename);
-		bool loadConfig(string location);
-		bool isModuleLoaded(std::string moduleName);
-		const string moduleFileLocation = "@MODULES_LOCATION@";
 };
+
+namespace cppm {
+	class Spine : public Module {
+		private:
+			#if BOOST_OS_MACOS
+				string moduleFileExtension = ".dylib";
+			#else
+				#if BOOST_OS_WINDOWS
+					string moduleFileExtension = ".dll";
+				#else // Linux
+					string moduleFileExtension = ".so";
+				#endif
+			#endif
+
+			vector<thread> m_threads;
+			vector<SpineModule> m_modules;
+			set<string> loadedModules;
+
+			bool isModuleFile(const string& filename);
+			set<string> listModules(const string& directory);
+			bool openModuleFile(const string& fileName, SpineModule& spineModule);
+			int resolveModuleFunctions(SpineModule& spineModule);
+			bool registerModule();
+		public:
+			Spine(bool debugLogLevel);
+			~Spine();
+			bool run();
+			bool process_message(const Message& message, CatchState cought, SocketType sockT);
+			const static shared_ptr<spdlog::logger> createLogger(bool debug);
+			bool loadModules();
+			bool loadModules(const string& directory);
+			bool loadModule(const string& filename);
+			bool loadConfig(string location);
+			bool isModuleLoaded(std::string moduleName);
+			const string moduleFileLocation = "@MODULES_LOCATION@";
+	};
+}

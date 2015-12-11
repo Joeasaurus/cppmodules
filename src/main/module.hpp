@@ -25,6 +25,7 @@ using namespace zmq;
 namespace algorithm = boost::algorithm;
 
 namespace cppm {
+	class Spine;
 	typedef struct ModuleInfo {
 		string name = "undefined module";
 		string author = "mainline";
@@ -57,6 +58,7 @@ namespace cppm {
 	};
 
 	class Module {
+		friend class Spine;
 		// Variables first
 		protected:
 			ModuleInfo __info;
@@ -104,9 +106,14 @@ namespace cppm {
 				return this->socketsOpen;
 			};
 			bool areSocketsValid() const {
-				return (this->inp_in->connected() && this->inp_out->connected() && this->inp_manage_in->connected() &&
-						this->inp_manage_out->connected());
+				return (this->inp_in->connected()        &&
+						this->inp_out->connected()       &&
+						this->inp_manage_in->connected() &&
+						this->inp_manage_out->connected()
+				);
 			};
+			
+		protected:
 			void openSockets()
 			{
 				if (!this->areSocketsOpen()) {
@@ -121,6 +128,7 @@ namespace cppm {
 						this->inp_in->bind(inPoint.c_str());
 						this->inp_manage_in->bind(managePoint.c_str());
 						this->logger->debug("{}: Sockets Open", this->name());
+
 						this->socketsOpen = true;
 					} catch (const zmq::error_t &e) {
 						this->logger->error(this->nameMsg(e.what()));
@@ -157,7 +165,6 @@ namespace cppm {
 				this->timeDelta = newDelta;
 				return this->checkEventTimer(newDelta);
 			};
-		protected:
 			void createEvent(string title, chrono::milliseconds interval,
 							 function<bool(chrono::milliseconds delta)> callback
 			) {
@@ -397,7 +404,6 @@ namespace cppm {
 				});
 			};
 	};
-
-	typedef Module* Module_ctor(void);
-	typedef void Module_dctor(Module*);
 }
+typedef cppm::Module* Module_ctor(void);
+typedef void Module_dctor(cppm::Module*);

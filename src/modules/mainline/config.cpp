@@ -49,7 +49,7 @@ bool ConfigModule::run()
 
 bool ConfigModule::process_message(const Message& wMsg, CatchState cought, SocketType sockT)
 {
-	//this->logger->debug("{}: {}", this->name(), wMsg.asString());
+	this->logger->debug("{}: {}", this->name(), wMsg.asString());
 	if (cought == CatchState::FOR_ME) {
 		if (sockT == SocketType::MGM_IN && wMsg["data"].isMember("command")) {
 			if (wMsg["data"]["command"].asString() == "load" && wMsg["data"].isMember("file")) {
