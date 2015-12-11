@@ -6,12 +6,15 @@ set(TEST_OUTPUT_DIRS
 )
 set(TEST_LINK_LIBRARIES
 	-lzmq
-	-lboost_system-mt
-	-lboost_filesystem-mt
+	-lpthread
+	-ldl
+	-lboost_system
+	-lboost_filesystem
 )
 set(TEST_FILES
     SpineAPI
     CreateSpineLogger
+    ModuleInterface
 )
 set(TEST_COMMON_INCLUDE_DIRS
 )
@@ -19,10 +22,12 @@ set(TEST_COMMON_COMPILE_FILES
 	submodules/jsoncpp/dist/jsoncpp.cpp
 )
 set(TEST_EXTRA_INCLUDE_DIRS
+	src
 )
 set(TEST_EXTRA_COMPILE_FILES
 	"SpineAPI\;src/main/spine.cpp"
 	"CreateSpineLogger\;src/main/spine.cpp"
+	"ModuleInterface\;src/tests/ModuleInterfaceFixture.cpp"
 )
 foreach(test ${TEST_FILES})
 	createExtrasList(${test} EXTRA_COMPILE_FILES TEST_EXTRA_COMPILE_FILES)

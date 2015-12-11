@@ -7,7 +7,7 @@ static std::string LoggerName = "SpineLogger";
 
 SCENARIO("Spine creates a valid logger named 'SpineLogger'", "[spine,logger]") {
 	GIVEN("the logger is created") {
-		auto logger = Spine::createLogger(false);
+		auto logger = cppm::Spine::createLogger(false);
 
 		WHEN("the logger is retrieved") {
 			auto gotLogger = spdlog::get(LoggerName);
@@ -17,7 +17,7 @@ SCENARIO("Spine creates a valid logger named 'SpineLogger'", "[spine,logger]") {
 		}
 
 		WHEN("we try to create the logger again") {
-			auto secondLogger = Spine::createLogger(false);
+			auto secondLogger = cppm::Spine::createLogger(false);
 			THEN("we receive the same logger from the registry") {
 				REQUIRE(logger == secondLogger);
 			}

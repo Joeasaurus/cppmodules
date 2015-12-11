@@ -94,4 +94,4 @@ foreach(group ${MODULES})
     endforeach(module)
 endforeach(group)
 
-#include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
