@@ -10,7 +10,8 @@ bool ConfigModule::loadConfigFile(string filepath)
 {
 	if (boost::filesystem::is_regular_file(filepath)) {
 		try {
-			this->config.parseInFile(filepath);
+			this->configOnDisk.fromFile(filepath);
+			this->config = this->configOnDisk;
 			this->logger->debug(this->nameMsg(filepath + " loaded!"));
 			this->logger->debug(this->nameMsg(this->config.asString()));
 			this->configFilepath = filepath;
@@ -29,9 +30,9 @@ bool ConfigModule::run()
 	this->createEvent("ReloadConfig", chrono::milliseconds(5000),
 		[&](chrono::milliseconds delta) {
 			if(this->loadConfigFile(this->configFilepath)) {
-				WireMessage configUpdate(this->name(), "Modules");
+				Message configUpdate(this->name(), "Modules");
 				configUpdate["data"]["command"] = "config-update";
-				configUpdate["data"]["config"] = this->config.message;
+				configUpdate["data"]["config"] = this->config.asJson();
 				this->logger->debug(this->nameMsg("Config reloaded"));
 				return this->sendMessage(SocketType::PUB, configUpdate);
 			}
@@ -46,17 +47,17 @@ bool ConfigModule::run()
 	return false;
 }
 
-bool ConfigModule::process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT)
+bool ConfigModule::process_message(const Message& wMsg, CatchState cought, SocketType sockT)
 {
-	//this->logger->debug("{}: {}", this->name(), wMsg.message.asString());
+	this->logger->debug("{}: {}", this->name(), wMsg.asString());
 	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN && wMsg.message["data"].isMember("command")) {
-			if (wMsg.message["data"]["command"].asString() == "load" && wMsg.message["data"].isMember("file")) {
-				WireMessage reply(this->name(), "Spine");
+		if (sockT == SocketType::MGM_IN && wMsg["data"].isMember("command")) {
+			if (wMsg["data"]["command"].asString() == "load" && wMsg["data"].isMember("file")) {
+				Message reply(this->name(), "Spine");
 
-				reply.message["data"]["configLoaded"] = false;
-				if (this->loadConfigFile(wMsg.message["data"]["file"].asString())) {
-					reply.message["data"]["configLoaded"] = true;
+				reply["data"]["configLoaded"] = false;
+				if (this->loadConfigFile(wMsg["data"]["file"].asString())) {
+					reply["data"]["configLoaded"] = true;
 				}
 
 				this->sendMessage(SocketType::MGM_IN, reply);

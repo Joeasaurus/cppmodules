@@ -6,6 +6,8 @@
  * Change module loading so we use author + name instead of relying on the filename
  */
 
+ using namespace cppm;
+
 int main(int argc, char **argv) {
 	// Open the spine and get the logger it creates
 	Spine spine(argc > 1 && strcmp(argv[1], "debug") == 0);

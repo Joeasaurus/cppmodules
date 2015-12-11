@@ -1,12 +1,14 @@
 #include "main/spine.hpp"
 
+namespace cppm {
+
 Spine::Spine(bool debugLogLevel) : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->logger = Spine::createLogger(debugLogLevel);
 	this->inp_context = new zmq::context_t(1);
 	this->createEvent("ClockTick", chrono::milliseconds(1000), [&](chrono::milliseconds delta) {
-		WireMessage wMsg(this->name(), "Modules");
-		wMsg.message["data"]["ClockTick"] = to_string(delta.count());
+		Message wMsg(this->name(), "Modules");
+		wMsg["data"]["ClockTick"] = to_string(delta.count());
 		return this->sendMessage(SocketType::PUB, wMsg);
 	});
 	this->openSockets();
@@ -20,10 +22,10 @@ Spine::~Spine() {
 	//  in the Spine as 'loaded'
 	// It then waits for the module to join. It relies on the module closing
 	//  cleanly else it will lock up waiting.
-	WireMessage wMsg(this->name(), "");
-	wMsg.message["data"]["command"] = "close";
+	Message wMsg(this->name(), "");
+	wMsg["data"]["command"] = "close";
 	for_each(m_modules.begin(), m_modules.end(), [&](SpineModule& mod) {
-		wMsg.message["destination"] = mod.moduleName;
+		wMsg["destination"] = mod.moduleName;
 		this->sendMessage(SocketType::PUB, wMsg);
 		this->logger->debug(this->nameMsg("Joining " + mod.moduleName));
 
@@ -214,19 +216,19 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 }
 
 bool Spine::loadConfig(string location) {
-	string confMod = "mainline_config";
+	string confMod = "config";
 	if (this->areSocketsValid()) {
-		WireMessage wMsg(this->name(), confMod);
-		wMsg.message["data"]["command"] = "load";
-		wMsg.message["data"]["file"] = location;
-		return this->sendMessageRecv(SocketType::MGM_OUT, wMsg, [&,confMod](const WireMessage& wMsg) -> bool{
-			if (!wMsg.message["data"].isMember("configLoaded"))
+		Message wMsg(this->name(), confMod);
+		wMsg["data"]["command"] = "load";
+		wMsg["data"]["file"] = location;
+		return this->sendMessageRecv(SocketType::MGM_OUT, wMsg, [&,confMod](const Message& wMsg) -> bool{
+			if (!wMsg["data"].isMember("configLoaded"))
 				return false;
 
-			if (wMsg.message["source"].asString() != confMod || wMsg.message["destination"].asString() != this->name())
+			if (wMsg["source"].asString() != confMod || wMsg["destination"].asString() != this->name())
 				return false;
 
-			if (!wMsg.message["data"]["configLoaded"].asBool())
+			if (!wMsg["data"]["configLoaded"].asBool())
 				return false;
 
 			return true;
@@ -259,8 +261,8 @@ bool Spine::run() {
 		}
 		// Lets make sure the close command works!
 		this->logger->info(this->nameMsg("Closing 'Modules'"));
-		WireMessage wMsg(this->name(), "Modules");
-		wMsg.message["data"]["command"] = "close";
+		Message wMsg(this->name(), "Modules");
+		wMsg["data"]["command"] = "close";
 		this->sendMessage(SocketType::PUB, wMsg);
 		return true;
 	} catch(zmq::error_t& ex) {
@@ -269,8 +271,9 @@ bool Spine::run() {
 	}
 }
 
-bool Spine::process_message(const WireMessage& wMsg, CatchState cought, SocketType sockT) {
+bool Spine::process_message(const Message& wMsg, CatchState cought, SocketType sockT) {
 	this->logger->debug(this->nameMsg(wMsg.asString()));
 	return true;
 }
 
+}
