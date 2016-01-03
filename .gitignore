@@ -9,3 +9,4 @@ CMakeFiles
 Makefile
 cppmodules.sublime-project
 src/lib
+submodules/jsoncpp/*
