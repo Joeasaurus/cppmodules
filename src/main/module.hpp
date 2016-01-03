@@ -59,7 +59,7 @@ namespace cppm {
 		MGM_OUT
 	};
 
-	class Module : public Eventer {
+	class Module {
 		friend class Spine;
 		// Variables first
 		protected:
@@ -305,7 +305,7 @@ namespace cppm {
 					{ (void*)*this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
 					{ (void*)*this->inp_in, 0, ZMQ_POLLIN, 0 }
 				};
-				this->tick();
+				eventer.tick();
 				if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
 					if (pollSocketItems[0].revents & ZMQ_POLLIN) {
 						return this->catchAndProcess(this->inp_manage_in, SocketType::MGM_IN);
