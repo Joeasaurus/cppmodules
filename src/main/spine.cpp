@@ -6,11 +6,6 @@ Spine::Spine(bool debugLogLevel) : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->logger = Spine::createLogger(debugLogLevel);
 	this->inp_context = new zmq::context_t(1);
-	this->createEvent("ClockTick", chrono::milliseconds(1000), [&](chrono::milliseconds delta) {
-		Message wMsg(this->name(), "Modules");
-		wMsg["data"]["ClockTick"] = to_string(delta.count());
-		return this->sendMessage(SocketType::PUB, wMsg);
-	});
 	this->openSockets();
 }
 
@@ -249,10 +244,6 @@ bool Spine::run() {
 			this->logger->debug(this->nameMsg("Sleeping..."));
 			this_thread::sleep_for(chrono::milliseconds(500));
 
-			auto timenow = chrono::system_clock::now();
-			this->tickTimer(
-				chrono::duration_cast<chrono::milliseconds>(timenow - this->timeNow)
-			);
 			if (count < 120) {
 				count++;
 			} else {

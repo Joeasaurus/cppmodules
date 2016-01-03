@@ -13,3 +13,6 @@
 [submodule "submodules/boost-predef"]
 	path = submodules/boost-predef
 	url = https://github.com/boostorg/predef.git
+[submodule "submodules/cppevent"]
+	path = submodules/cppevent
+	url = https://github.com/Joeasaurus/cppevent.git

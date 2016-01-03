@@ -19,10 +19,12 @@
 
 #include "main/message.hpp"
 #include "spdlog/spdlog.h"
+#include "Eventer.hpp"
 
 using namespace std;
 using namespace zmq;
 namespace algorithm = boost::algorithm;
+using namespace cppevent;
 
 namespace cppm {
 	class Spine;
@@ -57,7 +59,7 @@ namespace cppm {
 		MGM_OUT
 	};
 
-	class Module {
+	class Module : public Eventer {
 		friend class Spine;
 		// Variables first
 		protected:
@@ -65,6 +67,7 @@ namespace cppm {
 			context_t* inp_context;
 			shared_ptr<spdlog::logger> logger;
 			chrono::system_clock::time_point timeNow;
+			Eventer eventer;
 			Message config;
 		private:
 			socket_t* inp_manage_in;
@@ -72,7 +75,6 @@ namespace cppm {
 			socket_t* inp_in;
 			socket_t* inp_out;
 			chrono::milliseconds timeDelta;
-			map<string, Event> events;
 			bool socketsOpen = false;
 
 		// Now our functions
@@ -156,31 +158,6 @@ namespace cppm {
 					this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 				} catch (const zmq::error_t &e) {
 					this->logger->error(this->nameMsg(e.what()));
-				}
-			};
-			bool tickTimer(
-				chrono::milliseconds newDelta
-			) {
-				this->timeNow += newDelta;
-				this->timeDelta = newDelta;
-				return this->checkEventTimer(newDelta);
-			};
-			void createEvent(string title, chrono::milliseconds interval,
-							 function<bool(chrono::milliseconds delta)> callback
-			) {
-				// auto ttp = chrono::system_clock::to_time_t(chrono::system_clock::now() + interval);
-				// this->logger->debug(ctime(&ttp));
-				try{
-					this->events.insert(pair<string, Event>(
-						title, Event{
-							chrono::milliseconds(0),
-							interval,
-							callback
-						}
-					));
-					this->logger->debug(this->nameMsg(title + " event created"));
-				} catch (const exception& e) {
-					this->logger->warn(this->nameMsg(e.what()));
 				}
 			};
 			string nameMsg(string message) const {
@@ -328,6 +305,7 @@ namespace cppm {
 					{ (void*)*this->inp_manage_in, 0, ZMQ_POLLIN, 0 },
 					{ (void*)*this->inp_in, 0, ZMQ_POLLIN, 0 }
 				};
+				this->tick();
 				if (zmq::poll(pollSocketItems, pollSocketCount, 0) > 0) {
 					if (pollSocketItems[0].revents & ZMQ_POLLIN) {
 						return this->catchAndProcess(this->inp_manage_in, SocketType::MGM_IN);
@@ -349,17 +327,6 @@ namespace cppm {
 				return messageTokens;
 			};
 		private:
-			bool checkEventTimer(chrono::milliseconds newDelta) {
-				for (auto& event : this->events) {
-					//this->logger->debug(this->nameMsg(event.first));
-					event.second.delta += newDelta;
-					if (event.second.delta >= event.second.interval) {
-						event.second.callback(event.second.delta);
-						event.second.delta = chrono::milliseconds(0);
-					}
-				}
-				return true;
-			};
 			bool catchAndProcess(socket_t* socket, SocketType sockT)
 			{
 				// Here we listen on the socket we're told to for close messages
@@ -392,12 +359,6 @@ namespace cppm {
 										this->logger->debug(this->nameMsg(this->config.asString()));
 									}
 								}
-							} else if (wMsg["data"].isMember("ClockTick")) {
-								return this->tickTimer(
-									chrono::milliseconds(
-										stoll(wMsg["data"]["ClockTick"].asString())
-									)
-								);
 							}
 						}
 						return this->process_message(wMsg, cought, sockT);

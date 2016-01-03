@@ -19,26 +19,23 @@ bool ConfigModule::loadConfigFile(string filepath)
 		} catch(const exception &ex) {
 			this->logger->debug(this->nameMsg("Error: loading " + filepath ));
 			this->logger->debug(this->nameMsg(ex.what()));
-			return false;
 		}
 	}
 	return false;
 }
 
-bool ConfigModule::run()
-{
-	this->createEvent("ReloadConfig", chrono::milliseconds(5000),
-		[&](chrono::milliseconds delta) {
-			if(this->loadConfigFile(this->configFilepath)) {
-				Message configUpdate(this->name(), "Modules");
-				configUpdate["data"]["command"] = "config-update";
-				configUpdate["data"]["config"] = this->config.asJson();
-				this->logger->debug(this->nameMsg("Config reloaded"));
-				return this->sendMessage(SocketType::PUB, configUpdate);
-			}
-			return false;
+bool ConfigModule::run() {
+	eventer.on("config-reload", [&]() {
+		if(this->loadConfigFile(this->configFilepath)) {
+			Message configUpdate(this->name(), "Modules");
+			configUpdate["data"]["command"] = "config-update";
+			configUpdate["data"]["config"] = this->config.asJson();
+			this->logger->debug(this->nameMsg("Config reloaded"));
+			return this->sendMessage(SocketType::PUB, configUpdate);
 		}
-	);
+		return false;
+	}, 5, EventPriority::LOW);
+
 	bool runAgain = true;
 	while (runAgain) {
 		runAgain = this->pollAndProcess();
@@ -49,7 +46,6 @@ bool ConfigModule::run()
 
 bool ConfigModule::process_message(const Message& wMsg, CatchState cought, SocketType sockT)
 {
-	this->logger->debug("{}: {}", this->name(), wMsg.asString());
 	if (cought == CatchState::FOR_ME) {
 		if (sockT == SocketType::MGM_IN && wMsg["data"].isMember("command")) {
 			if (wMsg["data"]["command"].asString() == "load" && wMsg["data"].isMember("file")) {
