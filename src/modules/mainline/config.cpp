@@ -3,7 +3,7 @@
 ConfigModule::~ConfigModule()
 {
 	this->closeSockets();
-	this->logger->debug(this->nameMsg("Closed"));
+	_logger.log(name(), "Closed", true);
 }
 
 bool ConfigModule::loadConfigFile(string filepath)
@@ -12,51 +12,65 @@ bool ConfigModule::loadConfigFile(string filepath)
 		try {
 			this->configOnDisk.fromFile(filepath);
 			this->config = this->configOnDisk;
-			this->logger->debug(this->nameMsg(filepath + " loaded!"));
-			this->logger->debug(this->nameMsg(this->config.asString()));
+			_logger.log(name(), filepath + " loaded!", true);
+			_logger.log(name(), this->config.asString(), true);
 			this->configFilepath = filepath;
 			return true;
 		} catch(const exception &ex) {
-			this->logger->debug(this->nameMsg("Error: loading " + filepath ));
-			this->logger->debug(this->nameMsg(ex.what()));
+			errLog("Error: loading " + filepath);
+			errLog(ex.what());
 		}
 	}
 	return false;
 }
 
-bool ConfigModule::run() {
-	eventer.on("config-reload", [&]() {
-		if(this->loadConfigFile(this->configFilepath)) {
-			Message configUpdate(this->name(), "Modules");
-			configUpdate["data"]["command"] = "config-update";
-			configUpdate["data"]["config"] = this->config.asJson();
-			this->logger->debug(this->nameMsg("Config reloaded"));
-			return this->sendMessage(SocketType::PUB, configUpdate);
-		}
-		return false;
-	}, 5, EventPriority::LOW);
+void ConfigModule::run() {
+	// _eventer.on("config-reload", [&]() {
+	// 	if(this->loadConfigFile(this->configFilepath)) {
+	// 		Message configUpdate(this->name(), "Modules");
+	// 		configUpdate["data"]["command"] = "config-update";
+	// 		configUpdate["data"]["config"] = this->config.asJson();
+	// 		_logger.log(name(), "Config reloaded", true);
+	// 		return this->sendMessage(SocketType::PUB, configUpdate);
+	// 	}
+	// 	return false;
+	// }, 5, EventPriority::LOW);
 
-	bool runAgain = true;
+	Message moduleRunning(name(), "Spine");
+	moduleRunning["data"]["message"] = "module-loaded";
+	bool runAgain = this->sendMessageRecv(SocketType::MGM_OUT, moduleRunning, [&](const Message& wMsg) {
+		_logger.log(name(), wMsg.asString(), true);
+		return true;
+	});
+
+	_logger.log(name(), "RUN IS RUNNING", true);
 	while (runAgain) {
+		_eventer.tick();
 		runAgain = this->pollAndProcess();
-	}
 
-	return false;
+	}	
 }
 
 bool ConfigModule::process_message(const Message& wMsg, CatchState cought, SocketType sockT)
 {
 	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN && wMsg["data"].isMember("command")) {
-			if (wMsg["data"]["command"].asString() == "load" && wMsg["data"].isMember("file")) {
-				Message reply(this->name(), "Spine");
+		if (sockT == SocketType::MGM_IN) {
+			if (wMsg["data"].isMember("command")) {
+				if (wMsg["data"]["command"].asString() == "load" && wMsg["data"].isMember("file")) {
+					Message reply(this->name(), "Spine");
 
-				reply["data"]["configLoaded"] = false;
-				if (this->loadConfigFile(wMsg["data"]["file"].asString())) {
-					reply["data"]["configLoaded"] = true;
+					reply["data"]["configLoaded"] = false;
+					if (this->loadConfigFile(wMsg["data"]["file"].asString())) {
+						reply["data"]["configLoaded"] = true;
+					}
+
+					this->sendMessage(SocketType::MGM_IN, reply);
 				}
-
-				this->sendMessage(SocketType::MGM_IN, reply);
+			} else if (wMsg["data"].isMember("message")) {
+				if (wMsg["data"]["message"].asString() == "module-loaded-ack") {
+					_logger.log(name(), "Load acknowledged, closing", true);
+					return false;
+				}
 			}
 		}
 	}

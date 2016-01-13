@@ -1,6 +1,7 @@
 #pragma once
 // Common
 #include "main/module.hpp"
+#include "main/modulecom.hpp"
 // Module Specific
 #include <dlfcn.h>
 #include <mutex>
@@ -15,16 +16,16 @@
 
 #include "boost/predef.h"
 
-namespace sllevel = spdlog::level;
+using namespace zmq;
 
 // A little struct to hold pointers relevant to a module.
 typedef struct SpineModule {
 	void* module_so;
 	Module_ctor* createModule;
 	Module_dctor* destroyModule;
-	cppm::Module* module;
+	bool moduleLoaded = false;
 	string moduleName;
-};
+} SpineModule;
 
 namespace cppm {
 	class Spine : public Module {
@@ -40,25 +41,26 @@ namespace cppm {
 			#endif
 
 			vector<thread> m_threads;
-			vector<SpineModule> m_modules;
-			set<string> loadedModules;
+			mutex _loadedModuleMutex; // Protects loadedModules
+			set<string> _loadedModules;
 
 			bool isModuleFile(const string& filename);
 			set<string> listModules(const string& directory);
 			bool openModuleFile(const string& fileName, SpineModule& spineModule);
 			int resolveModuleFunctions(SpineModule& spineModule);
-			bool registerModule();
 		public:
-			Spine(bool debugLogLevel);
+			Spine();
 			~Spine();
-			bool run();
+			void run();
 			bool process_message(const Message& message, CatchState cought, SocketType sockT);
-			const static shared_ptr<spdlog::logger> createLogger(bool debug);
 			bool loadModules();
 			bool loadModules(const string& directory);
 			bool loadModule(const string& filename);
 			bool loadConfig(string location);
 			bool isModuleLoaded(std::string moduleName);
 			const string moduleFileLocation = "@MODULES_LOCATION@";
+
+			void registerModule(const string& name);
+			void unregisterModule(const string& name);
 	};
 }
