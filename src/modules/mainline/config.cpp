@@ -43,10 +43,11 @@ void ConfigModule::run() {
 		return true;
 	});
 
-	_logger.log(name(), "RUN IS RUNNING", true);
 	while (runAgain) {
 		_eventer.tick();
 		runAgain = this->pollAndProcess();
+		this_thread::sleep_for(chrono::milliseconds(5000));
+		_logger.log(name(), "RUN IS RUNNING", true);
 
 	}	
 }

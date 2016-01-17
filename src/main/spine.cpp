@@ -6,6 +6,7 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->inp_context = make_shared<zmq::context_t>(1);
 	this->openSockets();
+	_running.store(true);
 }
 
 Spine::~Spine() {
@@ -20,7 +21,8 @@ Spine::~Spine() {
 	wMsg["data"]["command"] = "close";
 
 	//TODO: NOT THREAD SAFE!?!?!
-	lock_guard<mutex> lock(_loadedModuleMutex);
+	lock_guard<mutex> lock(_moduleRegisterMutex);
+	_running.store(false);
 	for_each(_loadedModules.begin(), _loadedModules.end(), [&](string module) {
 		wMsg["destination"] = module;
 		this->sendMessage(SocketType::PUB, wMsg);
@@ -66,7 +68,7 @@ set<string> Spine::listModules(const string& directory) {
 }
 
 void Spine::registerModule(const string& modName) {
-	lock_guard<mutex> lock(_loadedModuleMutex);
+	lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
 	_loadedModules.insert(modName);
 	notify(SocketType::PUB, modName);
 	notify(SocketType::MGM_OUT, modName);
@@ -74,35 +76,24 @@ void Spine::registerModule(const string& modName) {
 };
 
 void Spine::unregisterModule(const string& modName) {
-	lock_guard<mutex> lock(_loadedModuleMutex);
+	lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
 	_loadedModules.erase(modName);
 	_logger.log(name(), "Unregistered module: " + modName + "!");
 };
 
 bool Spine::loadModule(const string& filename) {
 	
-
-	// spineModule.module->setSocketContext(this->inp_context);
-	// spineModule.module->openSockets();
-	// if (! spineModule.module->areSocketsValid()) {
-	// 	_logger.log(spineModule.module->name(), "Sockets are not valid :(", true);
-	// 	return false;
-	// }
-	// Here we set the module to subscribe to it's name on it's subscriber socket
-	// Then configure the module to connect it's publish output to the Spine input
-	//  and it's mgmt output too
-	// spineModule.module->subscribe("Modules");
-	// spineModule.module->subscribe(spineModule.moduleName);
-	// spineModule.module->notify(SocketType::PUB, "Spine");
-	// spineModule.module->notify(SocketType::MGM_OUT, "Spine");
-	// _logger.log(name(), "Sockets Registered for: " + spineModule.moduleName + "!", true);
-
+	// Strart a new thread holding a modulecom. 
+	// The com will load the module from disk and then re-init it while it's loaded. 
+	// We can add logic for unloading it later
+	// For now we've added a check on the atomic _running bool, so the Spine can tell us to unload,
+	//   so as to close the module and make the thread joinable().
 	m_threads.push_back(thread([&,filename] {
 		ModuleCOM com(filename); 
 		_logger.log(name(), "Loading " + boost::filesystem::basename(filename) + "...", true);
 
 		if (com.load()) {
-			while (com.isLoaded()) {
+			while (com.isLoaded() && _running.load()) {
 				if (com.init(inp_context)) {
 					registerModule(com.moduleName);
 
@@ -127,6 +118,7 @@ bool Spine::loadModule(const string& filename) {
 					com.deinit();
 					unregisterModule(com.moduleName);
 				}
+				this_thread::sleep_for(chrono::milliseconds(1000));
 			}
 
 			com.unload();
@@ -204,7 +196,7 @@ void Spine::run() {
 		int count = 0;
 
 		while (runAgain) {
-			//this->pollAndProcess();
+			this->pollAndProcess();
 			_logger.log(name(), "Sleeping...", true);
 			this_thread::sleep_for(chrono::milliseconds(500));
 

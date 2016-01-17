@@ -18,15 +18,6 @@
 
 using namespace zmq;
 
-// A little struct to hold pointers relevant to a module.
-typedef struct SpineModule {
-	void* module_so;
-	Module_ctor* createModule;
-	Module_dctor* destroyModule;
-	bool moduleLoaded = false;
-	string moduleName;
-} SpineModule;
-
 namespace cppm {
 	class Spine : public Module {
 		private:
@@ -40,14 +31,14 @@ namespace cppm {
 				#endif
 			#endif
 
+			atomic<bool> _running;
 			vector<thread> m_threads;
-			mutex _loadedModuleMutex; // Protects loadedModules
+			mutex _moduleRegisterMutex; // Protects loadedModules
+			mutex _moduleUnregisterMutex; // Protects loadedModules
 			set<string> _loadedModules;
 
 			bool isModuleFile(const string& filename);
 			set<string> listModules(const string& directory);
-			bool openModuleFile(const string& fileName, SpineModule& spineModule);
-			int resolveModuleFunctions(SpineModule& spineModule);
 		public:
 			Spine();
 			~Spine();
