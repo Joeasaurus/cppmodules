@@ -11,3 +11,4 @@ cppmodules.sublime-project
 src/lib
 submodules/jsoncpp/*
 cmko
+generated
