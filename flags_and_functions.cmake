@@ -7,7 +7,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(warnings "/W4 /WX /EHsc")
 endif()
 if (NOT CONFIGURED_ONCE)
-    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings} -Os -s"
+    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings}"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
     set(CMAKE_C_FLAGS   "${warnings}"
         CACHE STRING "Flags used by the compiler during all build types." FORCE)
@@ -20,7 +20,7 @@ set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
 message(STATUS "${CMAKE_VERSION}")
 if (${CMAKE_VERSION} VERSION_GREATER 3.4)
     set(ZMQ_VOID_CONVERT "*")
-endif() 
+endif()
 macro(createExtrasList name output mappings)
     foreach(files ${${mappings}})
         list(GET files 0 ${name}_mapping)

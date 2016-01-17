@@ -82,23 +82,20 @@ void Spine::unregisterModule(const string& modName) {
 };
 
 bool Spine::loadModule(const string& filename) {
-	
-	// Strart a new thread holding a modulecom. 
-	// The com will load the module from disk and then re-init it while it's loaded. 
+	// Strart a new thread holding a modulecom.
+	// The com will load the module from disk and then re-init it while it's loaded.
 	// We can add logic for unloading it later
 	// For now we've added a check on the atomic _running bool, so the Spine can tell us to unload,
 	//   so as to close the module and make the thread joinable().
 	m_threads.push_back(thread([&,filename] {
-		ModuleCOM com(filename); 
+		ModuleCOM com(filename);
 		_logger.log(name(), "Loading " + boost::filesystem::basename(filename) + "...", true);
 
 		if (com.load()) {
 			while (com.isLoaded() && _running.load()) {
-				if (com.init(inp_context)) {
+				if (com.init(inp_context, name())) {
 					registerModule(com.moduleName);
 
-					com.module->notify(SocketType::PUB, "Spine");
-					com.module->notify(SocketType::MGM_OUT, "Spine");
 					_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
 
 					if (com.module->areSocketsValid()) {
@@ -214,7 +211,7 @@ void Spine::run() {
 		Message wMsg(this->name(), "Modules");
 		wMsg["data"]["command"] = "close";
 		this->sendMessage(SocketType::PUB, wMsg);
-	
+
 	} catch(zmq::error_t& ex) {
 		errLog(ex.what());
 	}
@@ -222,12 +219,12 @@ void Spine::run() {
 
 bool Spine::process_message(const Message& wMsg, CatchState cought, SocketType sockT) {
 	_logger.log(name(), wMsg.asString(), true);
-	
+
 	if (cought == CatchState::FOR_ME) {
 		if (sockT == SocketType::MGM_IN && wMsg["data"].isMember("message")) {
 			if (wMsg["data"]["message"].asString() == "module-loaded") {
 				this->_loadedModules.insert(wMsg["source"].asString());
-				
+
 				Message reply(this->name(), wMsg["source"].asString());
 				reply["data"]["message"] = "module-loaded-ack";
 				this->sendMessage(SocketType::MGM_IN, reply);

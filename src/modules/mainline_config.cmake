@@ -25,6 +25,7 @@ endif()
 
 add_library(mainline_config SHARED
 	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/submodules/jsoncpp/dist/jsoncpp.cpp
 )
 
 target_link_libraries(mainline_config

@@ -25,16 +25,16 @@ bool ConfigModule::loadConfigFile(string filepath)
 }
 
 void ConfigModule::run() {
-	// _eventer.on("config-reload", [&]() {
-	// 	if(this->loadConfigFile(this->configFilepath)) {
-	// 		Message configUpdate(this->name(), "Modules");
-	// 		configUpdate["data"]["command"] = "config-update";
-	// 		configUpdate["data"]["config"] = this->config.asJson();
-	// 		_logger.log(name(), "Config reloaded", true);
-	// 		return this->sendMessage(SocketType::PUB, configUpdate);
-	// 	}
-	// 	return false;
-	// }, 5, EventPriority::LOW);
+	_eventer.on("config-reload", [&]() {
+		if(this->loadConfigFile(this->configFilepath)) {
+			Message configUpdate(this->name(), "Modules");
+			configUpdate["data"]["command"] = "config-update";
+			configUpdate["data"]["config"] = this->config.asJson();
+			_logger.log(name(), "Config reloaded", true);
+			return this->sendMessage(SocketType::PUB, configUpdate);
+		}
+		return false;
+	}, 5, EventPriority::LOW);
 
 	Message moduleRunning(name(), "Spine");
 	moduleRunning["data"]["message"] = "module-loaded";
@@ -49,7 +49,7 @@ void ConfigModule::run() {
 		this_thread::sleep_for(chrono::milliseconds(5000));
 		_logger.log(name(), "RUN IS RUNNING", true);
 
-	}	
+	}
 }
 
 bool ConfigModule::process_message(const Message& wMsg, CatchState cought, SocketType sockT)
