@@ -11,16 +11,18 @@ using namespace cppevent;
 
 class ConfigModule : public Module {
 	public:
+		Eventer _eventer;
+		
 		ConfigModule() : Module("config", "Joe Eaves"){};
 		~ConfigModule();
-		void run();
-		bool process_message(const Message& message, CatchState cought, SocketType sockT);
+		void setup();
+		void tick();
+		bool process_message(const Message& message);
 
 		bool loadConfigFile(string filepath);
 	private:
-		Eventer _eventer;
 		Message configOnDisk;
-		string configFilepath;
+		string configFilepath = "/home/jme/code/cppmodules/build/modules/main.cfg";
 };
 
 // Init/Del functions.

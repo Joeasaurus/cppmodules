@@ -26,6 +26,7 @@ namespace cppm {
 			Json::Reader reader;
 			Json::StreamWriterBuilder wbuilder;
 		public:
+			string CHANNEL = "NONE";
 			Message() {
 				wbuilder["indentation"] = "";
 				message["data"] = Json::objectValue;

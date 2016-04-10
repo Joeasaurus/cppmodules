@@ -24,57 +24,31 @@ bool ConfigModule::loadConfigFile(string filepath)
 	return false;
 }
 
-void ConfigModule::run() {
-	_eventer.on("config-reload", [&]() {
+void ConfigModule::setup() {
+	_eventer.on("config-reload", [&](chrono::milliseconds delta) {
 		if(this->loadConfigFile(this->configFilepath)) {
-			Message configUpdate(this->name(), "Modules");
-			configUpdate["data"]["command"] = "config-update";
-			configUpdate["data"]["config"] = this->config.asJson();
-			_logger.log(name(), "Config reloaded", true);
-			return this->sendMessage(SocketType::PUB, configUpdate);
+			// Message configUpdate(this->name(), Channels["command"]);
+			// configUpdate["data"]["command"] = "config-update";
+			// configUpdate["data"]["config"] = this->config.asJson();
+			// _logger.log(name(), "Config reloaded", true);
+			return true;// this->sendMessage(configUpdate);
 		}
-		return false;
-	}, 5, EventPriority::LOW);
+		_logger.log(name(), "CONFIG RELOAD", true);
+	}, chrono::milliseconds(5000), EventPriority::LOW);
 
-	Message moduleRunning(name(), "Spine");
+
+	Message moduleRunning(name(), Channels["command"]);
 	moduleRunning["data"]["message"] = "module-loaded";
-	bool runAgain = this->sendMessageRecv(SocketType::MGM_OUT, moduleRunning, [&](const Message& wMsg) {
-		_logger.log(name(), wMsg.asString(), true);
-		return true;
-	});
-
-	while (runAgain) {
-		_eventer.tick();
-		runAgain = this->pollAndProcess();
-		this_thread::sleep_for(chrono::milliseconds(5000));
-		_logger.log(name(), "RUN IS RUNNING", true);
-
-	}
+	sendMessage(moduleRunning);
 }
 
-bool ConfigModule::process_message(const Message& wMsg, CatchState cought, SocketType sockT)
+void ConfigModule::tick() {
+	_eventer.emitTimedEvents();
+}
+
+bool ConfigModule::process_message(const Message& wMsg)
 {
-	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN) {
-			if (wMsg["data"].isMember("command")) {
-				if (wMsg["data"]["command"].asString() == "load" && wMsg["data"].isMember("file")) {
-					Message reply(this->name(), "Spine");
-
-					reply["data"]["configLoaded"] = false;
-					if (this->loadConfigFile(wMsg["data"]["file"].asString())) {
-						reply["data"]["configLoaded"] = true;
-					}
-
-					this->sendMessage(SocketType::MGM_IN, reply);
-				}
-			} else if (wMsg["data"].isMember("message")) {
-				if (wMsg["data"]["message"].asString() == "module-loaded-ack") {
-					_logger.log(name(), "Load acknowledged, closing", true);
-					return false;
-				}
-			}
-		}
-	}
+	_logger.log(name(), wMsg.asString(), true);
 	return true;
 }
 

@@ -23,10 +23,10 @@ Spine::~Spine() {
 	//TODO: NOT THREAD SAFE!?!?!
 	lock_guard<mutex> lock(_moduleRegisterMutex);
 	_running.store(false);
-	for_each(_loadedModules.begin(), _loadedModules.end(), [&](string module) {
-		wMsg["destination"] = module;
-		this->sendMessage(SocketType::PUB, wMsg);
-	});
+	//for_each(_loadedModules.begin(), _loadedModules.end(), [&](string module) {
+		wMsg["destination"] = Channels["command"];
+		this->sendMessage(wMsg);
+	//});
 
 	for_each(m_threads.begin(), m_threads.end(), [&](thread& t) {
 		if (t.joinable()) {
@@ -68,15 +68,13 @@ set<string> Spine::listModules(const string& directory) {
 }
 
 void Spine::registerModule(const string& modName) {
-	lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
+	// lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
 	_loadedModules.insert(modName);
-	notify(SocketType::PUB, modName);
-	notify(SocketType::MGM_OUT, modName);
 	_logger.log(name(), "Registered module: " + modName + "!");
 };
 
 void Spine::unregisterModule(const string& modName) {
-	lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
+	// lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
 	_loadedModules.erase(modName);
 	_logger.log(name(), "Unregistered module: " + modName + "!");
 };
@@ -92,32 +90,36 @@ bool Spine::loadModule(const string& filename) {
 		_logger.log(name(), "Loading " + boost::filesystem::basename(filename) + "...", true);
 
 		if (com.load()) {
-			while (com.isLoaded() && _running.load()) {
-				if (com.init(inp_context, name())) {
-					registerModule(com.moduleName);
+			if (com.init(inp_context, name())) {
+				registerModule(com.moduleName);
 
-					_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
+				_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
 
-					if (com.module->areSocketsValid()) {
-						_logger.log("Spine", "Sockets valid", true);
-					}
-
-					try {
-						//_logger.log(mod->name(), "NAME", true);
-						com.module->run();
-						// Here the thread is essentially dead, but not the module
-						//TODO: Module reloading code, proper shutdown handlers etc.
-
-					} catch (const std::exception& ex) {
-						cout << ex.what() << endl;
-					}
-
-					com.deinit();
-					unregisterModule(com.moduleName);
+				if (com.module->areSocketsValid()) {
+					_logger.log("Spine", "Sockets valid", true);
 				}
-				this_thread::sleep_for(chrono::milliseconds(1000));
+
+				try {
+					com.module->setup();
+					while (_running.load()) {
+						if (com.isLoaded()) {
+							com.module->pollAndProcess();
+							com.module->tick();
+						} else {
+							break;
+						}
+					}
+				} catch (const std::exception& ex) {
+					cout << ex.what() << endl;
+				}
+
+				// Here the module is essentially dead, but not the thread
+				//TODO: Module reloading code, proper shutdown handlers etc.
+				com.deinit();
+				unregisterModule(com.moduleName);
 			}
 
+			this_thread::sleep_for(chrono::milliseconds(1000));
 			com.unload();
 		}
 
@@ -164,73 +166,43 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 
 bool Spine::loadConfig(string location) {
 	string confMod = "config";
-	if (this->areSocketsValid()) {
-		Message wMsg(this->name(), confMod);
-		wMsg["data"]["command"] = "load";
-		wMsg["data"]["file"] = location;
-		return this->sendMessageRecv(SocketType::MGM_OUT, wMsg, [&,confMod](const Message& wMsg) -> bool{
-			if (!wMsg["data"].isMember("configLoaded"))
-				return false;
+	return true;
+	// if (this->areSocketsValid()) {
+	// 	Message wMsg(this->name(), confMod);
+	// 	wMsg["data"]["command"] = "load";
+	// 	wMsg["data"]["file"] = location;
+	// 	return this->sendMessageRecv(SocketType::MGM_OUT, wMsg, [&,confMod](const Message& wMsg) -> bool{
+	// 		if (!wMsg["data"].isMember("configLoaded"))
+	// 			return false;
 
-			if (wMsg["source"].asString() != confMod || wMsg["destination"].asString() != this->name())
-				return false;
+	// 		if (wMsg["source"].asString() != confMod || wMsg["destination"].asString() != this->name())
+	// 			return false;
 
-			if (!wMsg["data"]["configLoaded"].asBool())
-				return false;
+	// 		if (!wMsg["data"]["configLoaded"].asBool())
+	// 			return false;
 
-			return true;
-		});
-	} else {
-		return false;
-	}
+	// 		return true;
+	// 	});
+	// } else {
+	// 	return false;
+	// }
 }
 
-void Spine::run() {
-	try {
-		// Our function here just sleeps for a bit
-		//  and then sends a close message to all modules ('Module' channel)
-		bool runAgain = true;
-		int count = 0;
-
-		while (runAgain) {
-			this->pollAndProcess();
-			_logger.log(name(), "Sleeping...", true);
-			this_thread::sleep_for(chrono::milliseconds(500));
-
-			if (count < 120) {
-				runAgain = pollAndProcess();
-				count++;
-
-			} else {
-				runAgain = false;
-			}
-		}
-
-		// Lets make sure the close command works!
-		_logger.log(name(), "Closing 'Modules'");
-		Message wMsg(this->name(), "Modules");
-		wMsg["data"]["command"] = "close";
-		this->sendMessage(SocketType::PUB, wMsg);
-
-	} catch(zmq::error_t& ex) {
-		errLog(ex.what());
-	}
-}
-
-bool Spine::process_message(const Message& wMsg, CatchState cought, SocketType sockT) {
+bool Spine::process_message(const Message& wMsg) {
 	_logger.log(name(), wMsg.asString(), true);
 
-	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN && wMsg["data"].isMember("message")) {
-			if (wMsg["data"]["message"].asString() == "module-loaded") {
-				this->_loadedModules.insert(wMsg["source"].asString());
+	// if (wMsg.CHANNEL == Channels["command"] && wMsg["data"].isMember("message")) {
+	// 	if (wMsg["data"]["message"].asString() == "module-loaded") {
+	// 		this->_loadedModules.insert(wMsg["source"].asString());
 
-				Message reply(this->name(), wMsg["source"].asString());
-				reply["data"]["message"] = "module-loaded-ack";
-				this->sendMessage(SocketType::MGM_IN, reply);
-			}
-		}
-	}
+	// 		Message reply(this->name(), wMsg["source"].asString() + "-" + Channels["command"]);
+	// 		reply["data"]["message"] = "module-loaded-ack";
+	// 		this->sendMessage(reply);
+	// 	}
+	// }
+
+	_logger.log(name(), "Sleeping...", true);
+	this_thread::sleep_for(chrono::milliseconds(500));
 	return true;
 }
 

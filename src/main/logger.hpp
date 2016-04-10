@@ -33,7 +33,7 @@ namespace cppm {
 		try {
 			_logger = stdout_logger_mt(_name);
 		} catch (const spdlog_ex) {
-			_logger = spdlog::get(name);
+			_logger = spdlog::get(_name);
 		}
 
 		_logger->set_pattern("[%T.%e] [%l] %v"); // Custom format

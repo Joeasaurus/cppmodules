@@ -42,8 +42,8 @@ namespace cppm {
 		public:
 			Spine();
 			~Spine();
-			void run();
-			bool process_message(const Message& message, CatchState cought, SocketType sockT);
+			void setup(){};
+			bool process_message(const Message& message);
 			bool loadModules();
 			bool loadModules(const string& directory);
 			bool loadModule(const string& filename);
@@ -55,3 +55,16 @@ namespace cppm {
 			void unregisterModule(const string& name);
 	};
 }
+
+/*
+ * The spine shall be a HUB for all messages between modules.
+ * Modules are black-box I/O units. Messages go in and messages come out
+ * A Module (the spine included) shall have two sockets: PUB & SUB
+ * Each module shall be connected in a spine-centric star topology
+ * There shall be three channels for messages between a module and the spine:
+ *   - 'COMMAND' This is for control messages between the two, e.g. config changes
+ *   - 'INPUT' This is data from spine to be processed by module
+ *   - 'OUTPUT' This is data from module to be handled by spine
+ * The spine shall be responsible for managing logical chains of modules
+ * The spine will route OUTPUT messages from moduleA to INPUT of moduleB
+ */

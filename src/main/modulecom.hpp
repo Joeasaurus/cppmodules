@@ -38,7 +38,7 @@ namespace cppm {
 			inline ModuleCOM(const string& filename) {_filename = filename;};
 			inline bool load();
 			inline void unload();
-			inline bool init(shared_ptr<context_t> ctx, const string& hooker);
+			inline bool init(shared_ptr<context_t> ctx, const string& parent);
 			inline void deinit();
 			inline bool isLoaded();
 	};
@@ -105,22 +105,12 @@ namespace cppm {
 		}
 	};
 
-	bool ModuleCOM::init(shared_ptr<context_t> ctx, const string& hooker) {
+	bool ModuleCOM::init(shared_ptr<context_t> ctx, const string& parent) {
 		module = createModule();
 		if (module) {
 			moduleName = module->name();
 			module->setSocketContext(ctx);
-			module->openSockets();
-
-			// Here we set the module to subscribe to it's name on it's subscriber socket
-			// Then configure the module to connect it's publish output to the hooker input
-			//  and it's mgmt output too
-			module->subscribe("Modules");
-			module->subscribe(module->name());
-
-			module->notify(SocketType::PUB, "Spine");
-			module->notify(SocketType::MGM_OUT, "Spine");
-
+			module->openSockets(parent);
 			_moduleInit = true;
 		}
 

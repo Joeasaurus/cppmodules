@@ -7,6 +7,7 @@
  */
 
 using namespace cppm;
+using namespace std;
 
 int main(int argc, char **argv) {
 	Logger logger;
@@ -21,7 +22,10 @@ int main(int argc, char **argv) {
 	if (spine.loadModules()) {
 		// We have to run this after loadModules because the config is provided by libmainline_config.
 		//if (spine.loadConfig(spine.moduleFileLocation + "/main.cfg")) {
-			spine.run();
+			while (true) {
+				spine.pollAndProcess();
+				logger.log("Main", "Spine polled", true);
+			}
 		//} else {
 			//logger.getLogger()->error("{}: {}", "Main", "Config failed to load, shutting down");
 		//}
