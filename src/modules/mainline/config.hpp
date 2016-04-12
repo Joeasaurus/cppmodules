@@ -7,6 +7,7 @@
 #include <fstream>
 
 using namespace cppm;
+using namespace cppm::messages;
 using namespace cppevent;
 
 class ConfigModule : public Module {
@@ -17,7 +18,8 @@ class ConfigModule : public Module {
 		~ConfigModule();
 		void setup();
 		void tick();
-		bool process_message(const Message& message);
+		bool process_command(const Message& message);
+		bool process_input(const Message& message);
 
 		bool loadConfigFile(string filepath);
 	private:

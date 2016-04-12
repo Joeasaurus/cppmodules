@@ -5,7 +5,7 @@ namespace cppm {
 Spine::Spine() : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->inp_context = make_shared<zmq::context_t>(1);
-	this->openSockets();
+	this->openSockets("__bind__");
 	_running.store(true);
 }
 
@@ -17,16 +17,13 @@ Spine::~Spine() {
 	//  in the Spine as 'loaded'
 	// It then waits for the module to join. It relies on the module closing
 	//  cleanly else it will lock up waiting.
-	Message wMsg(this->name(), "");
-	wMsg["data"]["command"] = "close";
+	Command wMsg(name());
+	wMsg.payload("close");
 
 	//TODO: NOT THREAD SAFE!?!?!
 	lock_guard<mutex> lock(_moduleRegisterMutex);
 	_running.store(false);
-	//for_each(_loadedModules.begin(), _loadedModules.end(), [&](string module) {
-		wMsg["destination"] = Channels["command"];
-		this->sendMessage(wMsg);
-	//});
+	this->sendMessage(wMsg);
 
 	for_each(m_threads.begin(), m_threads.end(), [&](thread& t) {
 		if (t.joinable()) {
@@ -95,10 +92,6 @@ bool Spine::loadModule(const string& filename) {
 
 				_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
 
-				if (com.module->areSocketsValid()) {
-					_logger.log("Spine", "Sockets valid", true);
-				}
-
 				try {
 					com.module->setup();
 					while (_running.load()) {
@@ -136,25 +129,13 @@ bool Spine::loadModules() {
 bool Spine::loadModules(const string& directory) {
 	// Here we gather a list of relevant module binaries
 	//  and then call the load function on each path
-	set<string> moduleFiles = this->listModules(directory);
-
-	// Before we iterate for loading, we will try loading a few required modules
-	//  in our pre-defined order. If any fail, we don't load the rest.
-	boost::filesystem::path moduleLoc(this->moduleFileLocation);
-	boost::filesystem::path configModule(moduleLoc /
-							("libmainline_config" + this->moduleFileExtension));
-
-	bool configLoaded = this->loadModule(configModule.string());
-	if (configLoaded) {
-		moduleFiles.erase(configModule.string());
-	} else {
-		return false;
-	}
+	set<string> moduleFiles = listModules(directory);
+	boost::filesystem::path moduleLoc(moduleFileLocation);
 
 	for (auto filename : moduleFiles)
 	{
 		// We should check error messages here better!
-		this->loadModule(filename);
+		loadModule(filename);
 	}
 
 	return true;
@@ -164,43 +145,17 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 	return this->_loadedModules.find(moduleName) != this->_loadedModules.end();
 }
 
-bool Spine::loadConfig(string location) {
-	string confMod = "config";
+bool Spine::process_command(const Message& msg) {
+	//_logger.log(name(), msg.format(), true);
+	if (msg._from == "config") {
+		if (msg.payload() == "Config Updated") {
+			_logger.log(name(), "NEW CONFIG");
+		}
+	}
 	return true;
-	// if (this->areSocketsValid()) {
-	// 	Message wMsg(this->name(), confMod);
-	// 	wMsg["data"]["command"] = "load";
-	// 	wMsg["data"]["file"] = location;
-	// 	return this->sendMessageRecv(SocketType::MGM_OUT, wMsg, [&,confMod](const Message& wMsg) -> bool{
-	// 		if (!wMsg["data"].isMember("configLoaded"))
-	// 			return false;
-
-	// 		if (wMsg["source"].asString() != confMod || wMsg["destination"].asString() != this->name())
-	// 			return false;
-
-	// 		if (!wMsg["data"]["configLoaded"].asBool())
-	// 			return false;
-
-	// 		return true;
-	// 	});
-	// } else {
-	// 	return false;
-	// }
 }
 
-bool Spine::process_message(const Message& wMsg) {
-	_logger.log(name(), wMsg.asString(), true);
-
-	// if (wMsg.CHANNEL == Channels["command"] && wMsg["data"].isMember("message")) {
-	// 	if (wMsg["data"]["message"].asString() == "module-loaded") {
-	// 		this->_loadedModules.insert(wMsg["source"].asString());
-
-	// 		Message reply(this->name(), wMsg["source"].asString() + "-" + Channels["command"]);
-	// 		reply["data"]["message"] = "module-loaded-ack";
-	// 		this->sendMessage(reply);
-	// 	}
-	// }
-
+bool Spine::process_input(const Message& message) {
 	_logger.log(name(), "Sleeping...", true);
 	this_thread::sleep_for(chrono::milliseconds(500));
 	return true;

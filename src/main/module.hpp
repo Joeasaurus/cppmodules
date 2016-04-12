@@ -18,13 +18,16 @@
 //static_assert(ZMQ_VERSION == 40102, "ZMQ Version 40102 is required!");
 
 #include "main/logger.hpp"
-#include "main/message.hpp"
+#include "main/messages/command.hpp"
+#include "main/messages/input.hpp"
+#include "main/messages/output.hpp"
 
 using namespace std;
 using namespace zmq;
 namespace algorithm = boost::algorithm;
 
 namespace cppm {
+	using namespace messages;
 	class ModuleCOM;
 	typedef struct ModuleInfo {
 		string name = "undefined module";
@@ -36,12 +39,6 @@ namespace cppm {
 		chrono::milliseconds interval;
 		function<bool(chrono::milliseconds delta)> callback;
 	} Event;
-
-	static map<string, string> Channels = {
-		{ "command", "COMMAND" },
-		{ "in",      "INPUT"   },
-		{ "out",     "OUTPUT"  }
-	};
 
 	enum class MgmtCommand {
 		REGISTER,
@@ -99,7 +96,10 @@ namespace cppm {
 			/* process_message() is how you handle incoming messages.
 			 * Any messages that are found waiting by pollAndProcess() will come through here.
 			 */
-			virtual bool process_message(const Message& wMsg)=0;
+			virtual bool process_command(const Message& wMsg)=0;
+			virtual bool process_input(const Message& wMsg)=0;
+			virtual bool process_output(const Message& wMsg){return false;}; // not all modules care for output
+			virtual bool process_message(const Message& wMsg){return false;}; // not all modules care for junk
 			/* name() returns __info.name
 			 */
 			inline string name() const;
@@ -122,8 +122,6 @@ namespace cppm {
 			inline retType recvMessage(function<retType(const Message&)> callback, long timeout=1000);
 			template<typename retType>
 			inline retType recvMessage(socket_t* socket, function<retType(const Message&)> callback);
-
-			inline vector<string> tokeniseString(const string& message, const string& spchar = " ");
 
 			inline void errLog(string message) const;
 	};
@@ -155,30 +153,38 @@ namespace cppm {
  */
 	void Module::openSockets(string parent) {
 		if (!this->areSocketsOpen()) {
-			auto nm = this->name();
-			string inPoint = "inproc://" + nm + ".sub";
-			string outPoint = "inproc://" + nm + ".pub";
+			auto nm = name();
+			string inPoint = "inproc://";
+			string outPoint = "inproc://";
 
 			try {
-				this->inp_in = new socket_t(*this->inp_context, socket_type::sub);
-				this->inp_out = new socket_t(*this->inp_context, socket_type::pub);
+				inp_in = new socket_t(*inp_context, socket_type::sub);
+				inp_out = new socket_t(*inp_context, socket_type::pub);
 
 				if (parent == "__bind__") {
-					this->inp_in->bind(inPoint.c_str());
-					this->inp_out->bind(outPoint.c_str());
+					inPoint += nm + ".sub";
+					outPoint += nm + ".pub";
+					inp_in->bind(inPoint.c_str());
+					inp_out->bind(outPoint.c_str());
 				} else {
-					this->inp_in->connect(inPoint.c_str());
-					this->inp_out->connect(outPoint.c_str());
+					// We sub their pub and v/v
+					inPoint += parent + ".pub";
+					outPoint += parent + ".sub";
+					inp_in->connect(inPoint.c_str());
+					inp_out->connect(outPoint.c_str());
 
-					this->subscribe(nm + "-" + Channels["command"]);
-					this->subscribe(nm + "-" + Channels["in"]);
+					// Here is the only place we need a delim,
+					// when the modules need to hear messages for themselves only.
+					subscribe(nm + "-" + Channels["command"]);
+					subscribe(nm + "-" + Channels["in"]);
 				}
 
-				this->subscribe(Channels["command"]);
-				this->subscribe(Channels["in"]);
+				subscribe(Channels["command"]);
+				subscribe(Channels["in"]);
+				subscribe(Channels["out"]);
 
-				_logger.log(this->name(), "Sockets Open!", true);
-				this->socketsOpen = true;
+				_logger.log(name(), "Sockets Open!", true);
+				socketsOpen = true;
 
 			} catch (const zmq::error_t &e) {
 				errLog(e.what());
@@ -211,13 +217,8 @@ namespace cppm {
 	bool Module::sendMessage(Message wMsg) {
 		bool sendOk = false;
 
-		string message_string = cppm::asString(wMsg["destination"]);
-		//TODO: This is well ugly, maybe we'll change JSON libraries again later.
-		//      We just need to be able to say "Please print this without the quotes"!
-		// We get "Modules" -> Modules
-		message_string.erase(0, 1);
-		message_string.erase(message_string.length()-1, 1);
-		message_string += " " + wMsg.asString();
+		auto message_string = wMsg.format();
+		// _logger.log(name(), message_string);
 
 		message_t zmqObject(message_string.length());
 		memcpy(zmqObject.data(), message_string.data(), message_string.length());
@@ -232,17 +233,9 @@ namespace cppm {
 		return sendOk;
 	};
 
-	string Module::getChannel(string in) {
-		auto t = tokeniseString(in, "-");
-		cout << t.at(0) << endl;
-		return t.at(0);
-	};
-
 	//TODO: Could we template the SocketType too?
 	template<typename retType>
 	retType Module::recvMessage(function<retType(const Message&)> callback, long timeout) {
-		Message wMsg;
-
 		pollitem_t pollSocketItems[] = {
 			{ (void*)*this->inp_in, 0, ZMQ_POLLIN, 0 }
 		};
@@ -252,15 +245,10 @@ namespace cppm {
 		try {
 			if (zmq::poll(pollSocketItems, 1, timeout) > 0 && inp_in->recv(&zMessage)) {
 				// tokeniseString needs replacing with something that will only grab the module name
-				vector<string> jsonMsg = tokeniseString(string(static_cast<char*>(zMessage.data()), zMessage.size()));
-				
-				wMsg.CHANNEL  = getChannel(jsonMsg.at(0));
-
-				jsonMsg.erase(jsonMsg.begin());
-				auto messageText = algorithm::join(jsonMsg, " ");
-
-				wMsg.fromString(messageText);
-
+				auto normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
+				Message msg;
+				msg.payload(normMsg, false);
+				return callback(msg); 
 			}
 
 		} catch (const zmq::error_t &e) {
@@ -268,7 +256,8 @@ namespace cppm {
 
 		}
 
-		return callback(wMsg);
+		Message msg;
+		return callback(msg);
 	};
 			
 
@@ -278,35 +267,21 @@ namespace cppm {
 		// If the message is not a close but is for us,
 		//   we return the module's process_message
 		// Else just return true to keep running but not care for the message
-		return this->recvMessage<bool>([&](const Message& wMsg) {
-			// We trust 'Spine' for commands implicitly....
-			if (wMsg.CHANNEL == Channels["command"]) {
-				auto command = wMsg["data"]["command"].asString();
-				if (command == "close") {
-					_logger.log(name(), "Heard close command...", true);
-					return false;
-				} else if (command == "config-update") {
-					if (wMsg["data"].isMember("config")) {
-						this->config.fromJson(wMsg["data"]["config"]);
-						//_logger.log(name(), this->config.asString(), true);
-					}
-					return true;
-				}
-				return this->process_message(wMsg);
+		return this->recvMessage<bool>([&](const Message& msg) {
+			if (msg._to == Channels["none"]) {
+				return false;
+			} else if (msg._to == Channels["command"]) {
+				return process_command(msg);
+			} else if (msg._to == Channels["in"]) {
+				return process_input(msg);
+			} else if (msg._to == Channels["out"]) {
+				return process_output(msg);
+			} else {
+				return this->process_message(msg);
 			}
-			return true;
 		});
 		_logger.log(name(), "POLLED", true);
 
-	};
-
-	vector<string> Module::tokeniseString(const string& message, const string& spchar) {
-		vector<string> messageTokens;
-		if (!message.empty()) {
-			boost::split(messageTokens, message, boost::is_any_of(spchar));
-			}
-
-		return messageTokens;
 	};
 
 

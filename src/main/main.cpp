@@ -18,17 +18,10 @@ int main(int argc, char **argv) {
 
 	Spine spine;
 	// We used to subscribe to ourself for introspection
-	//spine.subscribe(spine.name());
 	if (spine.loadModules()) {
-		// We have to run this after loadModules because the config is provided by libmainline_config.
-		//if (spine.loadConfig(spine.moduleFileLocation + "/main.cfg")) {
-			while (true) {
-				spine.pollAndProcess();
-				logger.log("Main", "Spine polled", true);
-			}
-		//} else {
-			//logger.getLogger()->error("{}: {}", "Main", "Config failed to load, shutting down");
-		//}
+		while (true) {
+			spine.pollAndProcess();
+		}
 	}
 	return false;
 }

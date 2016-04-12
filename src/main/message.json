@@ -1,9 +1,0 @@
-{
-	"source": "Spine",
-	"destination": "Module",
-	"data": {}
-}
-
-Spine ------
-PUB: module-COMMAND, module-INPUT
-SUB: module-COMMAND, module-OUTPUT

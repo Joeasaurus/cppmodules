@@ -17,6 +17,7 @@
 #include "boost/predef.h"
 
 using namespace zmq;
+using namespace cppm::messages;
 
 namespace cppm {
 	class Spine : public Module {
@@ -43,11 +44,11 @@ namespace cppm {
 			Spine();
 			~Spine();
 			void setup(){};
-			bool process_message(const Message& message);
+			bool process_command(const Message& msg);
+			bool process_input(const Message& message);
 			bool loadModules();
 			bool loadModules(const string& directory);
 			bool loadModule(const string& filename);
-			bool loadConfig(string location);
 			bool isModuleLoaded(std::string moduleName);
 			const string moduleFileLocation = "@MODULES_LOCATION@";
 
