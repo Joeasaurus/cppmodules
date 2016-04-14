@@ -29,6 +29,7 @@ namespace algorithm = boost::algorithm;
 namespace cppm {
 	using namespace messages;
 	class ModuleCOM;
+
 	typedef struct ModuleInfo {
 		string name = "undefined module";
 		string author = "mainline";
@@ -39,11 +40,6 @@ namespace cppm {
 		chrono::milliseconds interval;
 		function<bool(chrono::milliseconds delta)> callback;
 	} Event;
-
-	enum class MgmtCommand {
-		REGISTER,
-		CLOSE
-	};
 
 	enum class CatchState {
 		NO_TOKENS,
@@ -114,7 +110,7 @@ namespace cppm {
 
 			inline string getChannel(string in);
 
-			inline void subscribe(string channel);
+			inline void subscribe(CHANNEL chan);
 
 			inline bool sendMessage(Message wMsg);
 
@@ -166,6 +162,7 @@ namespace cppm {
 					outPoint += nm + ".pub";
 					inp_in->bind(inPoint.c_str());
 					inp_out->bind(outPoint.c_str());
+					subscribe(CHANNEL::Out);
 				} else {
 					// We sub their pub and v/v
 					inPoint += parent + ".pub";
@@ -175,13 +172,10 @@ namespace cppm {
 
 					// Here is the only place we need a delim,
 					// when the modules need to hear messages for themselves only.
-					subscribe(nm + "-" + Channels["command"]);
-					subscribe(nm + "-" + Channels["in"]);
 				}
 
-				subscribe(Channels["command"]);
-				subscribe(Channels["in"]);
-				subscribe(Channels["out"]);
+				subscribe(CHANNEL::In);
+				subscribe(CHANNEL::Cmd);
 
 				_logger.log(name(), "Sockets Open!", true);
 				socketsOpen = true;
@@ -204,8 +198,9 @@ namespace cppm {
 		delete this->inp_out;
 	};
 	
-	void Module::subscribe(string channel) {
+	void Module::subscribe(CHANNEL chan) {
 		try {
+			auto channel = chanToStr[chan];
 			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 		
 		} catch (const zmq::error_t &e) {
@@ -248,6 +243,7 @@ namespace cppm {
 				auto normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
 				Message msg;
 				msg.payload(normMsg, false);
+				_logger.log(name(), normMsg);
 				return callback(msg); 
 			}
 
@@ -268,20 +264,19 @@ namespace cppm {
 		//   we return the module's process_message
 		// Else just return true to keep running but not care for the message
 		return this->recvMessage<bool>([&](const Message& msg) {
-			if (msg._to == Channels["none"]) {
-				return false;
-			} else if (msg._to == Channels["command"]) {
-				return process_command(msg);
-			} else if (msg._to == Channels["in"]) {
-				return process_input(msg);
-			} else if (msg._to == Channels["out"]) {
-				return process_output(msg);
-			} else {
-				return this->process_message(msg);
+			switch (msg._chan) {
+				case CHANNEL::None:
+					return false;
+				case CHANNEL::Cmd:
+					return process_command(msg);
+				case CHANNEL::In:
+					return process_input(msg);
+				case CHANNEL::Out:
+					return process_output(msg);
 			}
+			
+			return this->process_message(msg);
 		});
-		_logger.log(name(), "POLLED", true);
-
 	};
 
 

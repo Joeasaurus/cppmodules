@@ -26,15 +26,20 @@ bool ConfigModule::loadConfigFile(string filepath)
 
 void ConfigModule::setup() {
 	_eventer.on("config-reload", [&](chrono::milliseconds delta) {
+
 		if(this->loadConfigFile(this->configFilepath)) {
+
 			Command configUpdate(this->name());
 			configUpdate.payload("Config Updated");
 			
 			if (sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
+
 			return true;
 		}
-		_logger.log(name(), "CONFIG RELOAD", true);
+
+		return false;
+
 	}, chrono::milliseconds(5000), EventPriority::LOW);
 
 

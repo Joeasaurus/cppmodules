@@ -1,18 +1,13 @@
 #pragma once
 
 #include <string>
+#include "main/messages/channels.hpp"
 
 using namespace std;
 
 namespace cppm {
-	static map<string, string> Channels = {
-		{ "none",    "NONE"    },
-		{ "command", "COMMAND" },
-		{ "in",      "INPUT"   },
-		{ "out",     "OUTPUT"  }
-	};
-
 	namespace messages {
+
 		static vector<string> tokeniseString(const string& message, const string& spchar) {
 			vector<string> messageTokens;
 			if (!message.empty()) {
@@ -21,44 +16,82 @@ namespace cppm {
 
 			return messageTokens;
 		};
+
 		class Message {
-			protected:
-				string data    = Channels["none"];
-			public:
-				string _to      = Channels["none"];
-				string _from    = Channels["none"];
-				Message(){};
-				Message(string from) {
-					_from = from;
+			private:
+				string splitHeadAndData(string in) {
+					auto h_b = tokeniseString(in, ";");
+
+					auto header = h_b.at(0);
+
+					if (h_b.size() > 2) {
+						h_b.erase(h_b.begin());
+
+						for (auto& tk : h_b) 
+							data += " " + tk;
+					}
+
+					return header;
 				};
-				Message(string from, string to) : Message(from) {
+
+			protected:
+				string  data  = "";
+
+			public:
+				CHANNEL _chan = CHANNEL::None;
+				string  _to   = "";
+				string  _from = "";
+
+				Message(){};
+
+				Message(const string& from, CHANNEL chan = CHANNEL::In) {
+					_from = from;
+					_chan = chan;
+				};
+
+				Message(const string& from, const string& to, CHANNEL chan = CHANNEL::In) : Message(from, chan) {
 					_to = to;
 				};
+
+				void sendTo(const string& to) {
+					_to = to;
+				};
+
 				string payload() const {
 					return data;
 				};
+
 				bool payload(string in, bool data_only = true) {
 					if (data_only) {
 						data = in;
 						return true;
 					}
 
-					auto tokens = tokeniseString(in, " ");
-					if (tokens.size() < 3) 
-						return false;
+					/* We know that format sticks a ; between the header and body.
+					 * This should be the first colon, so channel, to and from cannot contain one.
+					 * We split the string on ; and bung everything right of it into 'data'
+					 * The header is then checked for the channel, from and any specific routing (to).
+					 */
 
-					//TODO: This is SLOW
-					_to   = tokens.at(0); tokens.erase(tokens.begin());
-					_from = tokens.at(0); tokens.erase(tokens.begin());
-					data  = tokens.at(0); tokens.erase(tokens.begin());
-					for (auto& tk : tokens) 
-						data += " " + tk;
+					try {
+						auto fields = tokeniseString(splitHeadAndData(in), " ");
+						_chan       = strToChan[fields.at(0)];
+						_from       = fields.at(1);
+						
+						if (fields.size() > 2)
+							_to = fields.at(2);
+
+					} catch (exception& e) {
+						cout << e.what() << endl;
+						return false;
+					}
 
 					return true;
-				}
+				};
+
 				string format() const {
-					return _to + " " + _from + " " + data;
-				}
+					return chanToStr[_chan] + " " + _to + " " + _from + "; " + data;
+				};
 		};
 	}
 }

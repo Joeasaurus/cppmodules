@@ -8,6 +8,6 @@ using namespace std;
 namespace cppm { namespace messages {
 	class Ouput : public Message {
 		public:
-			Ouput(string from) : Message(from, Channels["out"]) {};
+			Ouput(string from) : Message(from, CHANNEL::Out) {};
 	};
 }}

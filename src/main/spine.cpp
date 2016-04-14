@@ -23,7 +23,7 @@ Spine::~Spine() {
 	//TODO: NOT THREAD SAFE!?!?!
 	lock_guard<mutex> lock(_moduleRegisterMutex);
 	_running.store(false);
-	this->sendMessage(wMsg);
+	sendMessage(wMsg);
 
 	for_each(m_threads.begin(), m_threads.end(), [&](thread& t) {
 		if (t.joinable()) {
@@ -34,7 +34,7 @@ Spine::~Spine() {
 
 	// After all modules are closed we don't need our sockets
 	//  so we should close them before exit, to be nice
-	this->closeSockets();
+	closeSockets();
 	_logger.log(name(), "Closed");
 }
 
