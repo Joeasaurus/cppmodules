@@ -1,4 +1,4 @@
-set(MODULE_COPY_FILES
+set(config_MODULE_COPY_FILES
     main.cfg
 )
 
