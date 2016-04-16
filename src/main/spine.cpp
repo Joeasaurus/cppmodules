@@ -147,7 +147,6 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 
 bool Spine::process_command(const Message& msg) {
 	if (msg.m_from == "config") {
-		_logger.log(name(), msg.payload(), true);
 		if (msg.payload() == "updated") {
 			
 			Command msg(name(), "config");
@@ -158,7 +157,15 @@ bool Spine::process_command(const Message& msg) {
 	return true;
 }
 
-bool Spine::process_input(const Message& message) {
+bool Spine::process_input(const Message& msg) {
+	return true;
+}
+
+// @commit Implemented skeleton Spine::process_output
+bool Spine::process_output(const Message& msg) {
+	// HERE ENSUES THE ROUTING
+	// The spine manages chains of modules, so we forward from out to in down the chains
+	_logger.log(name(), msg.payload(), true);
 	return true;
 }
 

@@ -46,7 +46,8 @@ namespace cppm {
 			~Spine();
 			void setup(){};
 			bool process_command(const Message& msg);
-			bool process_input(const Message& message);
+			bool process_input  (const Message& msg);
+			bool process_output (const Message& msg);
 			bool loadModules();
 			bool loadModules(const string& directory);
 			bool loadModule(const string& filename);

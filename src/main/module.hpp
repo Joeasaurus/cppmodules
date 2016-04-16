@@ -75,9 +75,10 @@ namespace cppm {
 			/* process_message() is how you handle incoming messages.
 			 * Any messages that are found waiting by pollAndProcess() will come through here.
 			 */
-			virtual bool process_command(const Message& wMsg)=0;
-			virtual bool process_input(const Message& wMsg)=0;
-			virtual bool process_output(const Message& msg) {
+			// @commit Fixed some formatting and improved default param names
+			virtual bool process_command(const Message& msg)=0;
+			virtual bool process_input  (const Message& msg)=0;
+			virtual bool process_output (const Message& msg) {
 				cout << msg.m_chantype << endl;
  				return false;
 			}; // not all modules care for output
