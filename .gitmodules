@@ -7,6 +7,7 @@
 [submodule "submodules/jsoncpp"]
 	path = submodules/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
+	ignore = dirty
 [submodule "submodules/cppzmq"]
 	path = submodules/cppzmq
 	url = https://github.com/zeromq/cppzmq.git

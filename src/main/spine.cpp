@@ -165,7 +165,7 @@ bool Spine::process_input(const Message& msg) {
 bool Spine::process_output(const Message& msg) {
 	// HERE ENSUES THE ROUTING
 	// The spine manages chains of modules, so we forward from out to in down the chains
-	_logger.log(name(), msg.payload(), true);
+	_logger.log(name(), "OUTPUT HEARD " + msg.payload(), true);
 	return true;
 }
 

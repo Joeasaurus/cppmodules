@@ -1,7 +1,7 @@
 #### MODULES ####
 
 set(MODULES
-    "mainline\;config"
+    "mainline\;config\;output"
 )
 
 foreach(group ${MODULES})
@@ -9,14 +9,14 @@ foreach(group ${MODULES})
     createExtrasList(${MODULE_GROUP_NAME} GROUP_MODULES MODULES)
 
     foreach(module ${${MODULE_GROUP_NAME}_GROUP_MODULES})
-        include("${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}_${module}.cmake")
+        include("${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}_${module}.CMakeLists.txt")
     	
         set_target_properties(${MODULE_GROUP_NAME}_${module}
     	    PROPERTIES
     	    LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
     	)
 
-        foreach(file_to_copy ${MODULE_COPY_FILES})
+        foreach(file_to_copy ${${module}_MODULE_COPY_FILES})
 
                 add_custom_command(
                     OUTPUT ${OUTPUT_DIR}/modules/${file_to_copy}

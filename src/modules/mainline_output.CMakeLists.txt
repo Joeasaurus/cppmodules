@@ -1,0 +1,9 @@
+include_directories("${CMAKE_SOURCE_DIR}/submodules/cppevent/include")
+
+add_library(mainline_output SHARED
+	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
+)
+
+target_link_libraries(mainline_output
+    ${BOTH_LINK_LIBRARIES}
+)
