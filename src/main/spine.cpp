@@ -161,7 +161,7 @@ bool Spine::process_input(const Message& msg) {
 	return true;
 }
 
-// @commit Implemented skeleton Spine::process_output
+
 bool Spine::process_output(const Message& msg) {
 	// HERE ENSUES THE ROUTING
 	// The spine manages chains of modules, so we forward from out to in down the chains
