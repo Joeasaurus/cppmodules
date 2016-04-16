@@ -8,6 +8,11 @@ using namespace std;
 namespace cppm {
 	namespace messages {
 
+		enum ChannelType {
+			Global,
+			Directed
+		};
+
 		static vector<string> tokeniseString(const string& message, const string& spchar) {
 			vector<string> messageTokens;
 			if (!message.empty()) {
@@ -23,64 +28,72 @@ namespace cppm {
 					auto h_b = tokeniseString(in, ";");
 
 					auto header = h_b.at(0);
+					_data       = h_b.at(1);
 
 					if (h_b.size() > 2) {
 						h_b.erase(h_b.begin());
-
+						h_b.erase(h_b.begin());
 						for (auto& tk : h_b) 
-							data += " " + tk;
+							_data += ";" + tk;
 					}
 
 					return header;
 				};
 
 			protected:
-				string  data  = "";
+				string  _data  = "";
 
 			public:
-				CHANNEL _chan = CHANNEL::None;
-				string  _to   = "";
-				string  _from = "";
+				CHANNEL m_chan         = CHANNEL::None;
+				ChannelType m_chantype = ChannelType::Global;
+				string  m_to           = "";
+				string  m_from         = "";
 
 				Message(){};
 
 				Message(const string& from, CHANNEL chan = CHANNEL::In) {
-					_from = from;
-					_chan = chan;
+					m_from = from;
+					m_chan = chan;
 				};
 
 				Message(const string& from, const string& to, CHANNEL chan = CHANNEL::In) : Message(from, chan) {
-					_to = to;
+					m_to = to;
 				};
 
 				void sendTo(const string& to) {
-					_to = to;
+					m_to = to;
 				};
 
 				string payload() const {
-					return data;
+					return _data;
 				};
 
 				bool payload(string in, bool data_only = true) {
 					if (data_only) {
-						data = in;
+						_data = in;
 						return true;
 					}
 
 					/* We know that format sticks a ; between the header and body.
 					 * This should be the first colon, so channel, to and from cannot contain one.
 					 * We split the string on ; and bung everything right of it into 'data'
-					 * The header is then checked for the channel, from and any specific routing (to).
+					 * The header is then checked for the m_chan, m_to and from.
+					 * m_chan and m_to are split by '-' to make use of ZMQ's subscriptions.
 					 */
 
 					try {
 						auto fields = tokeniseString(splitHeadAndData(in), " ");
-						_chan       = strToChan[fields.at(0)];
-						_from       = fields.at(1);
+						auto chans  = tokeniseString(fields.at(0), "-");
 						
-						if (fields.size() > 2)
-							_to = fields.at(2);
-
+						if (chans.size() == 2) {
+							m_to = chans.at(1);
+							m_chantype = ChannelType::Directed;
+						} else {
+							m_chantype = ChannelType::Global;
+						}
+						
+						m_chan = strToChan[chans.at(0)];
+						m_from = fields.at(1);
 					} catch (exception& e) {
 						cout << e.what() << endl;
 						return false;
@@ -90,7 +103,11 @@ namespace cppm {
 				};
 
 				string format() const {
-					return chanToStr[_chan] + " " + _to + " " + _from + "; " + data;
+					string to = " ";
+					if (m_to != "")
+						to   = "-" + m_to + to;
+					
+					return chanToStr[m_chan] + to + m_from + ";" + _data;
 				};
 		};
 	}

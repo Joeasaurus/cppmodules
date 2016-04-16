@@ -30,7 +30,7 @@ void ConfigModule::setup() {
 		if(this->loadConfigFile(this->configFilepath)) {
 
 			Command configUpdate(this->name());
-			configUpdate.payload("Config Updated");
+			configUpdate.payload("updated");
 			
 			if (sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);

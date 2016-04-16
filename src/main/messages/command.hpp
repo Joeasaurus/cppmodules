@@ -8,6 +8,7 @@ using namespace std;
 namespace cppm { namespace messages {
 	class Command : public Message {
 		public:
-			Command(string from) : Message(from, CHANNEL::Cmd) {};
+			Command(const string& from) : Message(from, CHANNEL::Cmd) {};
+			Command(const string& from, const string& to) : Message(from, to, CHANNEL::Cmd) {};
 	};
 }}

@@ -35,20 +35,6 @@ namespace cppm {
 		string author = "mainline";
 	} ModuleInfo;
 
-	typedef struct Event {
-		chrono::milliseconds delta;
-		chrono::milliseconds interval;
-		function<bool(chrono::milliseconds delta)> callback;
-	} Event;
-
-	enum class CatchState {
-		NO_TOKENS,
-		CLOSE_HEARD,
-		NOT_FOR_ME,
-		FOR_ALL,
-		FOR_ME
-	};
-
 	enum class SocketType {
 		PUB,
 		SUB,
@@ -64,10 +50,7 @@ namespace cppm {
 			shared_ptr<context_t> inp_context;
 			Logger _logger;
 			chrono::system_clock::time_point timeNow;
-			Message config;
 		private:
-			socket_t* inp_manage_in;
-			socket_t* inp_manage_out;
 			socket_t* inp_in;
 			socket_t* inp_out;
 			chrono::milliseconds timeDelta;
@@ -94,8 +77,14 @@ namespace cppm {
 			 */
 			virtual bool process_command(const Message& wMsg)=0;
 			virtual bool process_input(const Message& wMsg)=0;
-			virtual bool process_output(const Message& wMsg){return false;}; // not all modules care for output
-			virtual bool process_message(const Message& wMsg){return false;}; // not all modules care for junk
+			virtual bool process_output(const Message& msg) {
+				cout << msg.m_chantype << endl;
+ 				return false;
+			}; // not all modules care for output
+			virtual bool process_message(const Message& msg) {
+				cout << msg.m_chantype << endl;
+ 				return false;
+			}; // not all modules care for junk
 			/* name() returns __info.name
 			 */
 			inline string name() const;
@@ -111,6 +100,7 @@ namespace cppm {
 			inline string getChannel(string in);
 
 			inline void subscribe(CHANNEL chan);
+			inline void subscribe(const string& chan);
 
 			inline bool sendMessage(Message wMsg);
 
@@ -162,6 +152,8 @@ namespace cppm {
 					outPoint += nm + ".pub";
 					inp_in->bind(inPoint.c_str());
 					inp_out->bind(outPoint.c_str());
+
+					// The binder will listen to our output and route it for us
 					subscribe(CHANNEL::Out);
 				} else {
 					// We sub their pub and v/v
@@ -170,10 +162,12 @@ namespace cppm {
 					inp_in->connect(inPoint.c_str());
 					inp_out->connect(outPoint.c_str());
 
-					// Here is the only place we need a delim,
-					// when the modules need to hear messages for themselves only.
+					// The connector will listen on a named channel for directed messages
+					subscribe(chanToStr[CHANNEL::In]  + "-" + nm);
+					subscribe(chanToStr[CHANNEL::Cmd] + "-" + nm);
 				}
 
+				// In and Command are global channels, everyone hears these
 				subscribe(CHANNEL::In);
 				subscribe(CHANNEL::Cmd);
 
@@ -208,6 +202,13 @@ namespace cppm {
 		}
 	};
 
+	void Module::subscribe(const string& chan) {
+		try {
+			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, chan.data(), chan.size());
+		} catch (const zmq::error_t &e) {
+			errLog(e.what());
+		}
+	};
 
 	bool Module::sendMessage(Message wMsg) {
 		bool sendOk = false;
@@ -241,9 +242,10 @@ namespace cppm {
 			if (zmq::poll(pollSocketItems, 1, timeout) > 0 && inp_in->recv(&zMessage)) {
 				// tokeniseString needs replacing with something that will only grab the module name
 				auto normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
+				
 				Message msg;
 				msg.payload(normMsg, false);
-				_logger.log(name(), normMsg);
+
 				return callback(msg); 
 			}
 
@@ -264,7 +266,7 @@ namespace cppm {
 		//   we return the module's process_message
 		// Else just return true to keep running but not care for the message
 		return this->recvMessage<bool>([&](const Message& msg) {
-			switch (msg._chan) {
+			switch (msg.m_chan) {
 				case CHANNEL::None:
 					return false;
 				case CHANNEL::Cmd:

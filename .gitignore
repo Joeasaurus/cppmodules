@@ -12,3 +12,5 @@ src/lib
 submodules/jsoncpp/*
 cmko
 generated
+.project
+.cproject

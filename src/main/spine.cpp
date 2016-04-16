@@ -146,18 +146,19 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 }
 
 bool Spine::process_command(const Message& msg) {
-	//_logger.log(name(), msg.format(), true);
-	if (msg._from == "config") {
-		if (msg.payload() == "Config Updated") {
-			_logger.log(name(), "NEW CONFIG");
+	if (msg.m_from == "config") {
+		_logger.log(name(), msg.payload(), true);
+		if (msg.payload() == "updated") {
+			
+			Command msg(name(), "config");
+			msg.payload("get-config module-dir");
+			sendMessage(msg);
 		}
 	}
 	return true;
 }
 
 bool Spine::process_input(const Message& message) {
-	_logger.log(name(), "Sleeping...", true);
-	this_thread::sleep_for(chrono::milliseconds(500));
 	return true;
 }
 
