@@ -8,13 +8,13 @@ using namespace cppm::messages;
 using namespace cppevent;
 
 class OutputModule : public Module {
-	public:		
+	public:
 		OutputModule() : Module("output", "Joe Eaves"){};
 		~OutputModule();
 		void setup();
 		void tick();
-		bool process_command(const Message& message){return true;};
-		bool process_input  (const Message& message){return true;};
+		bool process_command(const Message& message){_logger.null(message.format());return true;};
+		bool process_input  (const Message& message){_logger.null(message.format());return true;};
 	private:
 		Eventer _eventer;
 		Output message{"output"};

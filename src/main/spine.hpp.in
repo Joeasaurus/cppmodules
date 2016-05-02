@@ -17,8 +17,11 @@
 
 #include "boost/predef.h"
 
+#include "Eventer.hpp"
+
 using namespace zmq;
 using namespace cppm::messages;
+using namespace cppevent;
 
 namespace cppm {
 	class Spine : public Module {
@@ -36,8 +39,8 @@ namespace cppm {
 			atomic<bool> _running;
 			vector<thread> m_threads;
 			mutex _moduleRegisterMutex; // Protects loadedModules
-			mutex _moduleUnregisterMutex; // Protects loadedModules
 			set<string> _loadedModules;
+			Eventer _eventer;
 
 			bool isModuleFile(const string& filename);
 			set<string> listModules(const string& directory);
@@ -53,6 +56,8 @@ namespace cppm {
 			bool loadModule(const string& filename);
 			bool isModuleLoaded(std::string moduleName);
 			const string moduleFileLocation = "@MODULES_LOCATION@";
+			bool isRunning();
+			void tick();
 
 			void registerModule(const string& name);
 			void unregisterModule(const string& name);

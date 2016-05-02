@@ -1,0 +1,27 @@
+[
+{
+  "directory": "/Users/jme/null/GDrive/code/cppmodules",
+  "command": "/opt/local/bin/clang++   -Dmainline_output_EXPORTS -I/Users/jme/null/GDrive/code/cppmodules/src -I/Users/jme/null/GDrive/code/cppmodules/generated -I/Users/jme/null/GDrive/code/cppmodules/submodules/jsoncpp/dist -I/Users/jme/null/GDrive/code/cppmodules/submodules/spdlog/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/catch/single_include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppzmq -I/Users/jme/null/GDrive/code/cppmodules/submodules/boost-predef/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppevent/include  -std=c++11 -Wall -Wextra -g -fPIC   -o CMakeFiles/mainline_output.dir/src/modules/mainline/output.cpp.o -c /Users/jme/null/GDrive/code/cppmodules/src/modules/mainline/output.cpp",
+  "file": "/Users/jme/null/GDrive/code/cppmodules/src/modules/mainline/output.cpp"
+},
+{
+  "directory": "/Users/jme/null/GDrive/code/cppmodules",
+  "command": "/opt/local/bin/clang++   -Dmainline_config_EXPORTS -I/Users/jme/null/GDrive/code/cppmodules/src -I/Users/jme/null/GDrive/code/cppmodules/generated -I/Users/jme/null/GDrive/code/cppmodules/submodules/jsoncpp/dist -I/Users/jme/null/GDrive/code/cppmodules/submodules/spdlog/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/catch/single_include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppzmq -I/Users/jme/null/GDrive/code/cppmodules/submodules/boost-predef/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppevent/include  -std=c++11 -Wall -Wextra -g -fPIC   -o CMakeFiles/mainline_config.dir/src/modules/mainline/config.cpp.o -c /Users/jme/null/GDrive/code/cppmodules/src/modules/mainline/config.cpp",
+  "file": "/Users/jme/null/GDrive/code/cppmodules/src/modules/mainline/config.cpp"
+},
+{
+  "directory": "/Users/jme/null/GDrive/code/cppmodules",
+  "command": "/opt/local/bin/clang++   -Dmainline_config_EXPORTS -I/Users/jme/null/GDrive/code/cppmodules/src -I/Users/jme/null/GDrive/code/cppmodules/generated -I/Users/jme/null/GDrive/code/cppmodules/submodules/jsoncpp/dist -I/Users/jme/null/GDrive/code/cppmodules/submodules/spdlog/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/catch/single_include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppzmq -I/Users/jme/null/GDrive/code/cppmodules/submodules/boost-predef/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppevent/include  -std=c++11 -Wall -Wextra -g -fPIC   -o CMakeFiles/mainline_config.dir/submodules/jsoncpp/dist/jsoncpp.cpp.o -c /Users/jme/null/GDrive/code/cppmodules/submodules/jsoncpp/dist/jsoncpp.cpp",
+  "file": "/Users/jme/null/GDrive/code/cppmodules/submodules/jsoncpp/dist/jsoncpp.cpp"
+},
+{
+  "directory": "/Users/jme/null/GDrive/code/cppmodules",
+  "command": "/opt/local/bin/clang++    -I/Users/jme/null/GDrive/code/cppmodules/src -I/Users/jme/null/GDrive/code/cppmodules/generated -I/Users/jme/null/GDrive/code/cppmodules/submodules/jsoncpp/dist -I/Users/jme/null/GDrive/code/cppmodules/submodules/spdlog/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/catch/single_include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppzmq -I/Users/jme/null/GDrive/code/cppmodules/submodules/boost-predef/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppevent/include  -std=c++11 -Wall -Wextra -g   -o CMakeFiles/cppmodules.dir/src/main/main.cpp.o -c /Users/jme/null/GDrive/code/cppmodules/src/main/main.cpp",
+  "file": "/Users/jme/null/GDrive/code/cppmodules/src/main/main.cpp"
+},
+{
+  "directory": "/Users/jme/null/GDrive/code/cppmodules",
+  "command": "/opt/local/bin/clang++    -I/Users/jme/null/GDrive/code/cppmodules/src -I/Users/jme/null/GDrive/code/cppmodules/generated -I/Users/jme/null/GDrive/code/cppmodules/submodules/jsoncpp/dist -I/Users/jme/null/GDrive/code/cppmodules/submodules/spdlog/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/catch/single_include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppzmq -I/Users/jme/null/GDrive/code/cppmodules/submodules/boost-predef/include -I/Users/jme/null/GDrive/code/cppmodules/submodules/cppevent/include  -std=c++11 -Wall -Wextra -g   -o CMakeFiles/cppmodules.dir/src/main/spine.cpp.o -c /Users/jme/null/GDrive/code/cppmodules/src/main/spine.cpp",
+  "file": "/Users/jme/null/GDrive/code/cppmodules/src/main/spine.cpp"
+}
+]

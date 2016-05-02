@@ -13,7 +13,7 @@ bool ConfigModule::loadConfigFile(string filepath)
 		// 	this->configOnDisk.fromFile(filepath);
 		// 	this->config = this->configOnDisk;
 		// 	_logger.log(name(), filepath + " loaded!", true);
-		// 	_logger.log(name(), this->config.asString(), true);
+		// 	_logger.log(name(), th->config.asString(), true);
 		// 	this->configFilepath = filepath;
 			return true;
 	// 	} catch(const exception &ex) {
@@ -26,12 +26,13 @@ bool ConfigModule::loadConfigFile(string filepath)
 
 void ConfigModule::setup() {
 	_eventer.on("config-reload", [&](chrono::milliseconds delta) {
-
+		// Never true because the path is static and it's changed now!
+		// Need to think about how we specify stuff like that!
 		if(this->loadConfigFile(this->configFilepath)) {
 
 			Command configUpdate(this->name());
 			configUpdate.payload("updated");
-			
+
 			if (sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
 

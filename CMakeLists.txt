@@ -7,6 +7,7 @@ set(CMAKE_VERBOSE_MAKEFILE false)
 ## cppcheck --force --inline-suppr --template '{file}:{line},{severity},{id},{message}' \
 ##  --xml --enable=all --max-configs=25 -i /Users/jme/GDrive/code/cppmodules/src ./ 2> err.xml
 ## cppcheck-htmlreport --file=err.xml --title=CppModules --report-dir=cppcheck_reports --source-dir=.
+## valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=20 --track-fds=yes --track-origins=yes -v cppmodules
 
 include("${CMAKE_SOURCE_DIR}/flags_and_functions.cmake")
 

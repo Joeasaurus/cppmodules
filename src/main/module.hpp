@@ -61,7 +61,7 @@ namespace cppm {
 			Module(string name, string author) {
 				this->__info.name   = name;
 				this->__info.author = author;
-				this->timeNow = chrono::system_clock::now(); 
+				this->timeNow = chrono::system_clock::now();
 			};
 			virtual ~Module(){};
 
@@ -75,16 +75,16 @@ namespace cppm {
 			/* process_message() is how you handle incoming messages.
 			 * Any messages that are found waiting by pollAndProcess() will come through here.
 			 */
-			
+
 			virtual bool process_command(const Message& msg)=0;
 			virtual bool process_input  (const Message& msg)=0;
 			virtual bool process_output (const Message& msg) {
-				cout << msg.m_chantype << endl;
- 				return false;
+				_logger.null(msg.format());
+ 				return true;
 			}; // not all modules care for output
 			virtual bool process_message(const Message& msg) {
-				cout << msg.m_chantype << endl;
- 				return false;
+				_logger.null(msg.format());
+ 				return true;
 			}; // not all modules care for junk
 			/* name() returns __info.name
 			 */
@@ -93,7 +93,7 @@ namespace cppm {
 			inline void setSocketContext(shared_ptr<context_t> context);
 			inline bool areSocketsOpen() const;
 			inline bool areSocketsValid() const;
-			
+
 		protected:
 			inline void openSockets(string parent = "__bind__");
 			inline void closeSockets();
@@ -103,7 +103,7 @@ namespace cppm {
 			inline void subscribe(CHANNEL chan);
 			inline void subscribe(const string& chan);
 
-			inline bool sendMessage(Message wMsg);
+			inline bool sendMessage(Message wMsg) const;
 
 			template<typename retType>
 			inline retType recvMessage(function<retType(const Message&)> callback, long timeout=1000);
@@ -125,7 +125,7 @@ namespace cppm {
 	{
 		this->inp_context = context;
 	};
-	
+
 	bool Module::areSocketsOpen() const {
 		return this->socketsOpen;
 	};
@@ -192,12 +192,12 @@ namespace cppm {
 		delete this->inp_in;
 		delete this->inp_out;
 	};
-	
+
 	void Module::subscribe(CHANNEL chan) {
 		try {
 			auto channel = chanToStr[chan];
 			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
-		
+
 		} catch (const zmq::error_t &e) {
 			errLog(e.what());
 		}
@@ -211,11 +211,11 @@ namespace cppm {
 		}
 	};
 
-	bool Module::sendMessage(Message wMsg) {
+	bool Module::sendMessage(Message wMsg) const {
 		bool sendOk = false;
 
 		auto message_string = wMsg.format();
-		// _logger.log(name(), message_string);
+		// _logger.log(name(), "Formatted, before sending ---- " + message_string);
 
 		message_t zmqObject(message_string.length());
 		memcpy(zmqObject.data(), message_string.data(), message_string.length());
@@ -224,13 +224,11 @@ namespace cppm {
 			sendOk = this->inp_out->send(zmqObject);
 		} catch (const zmq::error_t &e) {
 			errLog(e.what());
-		
 		}
 
 		return sendOk;
 	};
 
-	//TODO: Could we template the SocketType too?
 	template<typename retType>
 	retType Module::recvMessage(function<retType(const Message&)> callback, long timeout) {
 		pollitem_t pollSocketItems[] = {
@@ -241,13 +239,13 @@ namespace cppm {
 
 		try {
 			if (zmq::poll(pollSocketItems, 1, timeout) > 0 && inp_in->recv(&zMessage)) {
-				// tokeniseString needs replacing with something that will only grab the module name
 				auto normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
-				
+
 				Message msg;
 				msg.payload(normMsg, false);
+				//_logger.log(name(), "Normalised, before processing --- " + normMsg);
 
-				return callback(msg); 
+				return callback(msg);
 			}
 
 		} catch (const zmq::error_t &e) {
@@ -258,26 +256,23 @@ namespace cppm {
 		Message msg;
 		return callback(msg);
 	};
-			
+
 
 	bool Module::pollAndProcess() {
-		// Here we listen on the socket for close messages
-		// false will close us so we return that for a close message
-		// If the message is not a close but is for us,
-		//   we return the module's process_message
-		// Else just return true to keep running but not care for the message
 		return this->recvMessage<bool>([&](const Message& msg) {
+			// No breaks, all return.
 			switch (msg.m_chan) {
 				case CHANNEL::None:
 					return false;
 				case CHANNEL::Cmd:
+					//TODO: We should check for nice close messages here?
 					return process_command(msg);
 				case CHANNEL::In:
 					return process_input(msg);
 				case CHANNEL::Out:
 					return process_output(msg);
 			}
-			
+
 			return this->process_message(msg);
 		});
 	};
@@ -292,7 +287,7 @@ namespace cppm {
 }
 
 /* Export the module
- * 
+ *
  * These functions should be overriden and set 'export "C"' on.
  * These functions allow us to load the module dynamically via <dlfcn.h>
  */

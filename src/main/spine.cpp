@@ -6,10 +6,15 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->inp_context = make_shared<zmq::context_t>(1);
 	this->openSockets("__bind__");
+	_eventer.on("close-timeout", [&](chrono::milliseconds delta) {
+		_running.store(false);
+	}, chrono::milliseconds(10000), EventPriority::HIGH);
 	_running.store(true);
 }
 
 Spine::~Spine() {
+	_running.store(false);
+
 	string closeMessage;
 
 	// Here the Spine sends a message out on it's publish socket
@@ -20,9 +25,6 @@ Spine::~Spine() {
 	Command wMsg(name());
 	wMsg.payload("close");
 
-	//TODO: NOT THREAD SAFE!?!?!
-	lock_guard<mutex> lock(_moduleRegisterMutex);
-	_running.store(false);
 	sendMessage(wMsg);
 
 	for_each(m_threads.begin(), m_threads.end(), [&](thread& t) {
@@ -38,7 +40,9 @@ Spine::~Spine() {
 	_logger.log(name(), "Closed");
 }
 
-
+void Spine::tick(){
+	_eventer.emitTimedEvents();
+};
 
 set<string> Spine::listModules(const string& directory) {
 	set<string> moduleFiles;
@@ -65,13 +69,13 @@ set<string> Spine::listModules(const string& directory) {
 }
 
 void Spine::registerModule(const string& modName) {
-	// lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
+	lock_guard<mutex> lock(_moduleRegisterMutex);
 	_loadedModules.insert(modName);
 	_logger.log(name(), "Registered module: " + modName + "!");
 };
 
 void Spine::unregisterModule(const string& modName) {
-	// lock_guard<mutex> lock(_moduleRegisterMutex, _moduleUnregisterMutex);
+	lock_guard<mutex> lock(_moduleRegisterMutex);
 	_loadedModules.erase(modName);
 	_logger.log(name(), "Unregistered module: " + modName + "!");
 };
@@ -87,7 +91,7 @@ bool Spine::loadModule(const string& filename) {
 		_logger.log(name(), "Loading " + boost::filesystem::basename(filename) + "...", true);
 
 		if (com.load()) {
-			if (com.init(inp_context, name())) {
+			if (com.init(inp_context, name()) && _running.load()) {
 				registerModule(com.moduleName);
 
 				_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
@@ -105,7 +109,6 @@ bool Spine::loadModule(const string& filename) {
 				} catch (const std::exception& ex) {
 					cout << ex.what() << endl;
 				}
-
 				// Here the module is essentially dead, but not the thread
 				//TODO: Module reloading code, proper shutdown handlers etc.
 				com.deinit();
@@ -146,9 +149,10 @@ bool Spine::isModuleLoaded(std::string moduleName) {
 }
 
 bool Spine::process_command(const Message& msg) {
+	_logger.log(name(), "CMD HEARD " + msg.payload(), true);
 	if (msg.m_from == "config") {
 		if (msg.payload() == "updated") {
-			
+
 			Command msg(name(), "config");
 			msg.payload("get-config module-dir");
 			sendMessage(msg);
@@ -158,15 +162,19 @@ bool Spine::process_command(const Message& msg) {
 }
 
 bool Spine::process_input(const Message& msg) {
+	_logger.log(name(), "INPUT HEARD " + msg.payload(), true);
 	return true;
 }
-
 
 bool Spine::process_output(const Message& msg) {
 	// HERE ENSUES THE ROUTING
 	// The spine manages chains of modules, so we forward from out to in down the chains
 	_logger.log(name(), "OUTPUT HEARD " + msg.payload(), true);
 	return true;
+}
+
+bool Spine::isRunning() {
+	return _running.load();
 }
 
 }

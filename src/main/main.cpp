@@ -17,10 +17,11 @@ int main(int argc, char **argv) {
 	logger.setDebug(argc > 1 && strcmp(argv[1], "debug") == 0);
 
 	Spine spine;
-	// We used to subscribe to ourself for introspection
+
 	if (spine.loadModules()) {
-		while (true) {
+		while (spine.isRunning()) {
 			spine.pollAndProcess();
+			spine.tick();
 		}
 	}
 	return false;

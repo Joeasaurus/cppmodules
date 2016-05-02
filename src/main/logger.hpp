@@ -3,6 +3,7 @@
 #include <string>
 
 #include "spdlog/spdlog.h"
+#include "spdlog/sinks/null_sink.h"
 
 using namespace std;
 using namespace spdlog;
@@ -17,11 +18,14 @@ namespace cppm {
 			inline shared_ptr<logger> getLogger() const;
 
 			inline virtual void log(const string& title, const string& data, bool debug = false);
+			inline virtual void null(const string& data);
 
 		private:
 			string _name;
 			shared_ptr<logger> _logger;
 
+			shared_ptr<sinks::null_sink_mt> _null_sink{make_shared<spdlog::sinks::null_sink_mt> ()};
+			shared_ptr<logger> _null_logger;
 	};
 
 	Logger::Logger(string name) {
@@ -32,15 +36,16 @@ namespace cppm {
 
 		try {
 			_logger = stdout_logger_mt(_name);
+			_logger->set_pattern("[%T.%e] [%l] %v"); // Custom format
+
+			_null_logger = make_shared<spdlog::logger>("null_logger", _null_sink);
 		} catch (const spdlog_ex) {
 			_logger = spdlog::get(_name);
+			_null_logger = spdlog::get("null_logger");
 		}
-
-		_logger->set_pattern("[%T.%e] [%l] %v"); // Custom format
 
 		log("Logger", "Logger Open!", true);
 	};
-
 
 	void Logger::setDebug(bool debug) {
 		spdlog::set_level(debug ? level::debug : level::info);
@@ -57,7 +62,8 @@ namespace cppm {
 			_logger->info("{}: {}", title, data);
 	};
 
+	void Logger::null(const string& data) {
+		_null_logger->info(data);
+	};
+
 }
-
-
-	
