@@ -35,12 +35,7 @@ void ConfigModule::setup() {
 
 			if (sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
-
-			return true;
 		}
-
-		return false;
-
 	}, chrono::milliseconds(5000), EventPriority::LOW);
 
 
