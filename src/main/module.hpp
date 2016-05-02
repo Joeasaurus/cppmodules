@@ -14,8 +14,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include "zmq.hpp"
-// Lets remove this assert while we mess with travis-ci and it's outta date packages
-//static_assert(ZMQ_VERSION == 40102, "ZMQ Version 40102 is required!");
 
 #include "main/logger.hpp"
 #include "main/messages/command.hpp"
@@ -35,26 +33,20 @@ namespace cppm {
 		string author = "mainline";
 	} ModuleInfo;
 
-	enum class SocketType {
-		PUB,
-		SUB,
-		MGM_IN,
-		MGM_OUT
-	};
-
 	class Module {
 		friend class ModuleCOM;
 		// Variables first
 		protected:
+			Logger     _logger;
 			ModuleInfo __info;
 			shared_ptr<context_t> inp_context;
-			Logger _logger;
-			chrono::system_clock::time_point timeNow;
+
 		private:
 			socket_t* inp_in;
 			socket_t* inp_out;
-			chrono::milliseconds timeDelta;
-			bool socketsOpen = false;
+			chrono::system_clock::time_point timeNow;
+			mutex _moduleSockMutex;
+			atomic<bool> _connected{false};
 
 		// Now our functions
 		public:
@@ -65,34 +57,24 @@ namespace cppm {
 			};
 			virtual ~Module(){};
 
-			/* tick() is the main loop of the module.
-			 * To receive socket messages, run() should call pollAndProcess().
-			 * The module thread will close when run() returns.
-			 */
 			virtual void tick(){};
 			virtual void setup()=0;
 			inline bool pollAndProcess();
-			/* process_message() is how you handle incoming messages.
-			 * Any messages that are found waiting by pollAndProcess() will come through here.
-			 */
 
 			virtual bool process_command(const Message& msg)=0;
 			virtual bool process_input  (const Message& msg)=0;
 			virtual bool process_output (const Message& msg) {
 				_logger.null(msg.format());
  				return true;
-			}; // not all modules care for output
+			};
 			virtual bool process_message(const Message& msg) {
 				_logger.null(msg.format());
  				return true;
-			}; // not all modules care for junk
-			/* name() returns __info.name
-			 */
+			};
+
 			inline string name() const;
 
 			inline void setSocketContext(shared_ptr<context_t> context);
-			inline bool areSocketsOpen() const;
-			inline bool areSocketsValid() const;
 
 		protected:
 			inline void openSockets(string parent = "__bind__");
@@ -107,8 +89,6 @@ namespace cppm {
 
 			template<typename retType>
 			inline retType recvMessage(function<retType(const Message&)> callback, long timeout=1000);
-			template<typename retType>
-			inline retType recvMessage(socket_t* socket, function<retType(const Message&)> callback);
 
 			inline void errLog(string message) const;
 	};
@@ -126,20 +106,13 @@ namespace cppm {
 		this->inp_context = context;
 	};
 
-	bool Module::areSocketsOpen() const {
-		return this->socketsOpen;
-	};
-
-	bool Module::areSocketsValid() const {
-		return (this->inp_in->connected() && this->inp_out->connected());
-	};
-
 
 /* **********
  * Protected Functions
  */
 	void Module::openSockets(string parent) {
-		if (!this->areSocketsOpen()) {
+		lock_guard<mutex> lock(_moduleSockMutex);
+		if (!_connected.load()) {
 			auto nm = name();
 			string inPoint = "inproc://";
 			string outPoint = "inproc://";
@@ -173,8 +146,7 @@ namespace cppm {
 				subscribe(CHANNEL::Cmd);
 
 				_logger.log(name(), "Sockets Open!", true);
-				socketsOpen = true;
-
+				_connected.store(true);
 			} catch (const zmq::error_t &e) {
 				errLog(e.what());
 			}

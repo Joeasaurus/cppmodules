@@ -85,7 +85,7 @@ bool Spine::loadModule(const string& filename) {
 	// The com will load the module from disk and then re-init it while it's loaded.
 	// We can add logic for unloading it later
 	// For now we've added a check on the atomic _running bool, so the Spine can tell us to unload,
-	//   so as to close the module and make the thread joinable().
+	//   so as to close the module and make the thread join()able.
 	m_threads.push_back(thread([&,filename] {
 		ModuleCOM com(filename);
 		_logger.log(name(), "Loading " + boost::filesystem::basename(filename) + "...", true);
@@ -137,7 +137,7 @@ bool Spine::loadModules(const string& directory) {
 
 	for (auto filename : moduleFiles)
 	{
-		// We should check error messages here better!
+		//TODO: We should check error messages here better!
 		loadModule(filename);
 	}
 

@@ -43,8 +43,6 @@ namespace cppm {
 			_logger = spdlog::get(_name);
 			_null_logger = spdlog::get("null_logger");
 		}
-
-		log("Logger", "Logger Open!", true);
 	};
 
 	void Logger::setDebug(bool debug) {
