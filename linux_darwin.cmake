@@ -1,4 +1,13 @@
 #### COMMON ####
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(flags "-std=c++11 -Wall -Wextra -g")
+
+	set(CMAKE_CXX_FLAGS "${flags}"
+		CACHE STRING "Flags used by the compiler during all build types." FORCE)
+	set(CMAKE_C_FLAGS   "${flags}"
+		CACHE STRING "Flags used by the compiler during all build types." FORCE)
+endif()
+
 include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generated")
 include_directories(AFTER
 	"${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist"

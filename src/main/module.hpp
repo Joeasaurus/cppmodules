@@ -13,7 +13,10 @@
 #include <functional>
 
 #include <boost/algorithm/string.hpp>
+__pragma(warning(push))
+__pragma(warning(disable:4127))
 #include "zmq.hpp"
+__pragma(warning(pop))
 
 #include "main/logger.hpp"
 #include "main/messages/command.hpp"
@@ -118,8 +121,8 @@ namespace cppm {
 			string outPoint = "inproc://";
 
 			try {
-				inp_in = new socket_t(*inp_context, socket_type::sub);
-				inp_out = new socket_t(*inp_context, socket_type::pub);
+				inp_in = new socket_t(*inp_context, ZMQ_SUB);
+				inp_out = new socket_t(*inp_context, ZMQ_PUB);
 
 				if (parent == "__bind__") {
 					inPoint += nm + ".sub";
@@ -154,12 +157,8 @@ namespace cppm {
 	};
 
 	void Module::closeSockets() {
-		try {
-			this->inp_in->close();
-			this->inp_out->close();
-		} catch (const zmq::error_t &e) {
-			errLog(e.what());
-		}
+		this->inp_in->close();
+		this->inp_out->close();
 
 		delete this->inp_in;
 		delete this->inp_out;

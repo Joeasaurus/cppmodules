@@ -9,11 +9,13 @@ set(CMAKE_VERBOSE_MAKEFILE false)
 ## cppcheck-htmlreport --file=err.xml --title=CppModules --report-dir=cppcheck_reports --source-dir=.
 ## valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=20 --track-fds=yes --track-origins=yes -v cppmodules
 
-include("${CMAKE_SOURCE_DIR}/flags_and_functions.cmake")
+include("${CMAKE_SOURCE_DIR}/functions.cmake")
 
 ### BUILD TARGETS ###
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     include("${CMAKE_SOURCE_DIR}/linux_darwin.cmake")
     include("${CMAKE_SOURCE_DIR}/linux_darwin_modules.cmake")
     #include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    include("${CMAKE_SOURCE_DIR}/windows.cmake")
 endif()

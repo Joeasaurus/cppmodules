@@ -1,18 +1,3 @@
-### CMAKE FLAGS ###
-
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
-    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(warnings "-Wall -Wextra -g")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(warnings "/W4 /WX /EHsc")
-endif()
-if (NOT CONFIGURED_ONCE)
-    set(CMAKE_CXX_FLAGS "-std=c++11 ${warnings}"
-        CACHE STRING "Flags used by the compiler during all build types." FORCE)
-    set(CMAKE_C_FLAGS   "${warnings}"
-        CACHE STRING "Flags used by the compiler during all build types." FORCE)
-endif()
-
 ### FUNCTIONS & VARS ###
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
@@ -42,4 +27,3 @@ macro(createExtrasList name output mappings)
         message(STATUS "Included for ${name}: ${${name}_${output}}")
     endif()
 endmacro(createExtrasList)
-

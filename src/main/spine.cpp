@@ -6,7 +6,7 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	this->inp_context = make_shared<zmq::context_t>(1);
 	this->openSockets("__bind__");
-	_eventer.on("close-timeout", [&](chrono::milliseconds delta) {
+	_eventer.on("close-timeout", [&](chrono::milliseconds) {
 		_running.store(false);
 	}, chrono::milliseconds(10000), EventPriority::HIGH);
 	_running.store(true);
