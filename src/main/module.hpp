@@ -1,4 +1,23 @@
 #pragma once
+#include "boost/predef.h"
+
+// We have to do some icky things on Windows!
+#if BOOST_OS_WINDOWS
+	#if defined(MODULE_EXPORT)
+		#define CPPMAPI __declspec(dllexport)
+	#else
+		#define CPPMAPI __declspec(dllimport)
+	#endif
+
+	__pragma(warning(push))
+	__pragma(warning(disable:4127))
+	#include "zmq.hpp"
+	__pragma(warning(pop))
+#else
+	#define CPPMAPI
+	#include "zmq.hpp"
+#endif
+
 // Common
 #include <string>
 #include <sstream>
@@ -13,7 +32,6 @@
 #include <functional>
 
 #include <boost/algorithm/string.hpp>
-#include "zmq.hpp"
 
 #include "main/logger.hpp"
 #include "main/messages/command.hpp"
@@ -63,14 +81,8 @@ namespace cppm {
 
 			virtual bool process_command(const Message& msg)=0;
 			virtual bool process_input  (const Message& msg)=0;
-			virtual bool process_output (const Message& msg) {
-				_logger.null(msg.format());
- 				return true;
-			};
-			virtual bool process_message(const Message& msg) {
-				_logger.null(msg.format());
- 				return true;
-			};
+			virtual bool process_output (const Message& /* msg */) {return true;};
+			virtual bool process_message(const Message& /* msg */) {return true;};
 
 			inline string name() const;
 
@@ -118,8 +130,8 @@ namespace cppm {
 			string outPoint = "inproc://";
 
 			try {
-				inp_in = new socket_t(*inp_context, socket_type::sub);
-				inp_out = new socket_t(*inp_context, socket_type::pub);
+				inp_in = new socket_t(*inp_context, ZMQ_SUB);
+				inp_out = new socket_t(*inp_context, ZMQ_PUB);
 
 				if (parent == "__bind__") {
 					inPoint += nm + ".sub";
@@ -154,12 +166,8 @@ namespace cppm {
 	};
 
 	void Module::closeSockets() {
-		try {
-			this->inp_in->close();
-			this->inp_out->close();
-		} catch (const zmq::error_t &e) {
-			errLog(e.what());
-		}
+		this->inp_in->close();
+		this->inp_out->close();
 
 		delete this->inp_in;
 		delete this->inp_out;
@@ -263,5 +271,5 @@ namespace cppm {
  * These functions should be overriden and set 'export "C"' on.
  * These functions allow us to load the module dynamically via <dlfcn.h>
  */
-typedef cppm::Module* Module_ctor(void);
-typedef void Module_dctor(cppm::Module*);
+typedef CPPMAPI cppm::Module* Module_ctor(void);
+typedef CPPMAPI void Module_dctor(cppm::Module*);

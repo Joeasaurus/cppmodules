@@ -7,9 +7,9 @@ OutputModule::~OutputModule()
 }
 
 void OutputModule::setup() {
-	_eventer.on("echoTime", [&](chrono::milliseconds delta) {
+	_eventer.on("echoTime", [&](chrono::milliseconds) {
 		message.payload("echoTime");
-		return sendMessage(message);
+		sendMessage(message);
 	}, chrono::milliseconds(1000), EventPriority::LOW);
 
 

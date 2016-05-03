@@ -25,7 +25,7 @@ bool ConfigModule::loadConfigFile(string filepath)
 }
 
 void ConfigModule::setup() {
-	_eventer.on("config-reload", [&](chrono::milliseconds delta) {
+	_eventer.on("config-reload", [&](chrono::milliseconds) {
 		// Never true because the path is static and it's changed now!
 		// Need to think about how we specify stuff like that!
 		if(this->loadConfigFile(this->configFilepath)) {
@@ -35,12 +35,7 @@ void ConfigModule::setup() {
 
 			if (sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
-
-			return true;
 		}
-
-		return false;
-
 	}, chrono::milliseconds(5000), EventPriority::LOW);
 
 
