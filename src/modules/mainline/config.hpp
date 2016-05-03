@@ -13,7 +13,7 @@ using namespace cppevent;
 class ConfigModule : public Module {
 	public:
 		Eventer _eventer;
-		
+
 		ConfigModule() : Module("config", "Joe Eaves"){};
 		~ConfigModule();
 		void setup();
@@ -28,5 +28,5 @@ class ConfigModule : public Module {
 };
 
 // Init/Del functions.
-extern "C" ConfigModule* createModule();
-extern "C" void destroyModule(ConfigModule* module);
+extern "C" CPPMAPI ConfigModule* createModule();
+extern "C" CPPMAPI void destroyModule(ConfigModule* module);

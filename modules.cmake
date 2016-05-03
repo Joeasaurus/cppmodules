@@ -1,3 +1,11 @@
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" AND NOT ${MODDONE})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMODULE_EXPORT"
+        CACHE STRING "Flags used by the compiler during all build types." FORCE)
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DMODULE_EXPORT"
+        CACHE STRING "Flags used by the compiler during all build types." FORCE)
+    set(MODDONE TRUE)
+endif()
+
 #### MODULES ####
 
 set(MODULES
@@ -10,7 +18,7 @@ foreach(group ${MODULES})
 
     foreach(module ${${MODULE_GROUP_NAME}_GROUP_MODULES})
         include("${CMAKE_CURRENT_SOURCE_DIR}/src/modules/${MODULE_GROUP_NAME}_${module}.CMakeLists.txt")
-    	
+
         set_target_properties(${MODULE_GROUP_NAME}_${module}
     	    PROPERTIES
     	    LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
@@ -37,5 +45,5 @@ foreach(group ${MODULES})
         endforeach(file_to_copy)
 
     endforeach(module)
-    
+
 endforeach(group)

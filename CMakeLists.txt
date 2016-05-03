@@ -14,9 +14,9 @@ include("${CMAKE_SOURCE_DIR}/functions.cmake")
 ### BUILD TARGETS ###
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     include("${CMAKE_SOURCE_DIR}/linux_darwin.cmake")
-    include("${CMAKE_SOURCE_DIR}/linux_darwin_modules.cmake")
     #include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
 elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     include("${CMAKE_SOURCE_DIR}/windows.cmake")
-    include("${CMAKE_SOURCE_DIR}/linux_darwin_modules.cmake")
 endif()
+
+include("${CMAKE_SOURCE_DIR}/modules.cmake")

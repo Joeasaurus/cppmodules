@@ -15,8 +15,6 @@
 #include <boost/range/iterator_range_core.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include "boost/predef.h"
-
 #include "Eventer.hpp"
 
 using namespace zmq;
