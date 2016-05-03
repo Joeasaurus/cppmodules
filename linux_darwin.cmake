@@ -10,7 +10,6 @@ endif()
 
 include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generated")
 include_directories(AFTER
-	"${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist"
 	"${CMAKE_SOURCE_DIR}/submodules/spdlog/include"
 	"${CMAKE_SOURCE_DIR}/submodules/catch/single_include"
 	"${CMAKE_SOURCE_DIR}/submodules/cppzmq"

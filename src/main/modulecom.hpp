@@ -13,6 +13,7 @@
 namespace cppm {
 	class ModuleCOM {
 		private:
+			const string name = "ModuleCOM";
 			string _filename;
 			Logger _logger;
 
@@ -23,12 +24,11 @@ namespace cppm {
 			bool _moduleLoaded = false;
 			bool _moduleInit   = false;
 
-			string name() const {return "ModuleCOM";};
 			inline bool openModule();
 			inline int  loadSymbols();
 
 			void errLog(string message) const {
-				_logger.getLogger()->error(this->name() + ": " + message);
+				_logger.getLogger()->error(name + ": " + message);
 			};
 
 		public:
@@ -40,8 +40,10 @@ namespace cppm {
 			inline void unload();
 			inline bool init(shared_ptr<context_t> ctx, const string& parent);
 			inline void deinit();
-			inline bool isLoaded();
+			inline bool isLoaded() const;
 	};
+
+	// const string ModuleCOM::name = "ModuleCOM";
 
 	bool ModuleCOM::openModule() {
 		// Here we use dlopen to load the dynamic library (that is, a compiled module)
@@ -61,13 +63,13 @@ namespace cppm {
 			errLog(dlerror());
 			return 1;
 		}
-		_logger.log(name(), "Resolved loadModule", true);
+		_logger.log(name, "Resolved loadModule", true);
 
 		destroyModule = (Module_dctor*)dlsym(_module_so, "destroyModule");
 		if (!destroyModule) {
 			return 2;
 		}
-		_logger.log(name(), "Resolved unloadModule", true);
+		_logger.log(name, "Resolved unloadModule", true);
 
 		return 0;
 	}
@@ -83,13 +85,13 @@ namespace cppm {
 			errLog("Failiure " + boost::filesystem::basename(_filename) + "..");
 			return false;
 		}
-		_logger.log(name(), "Opened file " + boost::filesystem::basename(_filename) + "..", true);
+		_logger.log(name, "Opened file " + boost::filesystem::basename(_filename) + "..", true);
 
 		if (loadSymbols() != 0) {
 			errLog("Failiure " + boost::filesystem::basename(_filename) + "..");
 			return false;
 		}
-		_logger.log(name(), "Functions resolved", true);
+		_logger.log(name, "Functions resolved", true);
 
 		_moduleLoaded = true;
 		return _moduleLoaded;
@@ -122,9 +124,7 @@ namespace cppm {
 		module = nullptr;
 	};
 
-	bool ModuleCOM::isLoaded() {
+	bool ModuleCOM::isLoaded() const {
 		return _moduleLoaded;
 	}
 }
-
-

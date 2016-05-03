@@ -14,14 +14,14 @@ namespace cppm {
 		public:
 			inline Logger(string name = "Logger");
 
-			inline void setDebug(bool debug = false);
+			inline static void setDebug(bool debug = false);
 			inline shared_ptr<logger> getLogger() const;
 
 			inline virtual void log(const string& title, const string& data, bool debug = false);
 			inline virtual void null(const string& data);
 
 		private:
-			string _name;
+			string _name{"Logger"};
 			shared_ptr<logger> _logger;
 
 			shared_ptr<sinks::null_sink_mt> _null_sink{make_shared<spdlog::sinks::null_sink_mt> ()};

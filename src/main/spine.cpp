@@ -15,8 +15,6 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 Spine::~Spine() {
 	_running.store(false);
 
-	string closeMessage;
-
 	// Here the Spine sends a message out on it's publish socket
 	// Each message directs a 'close' message to a module registered
 	//  in the Spine as 'loaded'
@@ -44,7 +42,7 @@ void Spine::tick(){
 	_eventer.emitTimedEvents();
 };
 
-set<string> Spine::listModules(const string& directory) {
+set<string> Spine::listModules(const string& directory) const {
 	set<string> moduleFiles;
 
 	// Here we list a directory and build a vector of files that match

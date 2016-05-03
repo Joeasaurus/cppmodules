@@ -41,7 +41,7 @@ namespace cppm {
 			Eventer _eventer;
 
 			bool isModuleFile(const string& filename);
-			set<string> listModules(const string& directory);
+			set<string> listModules(const string& directory) const;
 		public:
 			Spine();
 			~Spine();
