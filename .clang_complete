@@ -1,0 +1,7 @@
+-Isrc
+-Isubmodules/jsoncpp/dist
+-Isubmodules/spdlog/include
+-Isubmodules/catch/single_include
+-Isubmodules/cppzmq
+-Isubmodules/boost-predef/include
+-Ibuild/generated

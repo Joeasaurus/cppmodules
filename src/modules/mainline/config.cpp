@@ -1,66 +1,64 @@
 #include "modules/mainline/config.hpp"
 
-ConfigModule::ConfigModule() {
-	this->__info.name   = "Config";
-	this->__info.author = "mainline";
-}
-
-ConfigModule::~ConfigModule() {
+ConfigModule::~ConfigModule()
+{
 	this->closeSockets();
-	this->logger->debug("{}: {}", this->name(), "Closed");
+	_logger.log(name(), "Closed", true);
 }
 
-bool ConfigModule::loadConfigFile(std::string filepath) {
-	if (boost::filesystem::is_regular_file(filepath)) {
-		try {
-			this->config.readFile(filepath.c_str());
-			this->logger->debug("{}: {}", this->name(), "Config " + filepath + " loaded!");
+bool ConfigModule::loadConfigFile(string filepath)
+{
+	if (boost::filesystem::is_regular_file(filepath))
+		// try {
+		// 	this->configOnDisk.fromFile(filepath);
+		// 	this->config = this->configOnDisk;
+		// 	_logger.log(name(), filepath + " loaded!", true);
+		// 	_logger.log(name(), th->config.asString(), true);
+		// 	this->configFilepath = filepath;
 			return true;
-		} catch(const libconfig::FileIOException &fioex) {
-			this->logger->debug("{}: {}", this->name(), "Error: I/O error while reading " + filepath);
-			return false;
-		} catch(const libconfig::ParseException &pex) {
-			this->logger->debug() << "{}: {}" << this->name() << "Error: Parse failed at " <<
-				pex.getFile() << ":" << pex.getLine() << " - " << pex.getError();
-			return false;
-		}
-	} else {
-		return false;
-	}
-}
-
-bool ConfigModule::run() {
-	bool runAgain = true;
-	while (runAgain) {
-		runAgain = this->pollAndProcess();
-	}
+	// 	} catch(const exception &ex) {
+	// 		errLog("Error: loading " + filepath);
+	// 		errLog(ex.what());
+	// 	}
+	// }
 	return false;
 }
 
-bool ConfigModule::process_message(const json::value& message, CatchState cought, SocketType sockT) {
-	this->logger->debug("{}: {}", this->name(), json::stringify(message));
-	if (cought == CatchState::FOR_ME) {
-		if (sockT == SocketType::MGM_IN && json::has_key(message["data"], "command")) {
-			if (json::to_string(message["data"]["command"]) == "load" &&
-				json::has_key(message["data"], "file")
-			) {
-				json::object msg{
-					{ "configLoaded", "false" }
-				};
-				if (this->loadConfigFile(json::to_string(message["data"]["file"]))) {
-					msg["configLoaded"] = "true";
-				}
-				this->sendMessage(SocketType::MGM_IN, "Spine", msg);
-			}
+void ConfigModule::setup() {
+	_eventer.on("config-reload", [&](chrono::milliseconds) {
+		// Never true because the path is static and it's changed now!
+		// Need to think about how we specify stuff like that!
+		if(this->loadConfigFile(this->configFilepath)) {
+
+			Command configUpdate(this->name());
+			configUpdate.payload("updated");
+
+			if (sendMessage(configUpdate))
+				_logger.log(name(), "Config reloaded", true);
 		}
-	}
+	}, chrono::milliseconds(5000), EventPriority::LOW);
+
+
+	Command moduleRunning(name());
+	moduleRunning.payload("module-loaded");
+	sendMessage(moduleRunning);
+}
+
+void ConfigModule::tick() {
+	_eventer.emitTimedEvents();
+}
+
+bool ConfigModule::process_command(const Message& message)
+{
+	_logger.log(name(), message.format(), true);
 	return true;
 }
 
-ConfigModule* loadModule() {
-	return new ConfigModule;
+bool ConfigModule::process_input(const Message& message)
+{
+	_logger.log(name(), message.format(), true);
+	return true;
 }
 
-void unloadModule(ConfigModule* module) {
-	delete module;
-}
+ConfigModule* createModule(){return new ConfigModule;}
+void destroyModule(ConfigModule* module) {delete module;}

@@ -8,3 +8,10 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cppmodules.sublime-project
+src/lib
+submodules/jsoncpp/*
+cmko
+generated
+.project
+.cproject
+win-build

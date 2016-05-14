@@ -1,6 +1,25 @@
 [submodule "submodules/spdlog"]
 	path = submodules/spdlog
 	url = https://github.com/gabime/spdlog.git
-[submodule "submodules/cpp-json"]
-	path = submodules/cpp-json
-	url = https://github.com/eteran/cpp-json.git
+[submodule "submodules/catch"]
+	path = submodules/catch
+	url = https://github.com/philsquared/Catch.git
+[submodule "submodules/jsoncpp"]
+	path = submodules/jsoncpp
+	url = https://github.com/open-source-parsers/jsoncpp.git
+	ignore = dirty
+[submodule "submodules/cppzmq"]
+	path = submodules/cppzmq
+	url = https://github.com/zeromq/cppzmq.git
+[submodule "submodules/boost-predef"]
+	path = submodules/boost-predef
+	url = https://github.com/boostorg/predef.git
+[submodule "submodules/cppevent"]
+	path = submodules/cppevent
+	url = https://github.com/Joeasaurus/cppevent.git
+[submodule "submodules/ucm"]
+	path = submodules/ucm
+	url = https://github.com/onqtam/ucm.git
+[submodule "submodules/dlfcn-win32"]
+	path = submodules/dlfcn-win32
+	url = https://github.com/dlfcn-win32/dlfcn-win32.git

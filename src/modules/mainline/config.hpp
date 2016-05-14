@@ -1,22 +1,32 @@
 #pragma once
 // Common
 #include "main/module.hpp"
+#include "Eventer.hpp"
 // Module Specific
 #include <boost/filesystem.hpp>
-#include <libconfig.h++>
+#include <fstream>
+
+using namespace cppm;
+using namespace cppm::messages;
+using namespace cppevent;
 
 class ConfigModule : public Module {
 	public:
-		ConfigModule();
-		~ConfigModule();
-		bool run();
-		bool process_message(const json::value& message, CatchState cought, SocketType sockT);
+		Eventer _eventer;
 
-		bool loadConfigFile(std::string filepath);
+		ConfigModule() : Module("config", "Joe Eaves"){};
+		~ConfigModule();
+		void setup();
+		void tick();
+		bool process_command(const Message& message);
+		bool process_input(const Message& message);
+
+		bool loadConfigFile(string filepath);
 	private:
-		libconfig::Config config;
+		Message configOnDisk;
+		string configFilepath = "/home/jme/code/cppmodules/build/modules/main.cfg";
 };
 
 // Init/Del functions.
-extern "C" ConfigModule* loadModule();
-extern "C" void unloadModule(ConfigModule* module);
+extern "C" CPPMAPI ConfigModule* createModule();
+extern "C" CPPMAPI void destroyModule(ConfigModule* module);

@@ -1,274 +1,275 @@
 #pragma once
+#include "boost/predef.h"
+
+// We have to do some icky things on Windows!
+#if BOOST_OS_WINDOWS
+	#if defined(MODULE_EXPORT)
+		#define CPPMAPI __declspec(dllexport)
+	#else
+		#define CPPMAPI __declspec(dllimport)
+	#endif
+
+	__pragma(warning(push))
+	__pragma(warning(disable:4127))
+	#include "zmq.hpp"
+	__pragma(warning(pop))
+#else
+	#define CPPMAPI
+	#include "zmq.hpp"
+#endif
+
 // Common
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <regex>
+#include <algorithm>
 
 #include <thread>
 #include <chrono>
 #include <functional>
 
-#include <zmq.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "lib/spdlog/spdlog.h"
-#include "lib/cpp-json/json.h"
+#include "main/logger.hpp"
+#include "main/messages/command.hpp"
+#include "main/messages/input.hpp"
+#include "main/messages/output.hpp"
 
-typedef struct ModuleInfo {
-	std::string name = "undefined module";
-	std::string author = "mainline";
-} ModuleInfo;
+using namespace std;
+using namespace zmq;
+namespace algorithm = boost::algorithm;
 
-typedef struct M_Message {
-	json::object message;
-} M_Message;
+namespace cppm {
+	using namespace messages;
+	class ModuleCOM;
 
-enum class MgmtCommand {
-	REGISTER,
-	CLOSE
-};
+	typedef struct ModuleInfo {
+		string name = "undefined module";
+		string author = "mainline";
+	} ModuleInfo;
 
-enum class CatchState {
-	NO_TOKENS,
-	CLOSE_HEARD,
-	NOT_FOR_ME,
-	FOR_ME
-};
+	class Module {
+		friend class ModuleCOM;
+		// Variables first
+		protected:
+			Logger     _logger;
+			ModuleInfo __info;
+			shared_ptr<context_t> inp_context;
 
-enum class SocketType {
-	PUB,
-	SUB,
-	MGM_IN,
-	MGM_OUT
-};
+		private:
+			socket_t* inp_in;
+			socket_t* inp_out;
+			chrono::system_clock::time_point timeNow;
+			mutex _moduleSockMutex;
+			atomic<bool> _connected{false};
 
-class Module {
-	protected:
-		ModuleInfo __info;
-		zmq::context_t* inp_context;
-		zmq::socket_t* inp_manage_in;
-		zmq::socket_t* inp_manage_out;
-		zmq::socket_t* inp_in;
-		zmq::socket_t* inp_out;
-		std::shared_ptr<spdlog::logger> logger;
-	public:
-		virtual ~Module(){};
-		virtual bool run()=0;
-		virtual bool process_message(const json::value& message, CatchState cought, SocketType sockT)=0;
-		virtual std::string name() {
-			return this->__info.name;
-		};
-		void setLogger(const std::shared_ptr<spdlog::logger> loggerHandle) {
-			this->logger = loggerHandle;
-			this->logger->debug("{}: Logger Open", this->name());
-		};
-		void setSocketContext(zmq::context_t* context) {
-			this->inp_context = context;
-		};
-		void openSockets() {
-			std::string inPoint = "inproc://" + this->name() + ".in";
-			std::string managePoint = "inproc://" + this->name() + ".manage";
-			try {
-				this->inp_in = new zmq::socket_t(*this->inp_context, ZMQ_SUB);
-				this->inp_out = new zmq::socket_t(*this->inp_context, ZMQ_PUB);
-				this->inp_manage_in = new zmq::socket_t(*this->inp_context, ZMQ_REP);
-				this->inp_manage_out = new zmq::socket_t(*this->inp_context, ZMQ_REQ);
-
-				this->inp_in->bind(inPoint.c_str());
-				this->inp_manage_in->bind(managePoint.c_str());
-				this->logger->debug("{}: Sockets Open", this->name());
-			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
-			}
-		};
-		void closeSockets() {
-			try {
-				this->inp_in->close();
-				this->inp_out->close();
-				this->inp_manage_in->close();
-				this->inp_manage_out->close();
-			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
-			}
-
-			delete this->inp_in;
-			delete this->inp_out;
-			delete this->inp_manage_in;
-			delete this->inp_manage_out;
-		};
-		void notify(SocketType sockT, std::string endpoint) {
-			endpoint = "inproc://" + endpoint;
-			try {
-				if (sockT == SocketType::PUB) {
-					endpoint += ".in";
-					this->inp_out->connect(endpoint.c_str());
-				} else if (sockT == SocketType::MGM_OUT) {
-					endpoint += ".manage";
-					this->inp_manage_out->connect(endpoint.c_str());
-				}
-			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
-			}
-		};
-		void subscribe(std::string channel) {
-			try{
-				this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
-			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
-			}
-		};
-		M_Message newMessage(std::string destination, json::object data) {
-			return M_Message{
-				json::object{
-					{ "source", this->name() },
-					{ "destination", destination },
-					{ "data",  data }
-				}
+		// Now our functions
+		public:
+			Module(string name, string author) {
+				this->__info.name   = name;
+				this->__info.author = author;
+				this->timeNow = chrono::system_clock::now();
 			};
-		};
-		bool sendMessage(SocketType sockT, std::string destination, json::object msg) {
-			bool sendErr = false;
+			virtual ~Module(){};
 
-			M_Message message = newMessage(destination, msg);
-			std::string message_string = destination + " " + json::stringify(message.message);
+			virtual void tick(){};
+			virtual void setup()=0;
+			inline bool pollAndProcess();
 
-			zmq::message_t zmqObject(message_string.length());
-			memcpy(zmqObject.data(), message_string.data(), message_string.length());
+			virtual bool process_command(const Message& msg)=0;
+			virtual bool process_input  (const Message& msg)=0;
+			virtual bool process_output (const Message& /* msg */) {return true;};
+			virtual bool process_message(const Message& /* msg */) {return true;};
+
+			inline string name() const;
+
+			inline void setSocketContext(shared_ptr<context_t> context);
+
+		protected:
+			inline void openSockets(string parent = "__bind__");
+			inline void closeSockets();
+
+			inline string getChannel(string in);
+
+			inline void subscribe(CHANNEL chan);
+			inline void subscribe(const string& chan);
+
+			inline bool sendMessage(Message wMsg) const;
+
+			template<typename retType>
+			inline retType recvMessage(function<retType(const Message&)> callback, long timeout=1000);
+
+			inline void errLog(string message) const;
+	};
+
+/* **********
+ * Public Functions
+ */
+	string Module::name() const {
+		return this->__info.name;
+	};
+
+
+	void Module::setSocketContext(shared_ptr<context_t> context)
+	{
+		this->inp_context = context;
+	};
+
+
+/* **********
+ * Protected Functions
+ */
+	void Module::openSockets(string parent) {
+		lock_guard<mutex> lock(_moduleSockMutex);
+		if (!_connected.load()) {
+			auto nm = name();
+			string inPoint = "inproc://";
+			string outPoint = "inproc://";
 
 			try {
-				if (sockT == SocketType::PUB || sockT == SocketType::SUB) {
-					sendErr = this->inp_out->send(zmqObject);
-				} else if (sockT == SocketType::MGM_IN) {
-					sendErr = this->inp_manage_in->send(zmqObject);
-				} else if (sockT == SocketType::MGM_OUT) {
-					sendErr = this->inp_manage_out->send(zmqObject);
-				}
-			} catch (const zmq::error_t &e) {
-				std::cout << e.what() << std::endl;
-			}
+				inp_in = new socket_t(*inp_context, ZMQ_SUB);
+				inp_out = new socket_t(*inp_context, ZMQ_PUB);
 
-			return sendErr;
+				if (parent == "__bind__") {
+					inPoint += nm + ".sub";
+					outPoint += nm + ".pub";
+					inp_in->bind(inPoint.c_str());
+					inp_out->bind(outPoint.c_str());
+
+					// The binder will listen to our output and route it for us
+					subscribe(CHANNEL::Out);
+				} else {
+					// We sub their pub and v/v
+					inPoint += parent + ".pub";
+					outPoint += parent + ".sub";
+					inp_in->connect(inPoint.c_str());
+					inp_out->connect(outPoint.c_str());
+
+					// The connector will listen on a named channel for directed messages
+					subscribe(chanToStr[CHANNEL::In]  + "-" + nm);
+					subscribe(chanToStr[CHANNEL::Cmd] + "-" + nm);
+				}
+
+				// In and Command are global channels, everyone hears these
+				subscribe(CHANNEL::In);
+				subscribe(CHANNEL::Cmd);
+
+				_logger.log(name(), "Sockets Open!", true);
+				_connected.store(true);
+			} catch (const zmq::error_t &e) {
+				errLog(e.what());
+			}
 		}
-		template<typename retType>
-		retType recvMessage(SocketType sockT,
-							std::function<retType(const json::value&)> callback,
-							long timeout=1000
-		) {
-			std::string messageText("{}");
+	};
 
-			zmq::socket_t* pollSocket;
-			zmq::pollitem_t pollSocketItems[1];
-			pollSocketItems[0].events = ZMQ_POLLIN;
+	void Module::closeSockets() {
+		this->inp_in->close();
+		this->inp_out->close();
 
-			zmq::message_t message;
+		delete this->inp_in;
+		delete this->inp_out;
+	};
 
-			if (sockT == SocketType::SUB || sockT == SocketType::PUB) {
-				pollSocketItems[0].socket = static_cast<void*>(*this->inp_in);
-				pollSocket = this->inp_in;
-			} else if (sockT == SocketType::MGM_IN) {
-				pollSocketItems[0].socket = static_cast<void*>(*this->inp_manage_in);
-				pollSocket = this->inp_manage_in;
-			} else if (sockT == SocketType::MGM_OUT) {
-				pollSocketItems[0].socket = static_cast<void*>(*this->inp_manage_out);
-				pollSocket = this->inp_manage_out;
-			}
+	void Module::subscribe(CHANNEL chan) {
+		try {
+			auto channel = chanToStr[chan];
+			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
 
-			try {
-				int data = zmq::poll(pollSocketItems, 1, timeout);
-				if (data > 0) {
-					std::cout << "DATA" << std::endl;
-					if(pollSocket->recv(&message)) {
-						messageText = std::string(static_cast<char*>(message.data()), message.size());
-					}
-				}
-			} catch (const zmq::error_t &e) {
-				std::cout << "RECV " << e.what() << std::endl;
-			}
-			// I know this is silly, we can't rely on pretty print because values are arbitray
-			//  and may have spaces.
-			// tokeniseString needs replacing with something that will only grab the module name
-			if (messageText != "{}" && messageText != "") {
-				std::vector<std::string> jsonMsg = tokeniseString(messageText);
-				jsonMsg.erase(jsonMsg.begin());
-				messageText = boost::algorithm::join(jsonMsg, " ");
-			}
-			return callback(json::parse(messageText));
-		};
-		template<typename retType>
-		retType recvMessage(zmq::socket_t* socket,
-						std::function<retType(const json::value&)> callback
-		) {
-			std::string messageText("{}");
-			zmq::message_t message;
+		} catch (const zmq::error_t &e) {
+			errLog(e.what());
+		}
+	};
 
-			if(socket->recv(&message)) {
-				messageText = std::string(static_cast<char*>(message.data()), message.size());
-			}
+	void Module::subscribe(const string& chan) {
+		try {
+			this->inp_in->setsockopt(ZMQ_SUBSCRIBE, chan.data(), chan.size());
+		} catch (const zmq::error_t &e) {
+			errLog(e.what());
+		}
+	};
 
-			// I know this is silly, we can't rely on pretty print because values are arbitray
-			//  and may have spaces.
-			// tokeniseString needs replacing with something that will only grab the module name
-			if (messageText != "{}" && messageText != "") {
-				std::vector<std::string> jsonMsg = tokeniseString(messageText);
-				jsonMsg.erase(jsonMsg.begin());
-				messageText = boost::algorithm::join(jsonMsg, " ");
-			}
-			return callback(json::parse(messageText));
-		};
-		bool catchCloseAndProcess(zmq::socket_t* socket, SocketType sockT) {
-			// Here we listen on the socket we're told to for close messages
-			// false will close us so we return that for a close message
-			// If the message is not a close but is for us,
-			//   we return the module's process_message
-			// Else just return true to keep running but not care for the message
-			return this->recvMessage<bool>(socket,
-				[&](const json::value& message) {
-					CatchState cought = CatchState::NOT_FOR_ME;
-					this->logger->debug(json::stringify(message, json::PRETTY_PRINT));
-					if (to_string(message["source"]) == "Spine" &&
-					   (to_string(message["destination"]) == "Modules" ||
-						to_string(message["destination"]) == this->name()
-					)) {
-						cought = CatchState::FOR_ME;
-						if (json::has_key(message["data"], "command")) {
-							if (to_string(message["data"]["command"]) == "close") {
-								return false;
-							}
-						}
-					}
-					return this->process_message(message, cought, sockT);
-				});
-		};
-		bool pollAndProcess(long timeout=1000) {
-			int pollSocketCount = 2;
-			zmq::pollitem_t pollSocketItems[] = {
-				{ static_cast<void*>(*this->inp_manage_in), 0, ZMQ_POLLIN, 0 },
-				{ static_cast<void*>(*this->inp_in), 0, ZMQ_POLLIN, 0 }
-			};
+	bool Module::sendMessage(Message wMsg) const {
+		bool sendOk = false;
 
-			if (zmq::poll(pollSocketItems, pollSocketCount, timeout) > 0) {
-				std::cout << "DATA! " << std::endl;
-				if (pollSocketItems[0].revents & ZMQ_POLLIN) {
-					return this->catchCloseAndProcess(this->inp_manage_in, SocketType::MGM_IN);
-				}
-				if (pollSocketItems[1].revents & ZMQ_POLLIN) {
-					return this->catchCloseAndProcess(this->inp_in, SocketType::SUB);
-				}
-			}
-			return true;
-		};
-		std::vector<std::string> tokeniseString(const std::string& message) {
-			std::vector<std::string> messageTokens;
-			if (!message.empty()) {
-				boost::split(messageTokens, message, boost::is_any_of(" "));
- 			}
+		auto message_string = wMsg.format();
+		// _logger.log(name(), "Formatted, before sending ---- " + message_string);
 
-			return messageTokens;
+		message_t zmqObject(message_string.length());
+		memcpy(zmqObject.data(), message_string.data(), message_string.length());
+
+		try {
+			sendOk = this->inp_out->send(zmqObject);
+		} catch (const zmq::error_t &e) {
+			errLog(e.what());
+		}
+
+		return sendOk;
+	};
+
+	template<typename retType>
+	retType Module::recvMessage(function<retType(const Message&)> callback, long timeout) {
+		pollitem_t pollSocketItems[] = {
+			{ (void*)*this->inp_in, 0, ZMQ_POLLIN, 0 }
 		};
 
-};
+		message_t zMessage;
 
-typedef Module* Module_loader(void);
-typedef void Module_unloader(Module*);
+		try {
+			if (zmq::poll(pollSocketItems, 1, timeout) > 0 && inp_in->recv(&zMessage)) {
+				auto normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
+
+				Message msg;
+				msg.payload(normMsg, false);
+				//_logger.log(name(), "Normalised, before processing --- " + normMsg);
+
+				return callback(msg);
+			}
+
+		} catch (const zmq::error_t &e) {
+			errLog(e.what());
+
+		}
+
+		Message msg;
+		return callback(msg);
+	};
+
+
+	bool Module::pollAndProcess() {
+		return this->recvMessage<bool>([&](const Message& msg) {
+			// No breaks, all return.
+			switch (msg.m_chan) {
+				case CHANNEL::None:
+					return false;
+				case CHANNEL::Cmd:
+					//TODO: We should check for nice close messages here?
+					return process_command(msg);
+				case CHANNEL::In:
+					return process_input(msg);
+				case CHANNEL::Out:
+					return process_output(msg);
+			}
+
+			return this->process_message(msg);
+		});
+	};
+
+
+/* **********
+ * Private Functions
+ */
+ 	void Module::errLog(string message) const {
+		_logger.getLogger()->error(this->name() + ": " + message);
+	};
+}
+
+/* Export the module
+ *
+ * These functions should be overriden and set 'export "C"' on.
+ * These functions allow us to load the module dynamically via <dlfcn.h>
+ */
+typedef CPPMAPI cppm::Module* Module_ctor(void);
+typedef CPPMAPI void Module_dctor(cppm::Module*);
