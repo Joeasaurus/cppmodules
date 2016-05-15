@@ -24,7 +24,7 @@ endif()
 include_directories("${CMAKE_SOURCE_DIR}/submodules/cppevent/include")
 add_library(mainline_config SHARED
 	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/submodules/jsoncpp/dist/jsoncpp.cpp
+    ${BOTH_COMPILE_FILES}
 )
 
 target_link_libraries(mainline_config

@@ -3,21 +3,16 @@
 
 #include "ModuleInterfaceFixture.hpp"
 
-SCENARIO("A module performs public API correctly", "[spine,logger]") {
-	GIVEN("the logger is created") {
+SCENARIO("Module private methods work correctly", "[ModuleAPI]") {
+	GIVEN("a Module child instance is created") {
 		auto module = new InterfaceFixture();
 
-		WHEN("The module is created") {
-			THEN("run() returns false!") {
-				REQUIRE(!module->run());
+		WHEN("nothing else has happened") {
+			THEN("module name is 'InterfaceFixture'") {
+				REQUIRE(module->name() == "InterfaceFixture");
 			}
 		}
 
-		WHEN("The module is created") {
-			const Message msg;
-			THEN("process_message() returns true") {
-				REQUIRE(module->process_message(msg, CatchState::FOR_ME, SocketType::PUB));
-			}
-		}
+		delete module;
 	}
 }

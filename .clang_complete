@@ -4,4 +4,5 @@
 -Isubmodules/catch/single_include
 -Isubmodules/cppzmq
 -Isubmodules/boost-predef/include
--Ibuild/generated
+-Icmko/generated
+-Wno-pragma-once-outside-header

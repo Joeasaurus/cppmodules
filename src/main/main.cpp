@@ -10,19 +10,42 @@ using namespace cppm;
 using namespace std;
 
 int main(int argc, char **argv) {
+
 	Logger logger;
+	string modPath = "NONE";
+	auto context = make_shared<zmq::context_t>(1);
 
 	// This is a quick fix for debug logging by managing argv ourselves
 	// We'll move to an option parser later
-	logger.setDebug(argc > 1 && strcmp(argv[1], "debug") == 0);
+	if (argc > 1) {
 
-	Spine spine;
+		if (strcmp(argv[1], "debug") == 0) {
+			logger.setDebug(true);
+		} else {
+			modPath = argv[1];
+		}
 
-	if (spine.loadModules()) {
-		while (spine.isRunning()) {
-			spine.pollAndProcess();
-			spine.tick();
+		if (argc > 2 && strcmp(argv[1], "debug") == 0) {
+			logger.setDebug(true);
+			modPath = argv[2];
 		}
 	}
-	return false;
+
+	if (modPath == "NONE")
+		return 1;
+
+	Spine spine(context);
+
+	if (spine.loadModules(modPath)) {
+		while (spine.isRunning()) {
+			try {
+				spine.polltick();
+			} catch (exception& e) {
+				cout << "CAUGHT POLLTICK IN MAIN " << e.what() << endl;
+			}
+		}
+		return 0;
+	}
+
+	return 1;
 }

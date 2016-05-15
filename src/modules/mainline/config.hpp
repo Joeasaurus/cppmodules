@@ -1,10 +1,11 @@
 #pragma once
 // Common
 #include "main/module.hpp"
-#include "Eventer.hpp"
+#include "main/messages/messages.hpp"
 // Module Specific
 #include <boost/filesystem.hpp>
 #include <fstream>
+#include "Eventer.hpp"
 
 using namespace cppm;
 using namespace cppm::messages;
@@ -18,8 +19,6 @@ class ConfigModule : public Module {
 		~ConfigModule();
 		void setup();
 		void tick();
-		bool process_command(const Message& message);
-		bool process_input(const Message& message);
 
 		bool loadConfigFile(string filepath);
 	private:

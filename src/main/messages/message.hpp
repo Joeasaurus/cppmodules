@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iostream>
 #include <string>
+#include <boost/algorithm/string.hpp>
 #include "main/messages/channels.hpp"
 
 using namespace std;
@@ -33,7 +35,7 @@ namespace cppm {
 					if (h_b.size() > 2) {
 						h_b.erase(h_b.begin());
 						h_b.erase(h_b.begin());
-						for (auto& tk : h_b) 
+						for (auto& tk : h_b)
 							_data += ";" + tk;
 					}
 
@@ -84,14 +86,14 @@ namespace cppm {
 					try {
 						auto fields = tokeniseString(splitHeadAndData(in), " ");
 						auto chans  = tokeniseString(fields.at(0), "-");
-						
+
 						if (chans.size() == 2) {
 							m_to = chans.at(1);
 							m_chantype = ChannelType::Directed;
 						} else {
 							m_chantype = ChannelType::Global;
 						}
-						
+
 						m_chan = strToChan[chans.at(0)];
 						m_from = fields.at(1);
 					} catch (exception& e) {
@@ -106,7 +108,7 @@ namespace cppm {
 					string to = " ";
 					if (m_to != "")
 						to   = "-" + m_to + to;
-					
+
 					return chanToStr[m_chan] + to + m_from + ";" + _data;
 				};
 		};

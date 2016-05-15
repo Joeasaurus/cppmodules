@@ -5,32 +5,15 @@
 
 using namespace cppm;
 
-class SpineTestsFixture {
-	private:
-		Spine* spine;
-	public:
-		SpineTestsFixture() {
-			spine = new Spine(false);
-		}
-		~SpineTestsFixture() {
-			delete spine;
-		}
-	protected:
-		bool SpineLoadModules() {
-			return spine->loadModules(spine->moduleFileLocation);
-		}
-		bool SpineDefaultModulesLoaded() {
-			return spine->isModuleLoaded("config");
-		}
-		bool SpineConfigIsLoaded() {
-			return spine->loadConfig(spine->moduleFileLocation + "/main.cfg");
-		}
- };
+SCENARIO("Spine basic initialisation", "[SpineAPI]") {
+	GIVEN("a spine is created") {
+		Spine spine;
+		REQUIRE(spine.isRunning());
 
-TEST_CASE_METHOD(SpineTestsFixture, "All", "[spine,modules,config]") {
-	SECTION("Public spine functions") {
-		REQUIRE(SpineLoadModules());
-		REQUIRE(SpineDefaultModulesLoaded());
-		REQUIRE(SpineConfigIsLoaded());
+		WHEN("nothing else has happened") {
+			THEN("the spine has no loaded modules") {
+				REQUIRE(spine.loadedModules().size() == 0);
+			}
+		}
 	}
 }

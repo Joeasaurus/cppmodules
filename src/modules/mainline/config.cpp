@@ -2,7 +2,6 @@
 
 ConfigModule::~ConfigModule()
 {
-	this->closeSockets();
 	_logger.log(name(), "Closed", true);
 }
 
@@ -25,6 +24,16 @@ bool ConfigModule::loadConfigFile(string filepath)
 }
 
 void ConfigModule::setup() {
+	_socketer->on("process_command", [&](const Message& message) {
+		_logger.log(name(), message.format(), true);
+		return true;
+	});
+
+	_socketer->on("process_input", [&](const Message& message) {
+		_logger.log(name(), message.format(), true);
+		return true;
+	});
+
 	_eventer.on("config-reload", [&](chrono::milliseconds) {
 		// Never true because the path is static and it's changed now!
 		// Need to think about how we specify stuff like that!
@@ -33,7 +42,7 @@ void ConfigModule::setup() {
 			Command configUpdate(this->name());
 			configUpdate.payload("updated");
 
-			if (sendMessage(configUpdate))
+			if (_socketer->sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
 		}
 	}, chrono::milliseconds(5000), EventPriority::LOW);
@@ -41,23 +50,11 @@ void ConfigModule::setup() {
 
 	Command moduleRunning(name());
 	moduleRunning.payload("module-loaded");
-	sendMessage(moduleRunning);
+	_socketer->sendMessage(moduleRunning);
 }
 
 void ConfigModule::tick() {
 	_eventer.emitTimedEvents();
-}
-
-bool ConfigModule::process_command(const Message& message)
-{
-	_logger.log(name(), message.format(), true);
-	return true;
-}
-
-bool ConfigModule::process_input(const Message& message)
-{
-	_logger.log(name(), message.format(), true);
-	return true;
 }
 
 ConfigModule* createModule(){return new ConfigModule;}

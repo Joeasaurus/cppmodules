@@ -1,6 +1,6 @@
 #pragma once
-// Common
 #include "main/module.hpp"
+#include "main/messages/messages.hpp"
 #include "Eventer.hpp"
 
 using namespace cppm;
