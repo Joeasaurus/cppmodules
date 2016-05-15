@@ -11,6 +11,8 @@ Spine::Spine(shared_ptr<context_t> ctx) : Module("Spine", "Joe Eaves") {
 			_running.store(false);
 		}, chrono::milliseconds(10000), EventPriority::HIGH);
 
+		hookSocketCommands();
+
 		_running.store(true);
 	}
 }
@@ -165,29 +167,31 @@ set<string> Spine::loadedModules() {
 	return _loadedModules;
 }
 
-bool Spine::process_command(const Message& msg) {
-	_logger.log(name(), "CMD HEARD " + msg.payload(), true);
-	if (msg.m_from == "config") {
-		if (msg.payload() == "updated") {
+void Spine::hookSocketCommands() {
+	_socketer->on("process_command", [&](const Message& msg) {
+		_logger.log(name(), "CMD HEARD " + msg.payload(), true);
+		if (msg.m_from == "config") {
+			if (msg.payload() == "updated") {
 
-			Command msg(name(), "config");
-			msg.payload("get-config module-dir");
-			_socketer->sendMessage(msg);
+				Command msg(name(), "config");
+				msg.payload("get-config module-dir");
+				_socketer->sendMessage(msg);
+			}
 		}
-	}
-	return true;
-}
+		return true;
+	});
 
-bool Spine::process_input(const Message& msg) {
-	_logger.log(name(), "INPUT HEARD " + msg.payload(), true);
-	return true;
-}
+	_socketer->on("process_input", [&](const Message& msg) {
+		_logger.log(name(), "INPUT HEARD " + msg.payload(), true);
+		return true;
+	});
 
-bool Spine::process_output(const Message& msg) {
-	// HERE ENSUES THE ROUTING
-	// The spine manages chains of modules, so we forward from out to in down the chains
-	_logger.log(name(), "OUTPUT HEARD " + msg.payload(), true);
-	return true;
+	_socketer->on("process_output", [&](const Message& msg) {
+		// HERE ENSUES THE ROUTING
+		// The spine manages chains of modules, so we forward from out to in down the chains
+		_logger.log(name(), "OUTPUT HEARD " + msg.payload(), true);
+		return true;
+	});
 }
 
 bool Spine::isRunning() {

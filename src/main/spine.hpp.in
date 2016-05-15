@@ -54,6 +54,8 @@ namespace cppm {
 			void registerModule(const string& name);
 			void unregisterModule(const string& name);
 
+			void hookSocketCommands();
+
 		public:
 			Spine(shared_ptr<context_t> ctx);
 			~Spine();

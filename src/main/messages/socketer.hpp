@@ -16,9 +16,11 @@
 
 #include "main/logger.hpp"
 #include "main/messages/messages.hpp"
+#include "main/exceptions/exceptions.hpp"
 
 using namespace std;
 using namespace zmq;
+using namespace cppm::exceptions::socketer;
 
 namespace cppm { namespace messages {
     class Socketer {
@@ -32,6 +34,7 @@ namespace cppm { namespace messages {
             atomic<bool> _connected{false};
 
             map<string, function<bool(const Message&)>> processCallbacks;
+			bool emit(string hookName, const Message& msg);
 
         public:
             Socketer(shared_ptr<context_t> ctx);
@@ -43,7 +46,7 @@ namespace cppm { namespace messages {
             bool pollAndProcess();
             bool isConnected() const;
 
-            void hook(string hookName, function<bool(const Message&)> callback);
+            void on(string hookName, function<bool(const Message&)> callback);
 
             void subscribe(CHANNEL chan);
             void subscribe(const string& chan);

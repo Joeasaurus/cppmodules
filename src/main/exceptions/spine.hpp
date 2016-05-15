@@ -19,7 +19,6 @@ namespace cppm { namespace exceptions { namespace spine {
 				cnvt.str("");
 
 				cnvt << runtime_error::what() << ": " << message;
-                //cout << cnvt.str() << endl;
 
 				return strdup(cnvt.str().c_str());
 			}

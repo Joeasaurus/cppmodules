@@ -68,32 +68,39 @@ void Socketer::closeSockets() {
 };
 
 bool Socketer::pollAndProcess() {
-    try {
     return recvMessage<bool>([&](const Message& msg) {
-        // No breaks, all return.
-        switch (msg.m_chan) {
-            case CHANNEL::None:
-                return false;
-            case CHANNEL::Cmd:
-                //TODO: We should check for nice close messages here?
-                return processCallbacks["process_command"](msg);
-            case CHANNEL::In:
-                return processCallbacks["process_input"](msg);
-            case CHANNEL::Out:
-                return processCallbacks["process_output"](msg);
-        }
+        try {
+            // No breaks, all return.
+            switch (msg.m_chan) {
+                case CHANNEL::None:
+                    return false;
+                case CHANNEL::Cmd:
+                    //TODO: We should check for nice close messages here?
+                    return emit("process_command", msg);
+                case CHANNEL::In:
+                    return emit("process_input", msg);
+                case CHANNEL::Out:
+                    return emit("process_output", msg);
+            }
 
-        return processCallbacks["process_message"](msg);
+            return emit("process_message", msg);
+        } catch (NonExistantHook& e) {
+            _logger.log(name, e.what(), true);
+            return false;
+        }
     });
-    } catch (exception& e) {
-        cout << "CAUGHT RECV_MESSAGE " << e.what() << endl;
-    }
-    return false;
 };
 
-void Socketer::hook(string hookName, function<bool(const Message&)> callback) {
+void Socketer::on(string hookName, function<bool(const Message&)> callback) {
     processCallbacks[hookName] = callback;
 };
+
+bool Socketer::emit(string hookName, const Message& msg) {
+    if (processCallbacks.find(hookName) != processCallbacks.end())
+        return processCallbacks[hookName](msg);
+
+    throw NonExistantHook(hookName);
+}
 
 bool Socketer::isConnected() const {
     auto t = _connected.load();
