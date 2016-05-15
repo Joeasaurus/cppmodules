@@ -2,7 +2,6 @@
 
 ConfigModule::~ConfigModule()
 {
-	this->closeSockets();
 	_logger.log(name(), "Closed", true);
 }
 
@@ -33,15 +32,15 @@ void ConfigModule::setup() {
 			Command configUpdate(this->name());
 			configUpdate.payload("updated");
 
-			if (sendMessage(configUpdate))
+			if (_socketer->sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
 		}
 	}, chrono::milliseconds(5000), EventPriority::LOW);
-
-
+	//
+	//
 	Command moduleRunning(name());
 	moduleRunning.payload("module-loaded");
-	sendMessage(moduleRunning);
+	_socketer->sendMessage(moduleRunning);
 }
 
 void ConfigModule::tick() {

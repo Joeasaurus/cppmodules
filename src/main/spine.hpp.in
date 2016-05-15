@@ -1,7 +1,9 @@
 #pragma once
 // Common
-#include "main/module.hpp"
-#include "main/modulecom.hpp"
+#include "main/logger.hpp"
+#include "main/messages/messages.hpp"
+#include "main/messages/socketer.hpp"
+#include "main/exceptions/exceptions.hpp"
 // Module Specific
 #include <dlfcn.h>
 #include <mutex>
@@ -15,10 +17,14 @@
 #include <boost/range/iterator_range_core.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "main/module.hpp"
+#include "main/modulecom.hpp"
+
 #include "Eventer.hpp"
 
 using namespace zmq;
 using namespace cppm::messages;
+using namespace cppm::exceptions::spine;
 using namespace cppevent;
 
 namespace cppm {
@@ -40,25 +46,32 @@ namespace cppm {
 			set<string> _loadedModules;
 			Eventer _eventer;
 
-			bool isModuleFile(const string& filename);
-			set<string> listModules(const string& directory) const;
-		public:
-			Spine();
-			~Spine();
-			void setup(){};
-			bool process_command(const Message& msg);
-			bool process_input  (const Message& msg);
-			bool process_output (const Message& msg);
-			bool loadModules();
-			bool loadModules(const string& directory);
-			bool loadModule(const string& filename);
-			bool isModuleLoaded(std::string moduleName);
 			const string moduleFileLocation = "@MODULES_LOCATION@";
-			bool isRunning();
-			void tick();
+			set<string> listModuleFiles(const string& directory) const;
+			void listModuleFiles(set<string>& destination, const string& directory) const;
+			bool isModuleFile(const string& filename);
 
 			void registerModule(const string& name);
 			void unregisterModule(const string& name);
+
+		public:
+			Spine(shared_ptr<context_t> ctx);
+			~Spine();
+			void setup(){};
+			void tick();
+
+			bool process_command(const Message& msg);
+			bool process_input  (const Message& msg);
+			bool process_output (const Message& msg);
+
+			bool loadModules(const string& directory);
+			bool loadModule(const string& filename);
+
+			set<string> loadedModules();
+
+			bool isModuleLoaded(std::string moduleName);
+			bool isRunning();
+
 	};
 }
 

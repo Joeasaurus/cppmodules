@@ -1,10 +1,11 @@
 #pragma once
 // Common
 #include "main/module.hpp"
-#include "Eventer.hpp"
+#include "main/messages/messages.hpp"
 // Module Specific
 #include <boost/filesystem.hpp>
 #include <fstream>
+#include "Eventer.hpp"
 
 using namespace cppm;
 using namespace cppm::messages;

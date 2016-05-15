@@ -1,6 +1,6 @@
 #### COMMON ####
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(flags "-std=c++11 -Wall -Wextra -g")
+    set(flags "-std=c++11 -Wall -Wextra -g -Wno-unused-parameter")
 
 	set(CMAKE_CXX_FLAGS "${flags}"
 		CACHE STRING "Flags used by the compiler during all build types." FORCE)
@@ -18,6 +18,9 @@ include_directories(AFTER
 
 set(BOTH_LINK_LIBRARIES
 	-lzmq
+)
+set(BOTH_COMPILE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
 )
 
 #### PER SYSTEM ####
@@ -37,8 +40,8 @@ endif()
 
 #### MAIN ####
 add_executable(cppmodules
-	src/main/main.cpp
-	src/main/spine.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/main/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
 	${BOTH_COMPILE_FILES}
 )
 configure_file("src/main/spine.hpp.in" "${CMAKE_BINARY_DIR}/generated/main/spine.hpp")

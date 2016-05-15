@@ -17,8 +17,9 @@ namespace cppm {
 			inline static void setDebug(bool debug = false);
 			inline shared_ptr<logger> getLogger() const;
 
-			inline virtual void log(const string& title, const string& data, bool debug = false);
-			inline virtual void null(const string& data);
+			inline virtual void log(const string& title, const string& data, bool debug = false) const;
+			inline virtual void err(const string& title, const string& data) const;
+			inline virtual void null(const string& data) const;
 
 		private:
 			string _name{"Logger"};
@@ -53,14 +54,18 @@ namespace cppm {
 		return _logger;
 	};
 
-	void Logger::log(const string& title, const string& data, bool debug) {
+	void Logger::log(const string& title, const string& data, bool debug) const {
 		if (debug)
 			_logger->debug("{}: {}", title, data);
 		else
 			_logger->info("{}: {}", title, data);
 	};
 
-	void Logger::null(const string& data) {
+	void Logger::err(const string& title, const string& data) const {
+		_logger->error("{}: {}", title, data);
+	};
+
+	void Logger::null(const string& data) const {
 		_null_logger->info(data);
 	};
 

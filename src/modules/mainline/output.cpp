@@ -2,20 +2,19 @@
 
 OutputModule::~OutputModule()
 {
-	this->closeSockets();
 	_logger.log(name(), "Closed", true);
 }
 
 void OutputModule::setup() {
+
 	_eventer.on("echoTime", [&](chrono::milliseconds) {
 		message.payload("echoTime");
-		sendMessage(message);
+		_socketer->sendMessage(message);
 	}, chrono::milliseconds(1000), EventPriority::LOW);
-
 
 	Command moduleRunning(name());
 	moduleRunning.payload("module-loaded");
-	sendMessage(moduleRunning);
+	_socketer->sendMessage(moduleRunning);
 }
 
 void OutputModule::tick() {

@@ -7,11 +7,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" AND NOT ${MODDONE})
 endif()
 
 #### MODULES ####
-
-set(MODULES
-    "mainline\;config\;output"
-)
-
 foreach(group ${MODULES})
     list(GET group 0 MODULE_GROUP_NAME)
     createExtrasList(${MODULE_GROUP_NAME} GROUP_MODULES MODULES)
