@@ -67,8 +67,11 @@ namespace cppm {
 				if(_socketer && _socketer->isConnected())
 				try {
 					_socketer->pollAndProcess();
-				} catch (exception& e) {
-					cout << "CAUGHT POLL_AND_PROCESS in POLLTICK " << e.what() << endl;
+				} catch (NonExistantHook& e) {
+					if (e.isCritical()) {
+						string warning = "[Critical] ";
+						_logger.err(name(), warning + e.what());
+					}
 				}
 				tick();
 			};

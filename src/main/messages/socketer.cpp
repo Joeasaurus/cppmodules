@@ -69,25 +69,24 @@ void Socketer::closeSockets() {
 
 bool Socketer::pollAndProcess() {
     return recvMessage<bool>([&](const Message& msg) {
-        try {
-            // No breaks, all return.
-            switch (msg.m_chan) {
-                case CHANNEL::None:
-                    return false;
-                case CHANNEL::Cmd:
-                    //TODO: We should check for nice close messages here?
-                    return emit("process_command", msg);
-                case CHANNEL::In:
-                    return emit("process_input", msg);
-                case CHANNEL::Out:
-                    return emit("process_output", msg);
-            }
+        // No breaks, all return.
+        switch (msg.m_chan) {
 
-            return emit("process_message", msg);
-        } catch (NonExistantHook& e) {
-            _logger.log(name, e.what(), true);
-            return false;
+            case CHANNEL::None:
+                return false;
+
+            case CHANNEL::Cmd:
+                //TODO: We should check for nice close messages here?
+                return emit("process_command", msg);
+
+            case CHANNEL::In:
+                return emit("process_input", msg);
+
+            case CHANNEL::Out:
+                return emit("process_output", msg);
         }
+
+        return emit("process_message", msg);
     });
 };
 

@@ -24,10 +24,10 @@ bool ConfigModule::loadConfigFile(string filepath)
 }
 
 void ConfigModule::setup() {
-	_socketer->on("process_command", [&](const Message& message) {
-		_logger.log(name(), message.format(), true);
-		return true;
-	});
+	// _socketer->on("process_command", [&](const Message& message) {
+	// 	_logger.log(name(), message.format(), true);
+	// 	return true;
+	// });
 
 	_socketer->on("process_input", [&](const Message& message) {
 		_logger.log(name(), message.format(), true);

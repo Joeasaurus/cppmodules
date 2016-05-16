@@ -101,9 +101,9 @@ bool Spine::loadModule(const string& filename) {
 			if (com.initModule(name(), _socketer->getContext()) && _running.load()) {
 
 				registerModule(com.moduleName);
-		//
+
 				_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
-		//
+
 				try {
 					com.module->setup();
 					while (_running.load()) {
@@ -120,13 +120,13 @@ bool Spine::loadModule(const string& filename) {
 				} catch (const std::exception& ex) {
 					cout << ex.what() << endl;
 				}
-		//
-		// 		// Here the module is essentially dead, but not the thread
-		// 		//TODO: Module reloading code, proper shutdown handlers etc.
+
+				// Here the module is essentially dead, but not the thread
+				//TODO: Module reloading code, proper shutdown handlers etc.
 				com.deinitModule();
 				unregisterModule(com.moduleName);
 			}
-		//
+		
 			this_thread::sleep_for(chrono::milliseconds(1000));
 			com.unloadLibrary();
 		}

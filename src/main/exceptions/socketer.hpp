@@ -11,8 +11,7 @@ namespace cppm { namespace exceptions { namespace socketer {
 	class NonExistantHook: public runtime_error {
 		public:
 
-			NonExistantHook(const string& hook)
-				: runtime_error( "NonExistantHook" ), hookName(hook){};
+			NonExistantHook(const string& hook) : runtime_error( "NonExistantHook" ), hookName(hook) {};
 
 			virtual const char* what() const noexcept {
 				ostringstream cnvt;
@@ -22,7 +21,13 @@ namespace cppm { namespace exceptions { namespace socketer {
 
 				return strdup(cnvt.str().c_str());
 			}
+
+			bool isCritical() const noexcept {
+				if (hookName == "process_command" || hookName == "process_input")
+					return true;
+				return false;
+			}
 		private:
-			string hookName;
+			const string hookName;
 	};
 }}}
