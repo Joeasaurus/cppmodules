@@ -7,7 +7,8 @@ using namespace cppm;
 
 SCENARIO("Spine basic initialisation", "[SpineAPI]") {
 	GIVEN("a spine is created") {
-		Spine spine;
+		auto context = make_shared<zmq::context_t>(1);
+		Spine spine(context);
 		REQUIRE(spine.isRunning());
 
 		WHEN("nothing else has happened") {

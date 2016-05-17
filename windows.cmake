@@ -54,3 +54,12 @@ target_link_libraries(cppmodules
 	${BOTH_LINK_LIBRARIES}
 	${MAIN_LINK_LIBRARIES}
 )
+
+#### MODULES ####
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" AND NOT ${MODDONE})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMODULE_EXPORT"
+        CACHE STRING "Flags used by the compiler during all build types." FORCE)
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DMODULE_EXPORT"
+        CACHE STRING "Flags used by the compiler during all build types." FORCE)
+    set(MODDONE TRUE)
+endif()

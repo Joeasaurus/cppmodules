@@ -31,8 +31,10 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if (modPath == "NONE")
+	if (modPath == "NONE") {
+        logger.err("[Main]", "You forgot to supply a modules directory!");
 		return 1;
+    }
 
 	Spine spine(context);
 
