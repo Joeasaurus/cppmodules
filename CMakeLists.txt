@@ -23,7 +23,10 @@ target_link_libraries(example
     cppmodules
 )
 
-
+install(TARGETS cppmodules
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib/static
+)
 
 
 
