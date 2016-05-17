@@ -12,23 +12,14 @@ using namespace std;
 int main(int argc, char **argv) {
 
 	Logger logger;
+	logger.setDebug(true);
 	string modPath = "NONE";
 	auto context = make_shared<zmq::context_t>(1);
 
 	// This is a quick fix for debug logging by managing argv ourselves
 	// We'll move to an option parser later
 	if (argc > 1) {
-
-		if (strcmp(argv[1], "debug") == 0) {
-			logger.setDebug(true);
-		} else {
-			modPath = argv[1];
-		}
-
-		if (argc > 2 && strcmp(argv[1], "debug") == 0) {
-			logger.setDebug(true);
-			modPath = argv[2];
-		}
+		modPath = argv[1];
 	}
 
 	if (modPath == "NONE") {

@@ -1,10 +1,5 @@
 #include "modules/mainline/config.hpp"
 
-ConfigModule::~ConfigModule()
-{
-	_logger.log(name(), "Closed", true);
-}
-
 bool ConfigModule::loadConfigFile(string filepath)
 {
 	if (boost::filesystem::is_regular_file(filepath))

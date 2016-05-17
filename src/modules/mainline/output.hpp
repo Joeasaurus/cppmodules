@@ -10,7 +10,6 @@ using namespace cppevent;
 class OutputModule : public Module {
 	public:
 		OutputModule() : Module("output", "Joe Eaves"){};
-		~OutputModule();
 		void setup();
 		void tick();
 		bool process_command(const Message& message){_logger.null(message.format());return true;};

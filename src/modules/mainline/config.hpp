@@ -16,7 +16,6 @@ class ConfigModule : public Module {
 		Eventer _eventer;
 
 		ConfigModule() : Module("config", "Joe Eaves"){};
-		~ConfigModule();
 		void setup();
 		void tick();
 

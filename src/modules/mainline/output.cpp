@@ -1,10 +1,5 @@
 #include "modules/mainline/output.hpp"
 
-OutputModule::~OutputModule()
-{
-	_logger.log(name(), "Closed", true);
-}
-
 void OutputModule::setup() {
 
 	_eventer.on("echoTime", [&](chrono::milliseconds) {
