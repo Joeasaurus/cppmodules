@@ -33,10 +33,10 @@ namespace cppm {
                     context = make_shared<zmq::context_t>(1);
             };
             // delete copy and move constructors and assign operators
-            // Context(Context const&);             // Copy construct
-            // Context(Context&&);                  // Move construct
-            // Context& operator=(Context const&);  // Copy assign
-            // Context& operator=(Context &&);      // Move assign
+            Context(Context const&);             // Copy construct
+            Context(Context&&);                  // Move construct
+            Context& operator=(Context const&);  // Copy assign
+            Context& operator=(Context &&);      // Move assign
 
             shared_ptr<context_t> context = nullptr;
     };
