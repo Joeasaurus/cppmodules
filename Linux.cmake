@@ -24,9 +24,6 @@ find_library(LIBZMQ   zmq)
 find_library(BOOSTFS  boost_filesystem-mt)
 find_library(BOOSTSYS boost_system-mt)
 
-set(BOTH_COMPILE_FILES
-	${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
-)
 set(BOTH_LINK_LIBRARIES
     ${LIBZMQ}
 )
@@ -34,7 +31,7 @@ set(BOTH_LINK_LIBRARIES
 #### MAIN ####
 add_library(cppmodules
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
-	${BOTH_COMPILE_FILES}
+	$<TARGET_OBJECTS:SOCKETER>
 )
 
 set_target_properties(cppmodules
@@ -52,7 +49,7 @@ target_link_libraries(cppmodules
 #### MODULES ####
 add_library(mainline_config SHARED
 	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
-    ${BOTH_COMPILE_FILES}
+    $<TARGET_OBJECTS:SOCKETER>
 )
 target_link_libraries(mainline_config
 	${BOTH_LINK_LIBRARIES}
@@ -62,7 +59,7 @@ target_link_libraries(mainline_config
 
 add_library(mainline_output SHARED
 	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
-	${BOTH_COMPILE_FILES}
+	$<TARGET_OBJECTS:SOCKETER>
 )
 target_link_libraries(mainline_output
     ${BOTH_LINK_LIBRARIES}

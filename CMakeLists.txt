@@ -4,11 +4,15 @@ enable_testing()
 set(CMAKE_VERBOSE_MAKEFILE false)
 include("${CMAKE_SOURCE_DIR}/functions.cmake")
 
+add_library(SOCKETER OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
+)
+
 include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")
 
 add_executable(example
 	${CMAKE_CURRENT_SOURCE_DIR}/src/example/example.cpp
-	${BOTH_COMPILE_FILES}
+	$<TARGET_OBJECTS:SOCKETER>
 )
 set_target_properties(example
 	PROPERTIES

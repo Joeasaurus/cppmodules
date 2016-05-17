@@ -28,6 +28,12 @@ link_directories(
     "C:/boost/lib"
 )
 
+find_library(LIBDL    dl)
+find_library(PTHREAD  pthread)
+find_library(LIBZMQ   libzmq-v120-mt-4_0_4)
+find_library(BOOSTFS  boost_filesystem-mt)
+find_library(BOOSTSYS boost_system-mt)
+
 set(BOTH_LINK_LIBRARIES
 	libzmq-v120-mt-4_0_4
 )
