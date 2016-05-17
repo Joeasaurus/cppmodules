@@ -46,7 +46,6 @@ namespace cppm {
 			set<string> _loadedModules;
 			Eventer _eventer;
 
-			const string moduleFileLocation = "@MODULES_LOCATION@";
 			set<string> listModuleFiles(const string& directory) const;
 			void listModuleFiles(set<string>& destination, const string& directory) const;
 			bool isModuleFile(const string& filename);

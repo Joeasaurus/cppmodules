@@ -20,6 +20,7 @@ set(TEST_COMMON_INCLUDE_DIRS
 	"${CMAKE_SOURCE_DIR}/src"
 )
 set(TEST_COMMON_COMPILE_FILES
+	"${CMAKE_SOURCE_DIR}/src/main/messages/socketer.cpp"
 )
 set(TEST_EXTRA_INCLUDE_DIRS
 )
@@ -47,4 +48,6 @@ foreach(test ${TEST_FILES})
 	target_link_libraries(${test}
 		${TEST_LINK_LIBRARIES}
 	)
+
+	add_test(TEST_${test} "${OUTPUT_DIR}/tests/${test}")
 endforeach(test)

@@ -36,7 +36,7 @@ namespace cppm {
 		spdlog::set_async_mode(1048576);
 
 		try {
-			_logger = stdout_logger_mt(_name);
+			_logger = stdout_logger_mt(_name, true);
 			_logger->set_pattern("[%T.%e] [%l] %v"); // Custom format
 
 			_null_logger = make_shared<spdlog::logger>("null_logger", _null_sink);
@@ -47,7 +47,7 @@ namespace cppm {
 	};
 
 	void Logger::setDebug(bool debug) {
-		spdlog::set_level(debug ? level::debug : level::info);
+		spdlog::set_level(debug ? level::debug : level::notice);
 	};
 
 	shared_ptr<logger> Logger::getLogger() const {

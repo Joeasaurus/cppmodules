@@ -1,28 +1,23 @@
 cmake_minimum_required(VERSION 3.2)
 project(cppmodules)
-
-include("${CMAKE_SOURCE_DIR}/functions.cmake")
+enable_testing()
 set(CMAKE_VERBOSE_MAKEFILE false)
-set(MODULES
-    "mainline\;config\;output"
+include("${CMAKE_SOURCE_DIR}/functions.cmake")
+
+include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")
+
+add_executable(example
+	${CMAKE_CURRENT_SOURCE_DIR}/src/example/example.cpp
+	${BOTH_COMPILE_FILES}
 )
-
-### BUILD TARGETS ###
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-
-    include("${CMAKE_SOURCE_DIR}/linux_darwin.cmake")
-    #include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
-
-elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-
-    include("${CMAKE_SOURCE_DIR}/windows.cmake")
-
-endif()
-
-include("${CMAKE_SOURCE_DIR}/modules.cmake")
-
-
-
+set_target_properties(example
+	PROPERTIES
+	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+)
+target_link_libraries(example
+    ${BOTH_LINK_LIBRARIES}
+    cppmodules
+)
 
 
 
