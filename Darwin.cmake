@@ -27,7 +27,7 @@ set(BOTH_LINK_LIBRARIES
 
 #### MAIN ####
 add_library(cppmodules #STATIC
-	${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
+	$<TARGET_OBJECTS:SPINE>
 	$<TARGET_OBJECTS:SOCKETER>
 )
 

@@ -35,7 +35,7 @@ namespace cppm {
 			inline bool loadLibrary();
 			inline void unloadLibrary();
 
-			inline bool initModule(const string& parent, shared_ptr<context_t> ctx);
+			inline bool initModule(const string& parent, const Context& ctx);
 			inline void deinitModule();
 
 			inline bool isLoaded() const;
@@ -105,7 +105,7 @@ namespace cppm {
 		}
 	};
 
-	bool ModuleCOM::initModule(const string& parent, shared_ptr<context_t> ctx) {
+	bool ModuleCOM::initModule(const string& parent, const Context& ctx) {
 		if (!_moduleInit) {
 			module = createModule();
 			if (module) {

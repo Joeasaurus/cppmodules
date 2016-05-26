@@ -79,14 +79,14 @@ namespace cppm {
 			virtual void setup()=0;
 
 			inline string name() const;
-			inline bool connectToParent(string p, shared_ptr<context_t> ctx);
+			inline bool connectToParent(string p, const Context& ctx);
 	};
 
 	string Module::name() const {
 		return this->__info.name;
 	};
 
-	bool Module::connectToParent(string p, shared_ptr<context_t> ctx) {
+	bool Module::connectToParent(string p, const Context& ctx) {
 		if (!_socketer)
 			_socketer = new Socketer(ctx);
 

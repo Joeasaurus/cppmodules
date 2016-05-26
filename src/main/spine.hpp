@@ -1,30 +1,14 @@
 #pragma once
 // Common
-#include "main/logger.hpp"
-#include "main/messages/messages.hpp"
-#include "main/messages/socketer.hpp"
-#include "main/exceptions/exceptions.hpp"
-// Module Specific
+#include <set>
+#include <string>
 #include <dlfcn.h>
 #include <mutex>
 #include <cstdlib>
 #include <iostream>
-#include <string>
 #include <vector>
-#include <set>
-
-#include <boost/filesystem.hpp>
-#include <boost/range/iterator_range_core.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
 #include "main/module.hpp"
-#include "main/modulecom.hpp"
-
 #include "Eventer.hpp"
-
-using namespace zmq;
-using namespace cppm::messages;
-using namespace cppm::exceptions::spine;
 using namespace cppevent;
 
 namespace cppm {
@@ -56,7 +40,7 @@ namespace cppm {
 			void hookSocketCommands();
 
 		public:
-			Spine(shared_ptr<context_t> ctx);
+			Spine();
 			~Spine();
 			void setup(){};
 			void tick();

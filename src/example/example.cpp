@@ -14,7 +14,6 @@ int main(int argc, char **argv) {
 	Logger logger;
 	logger.setDebug(true);
 	string modPath = "NONE";
-	auto context = make_shared<zmq::context_t>(1);
 
 	// This is a quick fix for debug logging by managing argv ourselves
 	// We'll move to an option parser later
@@ -27,7 +26,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	Spine spine(context);
+	Spine spine;
 
 	if (spine.loadModules(modPath)) {
 		while (spine.isRunning()) {

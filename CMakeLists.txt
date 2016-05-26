@@ -2,10 +2,18 @@ cmake_minimum_required(VERSION 3.2)
 project(cppmodules)
 enable_testing()
 set(CMAKE_VERBOSE_MAKEFILE false)
+
+
+set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
+set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
 include("${CMAKE_SOURCE_DIR}/functions.cmake")
 
 add_library(SOCKETER OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
+)
+
+add_library(SPINE OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
 )
 
 include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")

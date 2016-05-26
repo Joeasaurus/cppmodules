@@ -1,10 +1,28 @@
+
+
+#include <boost/filesystem.hpp>
+#include <boost/range/iterator_range_core.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+#include "main/logger.hpp"
+#include "main/messages/messages.hpp"
+#include "main/messages/socketer.hpp"
+#include "main/exceptions/exceptions.hpp"
+// Module Specific
+
+
+#include "main/modulecom.hpp"
+
+using namespace cppm::messages;
+using namespace cppm::exceptions::spine;
+
 #include "main/spine.hpp"
 
 namespace cppm {
 
-Spine::Spine(shared_ptr<context_t> ctx) : Module("Spine", "Joe Eaves") {
+Spine::Spine() : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
-	if (connectToParent("__bind__", ctx)) {;
+	if (connectToParent("__bind__", Context::getSingleContext())) {;
 
 		// Hack to die after so long while we're in dev.
 		_eventer.on("close-timeout", [&](chrono::milliseconds) {
@@ -126,7 +144,7 @@ bool Spine::loadModule(const string& filename) {
 				com.deinitModule();
 				unregisterModule(com.moduleName);
 			}
-		
+
 			this_thread::sleep_for(chrono::milliseconds(1000));
 			com.unloadLibrary();
 		}

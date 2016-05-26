@@ -19,11 +19,11 @@ namespace cppm {
     class Context {
         public:
             static Context& getSingleContext() {
-                static Context* ctx = new Context;
+                static Context* ctx = new Context();
                 return *ctx;
             };
 
-            context_t* getContext() {
+            context_t* getContext() const {
                 return context.get();
             };
 

@@ -25,7 +25,7 @@ set(TEST_COMMON_COMPILE_FILES
 set(TEST_EXTRA_INCLUDE_DIRS
 )
 set(TEST_EXTRA_COMPILE_FILES
-	"SpineAPI\;src/main/spine.cpp"
+	"SpineAPI\;$<TARGET_OBJECTS:SPINE>"
 	"Logger\;"
 	"ModuleInterface\;"
 )

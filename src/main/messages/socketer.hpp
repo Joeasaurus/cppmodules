@@ -16,6 +16,7 @@
 
 #include "main/logger.hpp"
 #include "main/messages/messages.hpp"
+#include "main/messages/context.hpp"
 #include "main/exceptions/exceptions.hpp"
 
 using namespace std;
@@ -27,9 +28,9 @@ namespace cppm { namespace messages {
         private:
             string name{"Socketer"};
             Logger _logger;
-            shared_ptr<context_t> inp_context;
-            socket_t* inp_in;
-            socket_t* inp_out;
+            const Context& inp_context;
+            socket_t*  inp_in;
+            socket_t*  inp_out;
             mutex _moduleSockMutex;
             atomic<bool> _connected{false};
 
@@ -37,10 +38,10 @@ namespace cppm { namespace messages {
 			bool emit(string hookName, const Message& msg);
 
         public:
-            Socketer(shared_ptr<context_t> ctx);
+            Socketer(const Context& ctx) : inp_context(ctx) {};
             ~Socketer();
 
-            shared_ptr<context_t> getContext();
+            const Context& getContext();
             void openSockets(string name, string parent = "__bind__");
             void closeSockets();
             bool pollAndProcess();

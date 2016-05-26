@@ -1,15 +1,11 @@
 #include "main/messages/socketer.hpp"
 namespace cppm { namespace messages {
 
-Socketer::Socketer(shared_ptr<context_t> ctx) {
-    inp_context = ctx;
-};
-
 Socketer::~Socketer() {
     closeSockets();
 };
 
-shared_ptr<context_t> Socketer::getContext() {
+const Context& Socketer::getContext() {
     return inp_context;
 };
 
@@ -21,8 +17,8 @@ void Socketer::openSockets(string name, string parent) {
         string outPoint = "inproc://";
 
         try {
-            inp_in = new socket_t(*inp_context, ZMQ_SUB);
-            inp_out = new socket_t(*inp_context, ZMQ_PUB);
+            inp_in = new socket_t(*inp_context.getContext(), ZMQ_SUB);
+            inp_out = new socket_t(*inp_context.getContext(), ZMQ_PUB);
 
             if (parent == "__bind__") {
                 inPoint += name + ".sub";
