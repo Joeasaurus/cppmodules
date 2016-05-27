@@ -30,6 +30,7 @@ set(BOTH_LINK_LIBRARIES
 
 #### MAIN ####
 add_library(cppmodules
+    $<TARGET_OBJECTS:MODULE>
 	$<TARGET_OBJECTS:SPINE>
 	$<TARGET_OBJECTS:SOCKETER>
 )

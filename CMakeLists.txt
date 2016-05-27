@@ -12,24 +12,31 @@ add_library(SOCKETER OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
 )
 
+add_library(MODULE OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
+)
+
 add_library(SPINE OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
 )
 
 include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")
 
-add_executable(example
-	${CMAKE_CURRENT_SOURCE_DIR}/src/example/example.cpp
-	$<TARGET_OBJECTS:SOCKETER>
-)
-set_target_properties(example
-	PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
-)
-target_link_libraries(example
-    ${BOTH_LINK_LIBRARIES}
-    cppmodules
-)
+IF(EXAMPLE)
+    add_executable(example
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/example/example.cpp
+        $<TARGET_OBJECTS:MODULE>
+    	$<TARGET_OBJECTS:SOCKETER>
+    )
+    set_target_properties(example
+    	PROPERTIES
+    	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+    )
+    target_link_libraries(example
+        ${BOTH_LINK_LIBRARIES}
+        cppmodules
+    )
+ENDIF(EXAMPLE)
 
 install(TARGETS cppmodules
         LIBRARY DESTINATION lib

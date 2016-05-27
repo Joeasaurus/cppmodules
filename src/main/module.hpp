@@ -14,24 +14,15 @@
 
 // Common
 #include <string>
-#include <sstream>
-#include <iostream>
-#include <vector>
-#include <map>
-#include <regex>
-#include <algorithm>
 
-#include <thread>
 #include <chrono>
 #include <functional>
-
 #include "main/logger.hpp"
-#include "main/messages/messages.hpp"
 #include "main/messages/socketer.hpp"
 #include "main/exceptions/exceptions.hpp"
+#include "main/messages/messages.hpp"
 
 using namespace std;
-namespace algorithm = boost::algorithm;
 
 namespace cppm {
 	using namespace messages;
@@ -78,22 +69,8 @@ namespace cppm {
 			virtual void tick(){};
 			virtual void setup()=0;
 
-			inline string name() const;
-			inline bool connectToParent(string p, const Context& ctx);
-	};
-
-	string Module::name() const {
-		return this->__info.name;
-	};
-
-	bool Module::connectToParent(string p, const Context& ctx) {
-		if (!_socketer)
-			_socketer = new Socketer(ctx);
-
-		if (!_socketer->isConnected())
-			_socketer->openSockets(name(), p);
-
-		return _socketer->isConnected();
+			string name() const;
+			bool connectToParent(string p, const Context& ctx);
 	};
 }
 

@@ -27,6 +27,7 @@ set(BOTH_LINK_LIBRARIES
 
 #### MAIN ####
 add_library(cppmodules #STATIC
+    $<TARGET_OBJECTS:MODULE>
 	$<TARGET_OBJECTS:SPINE>
 	$<TARGET_OBJECTS:SOCKETER>
 )
@@ -45,28 +46,32 @@ target_link_libraries(cppmodules
 include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
 
 #### MODULES ####
-add_library(mainline_config SHARED
-	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
-    $<TARGET_OBJECTS:SOCKETER>
-)
-set_target_properties(mainline_config
-	PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
-)
-target_link_libraries(mainline_config
-	${BOTH_LINK_LIBRARIES}
-    ${BOOSTFS}
-	${BOOSTSYS}
-)
+IF(DEFAULT_MODULES)
+    add_library(mainline_config SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
+        $<TARGET_OBJECTS:MODULE>
+        $<TARGET_OBJECTS:SOCKETER>
+    )
+    set_target_properties(mainline_config
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_config
+    	${BOTH_LINK_LIBRARIES}
+        ${BOOSTFS}
+    	${BOOSTSYS}
+    )
 
-add_library(mainline_output SHARED
-	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
-	$<TARGET_OBJECTS:SOCKETER>
-)
-set_target_properties(mainline_output
-	PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
-)
-target_link_libraries(mainline_output
-    ${BOTH_LINK_LIBRARIES}
-)
+    add_library(mainline_output SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
+        $<TARGET_OBJECTS:MODULE>
+    	$<TARGET_OBJECTS:SOCKETER>
+    )
+    set_target_properties(mainline_output
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_output
+        ${BOTH_LINK_LIBRARIES}
+    )
+ENDIF(DEFAULT_MODULES)
