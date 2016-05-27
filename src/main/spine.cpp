@@ -87,7 +87,7 @@ void Spine::listModuleFiles(set<string>& destination, const string& directory) c
 			}
 		}
 	} catch(boost::filesystem::filesystem_error& e) {
-		_logger.getLogger()->warn(name() + ": WARNING! Could not load modules!");
+		_logger.warn(name(), "WARNING! Could not load modules!");
 		throw InvalidModulePath(directory, static_cast<string>(e.what()));
 	}
 
