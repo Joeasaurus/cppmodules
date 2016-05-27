@@ -26,20 +26,30 @@ set(BOTH_LINK_LIBRARIES
 )
 
 #### MAIN ####
-add_library(cppmodules #STATIC
-    $<TARGET_OBJECTS:MODULE>
-	$<TARGET_OBJECTS:SPINE>
-	$<TARGET_OBJECTS:SOCKETER>
+add_library(dunamis-module
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
 )
-
-set_target_properties(cppmodules
+set_target_properties(dunamis-module
 	PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
 )
-target_link_libraries(cppmodules
+target_link_libraries(dunamis-module
+    ${BOTH_LINK_LIBRARIES}
+)
+
+add_library(dunamis-spine
+	$<TARGET_OBJECTS:SPINE>
+)
+set_target_properties(dunamis-spine
+	PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+)
+target_link_libraries(dunamis-spine
     ${BOTH_LINK_LIBRARIES}
     ${BOOSTFS}
 	${BOOSTSYS}
+    dunamis-module
 )
 
 #### TESTS ####
@@ -49,8 +59,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
 IF(DEFAULT_MODULES)
     add_library(mainline_config SHARED
     	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
-        $<TARGET_OBJECTS:MODULE>
-        $<TARGET_OBJECTS:SOCKETER>
     )
     set_target_properties(mainline_config
     	PROPERTIES
@@ -60,12 +68,11 @@ IF(DEFAULT_MODULES)
     	${BOTH_LINK_LIBRARIES}
         ${BOOSTFS}
     	${BOOSTSYS}
+        dunamis-module
     )
 
     add_library(mainline_output SHARED
     	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
-        $<TARGET_OBJECTS:MODULE>
-    	$<TARGET_OBJECTS:SOCKETER>
     )
     set_target_properties(mainline_output
     	PROPERTIES
@@ -73,5 +80,6 @@ IF(DEFAULT_MODULES)
     )
     target_link_libraries(mainline_output
         ${BOTH_LINK_LIBRARIES}
+        dunamis-module
     )
 ENDIF(DEFAULT_MODULES)

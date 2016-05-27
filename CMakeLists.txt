@@ -8,13 +8,6 @@ set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
 set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
 include("${CMAKE_SOURCE_DIR}/functions.cmake")
 
-add_library(SOCKETER OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
-)
-
-add_library(MODULE OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
-)
 
 add_library(SPINE OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
@@ -25,8 +18,6 @@ include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")
 IF(EXAMPLE)
     add_executable(example
     	${CMAKE_CURRENT_SOURCE_DIR}/src/example/example.cpp
-        $<TARGET_OBJECTS:MODULE>
-    	$<TARGET_OBJECTS:SOCKETER>
     )
     set_target_properties(example
     	PROPERTIES
@@ -35,10 +26,11 @@ IF(EXAMPLE)
     target_link_libraries(example
         ${BOTH_LINK_LIBRARIES}
         cppmodules
+        dunamis-module
     )
 ENDIF(EXAMPLE)
 
-install(TARGETS cppmodules
+install(TARGETS cppmodules dunamis-module
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib/static
 )
