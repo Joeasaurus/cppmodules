@@ -30,7 +30,7 @@ IF(EXAMPLE)
     )
 ENDIF(EXAMPLE)
 
-install(TARGETS cppmodules dunamis-module
+install(TARGETS dunamis-spine dunamis-module
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib/static
 )
