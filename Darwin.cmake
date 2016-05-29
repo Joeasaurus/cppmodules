@@ -27,9 +27,9 @@ set(BOTH_LINK_LIBRARIES
 
 #### MAIN ####
 add_library(dunamis-module
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/logger.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
 )
 set_target_properties(dunamis-module
 	PROPERTIES

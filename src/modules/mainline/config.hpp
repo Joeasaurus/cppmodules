@@ -1,7 +1,6 @@
 #pragma once
 // Common
 #include "main/module.hpp"
-#include "main/messages/messages.hpp"
 // Module Specific
 #include <boost/filesystem.hpp>
 #include <fstream>

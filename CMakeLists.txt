@@ -4,6 +4,10 @@ enable_testing()
 set(CMAKE_VERBOSE_MAKEFILE false)
 
 
+#### SET YOUR BINARY NAME HERE ####
+set(BINARY_NAME "example")
+
+
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
 set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
 include("${CMAKE_SOURCE_DIR}/functions.cmake")
@@ -15,22 +19,22 @@ add_library(SPINE OBJECT
 
 include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")
 
-IF(EXAMPLE)
-    add_executable(example
-    	${CMAKE_CURRENT_SOURCE_DIR}/src/example/example.cpp
-    )
-    set_target_properties(example
-    	PROPERTIES
-    	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
-    )
-    target_link_libraries(example
-        ${BOTH_LINK_LIBRARIES}
-        cppmodules
-        dunamis-module
-    )
-ENDIF(EXAMPLE)
 
-install(TARGETS dunamis-spine dunamis-module
+add_executable(${BINARY_NAME}
+    $<TARGET_OBJECTS:SPINE>
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mainfile/mainfile.cpp
+)
+set_target_properties(${BINARY_NAME}
+	PROPERTIES
+	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+)
+target_link_libraries(${BINARY_NAME}
+    ${BOTH_LINK_LIBRARIES}
+    dunamis-spine
+)
+
+install(TARGETS ${BINARY_NAME} dunamis-spine dunamis-module
+        RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib/static
 )

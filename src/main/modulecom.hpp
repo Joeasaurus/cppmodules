@@ -1,7 +1,7 @@
 #pragma once
 // Common
 #include "main/module.hpp"
-#include "main/logger.hpp"
+#include "main/interfaces/logger.hpp"
 // Module Specific
 #include <dlfcn.h>
 #include <mutex>
@@ -9,6 +9,8 @@
 #include <set>
 
 #include <boost/filesystem.hpp>
+
+using namespace cppm::interfaces;
 
 namespace cppm {
 	class ModuleCOM {

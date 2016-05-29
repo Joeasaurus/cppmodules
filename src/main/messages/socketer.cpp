@@ -12,7 +12,7 @@ const Context& Socketer::getContext() {
 void Socketer::openSockets(string name, string parent) {
     this->name = name;
     lock_guard<mutex> lock(_moduleSockMutex);
-    if (!_connected.load()) {
+    if (!_connected) {
         string inPoint = "inproc://";
         string outPoint = "inproc://";
 
@@ -45,7 +45,7 @@ void Socketer::openSockets(string name, string parent) {
             subscribe(CHANNEL::Cmd);
 
             _logger.log(name, "Sockets Open!", true);
-            _connected.store(true);
+            _connected = true;
         } catch (const zmq::error_t &e) {
             _logger.err(name, e.what());
         }
@@ -59,7 +59,7 @@ void Socketer::closeSockets() {
 
         delete inp_in;
         delete inp_out;
-        _connected.store(false);
+        _connected = false;
     }
 };
 
@@ -98,8 +98,7 @@ bool Socketer::emit(string hookName, const Message& msg) {
 }
 
 bool Socketer::isConnected() const {
-    auto t = _connected.load();
-    return t;
+    return _connected;
 };
 
 void Socketer::subscribe(CHANNEL chan) {

@@ -1,4 +1,6 @@
 #include "main/spine.hpp"
+#include "main/interfaces/logger.hpp"
+#include <iostream>
 
 /* NOTES
  * To save space in modules, spine should provide functions for loading files?
@@ -7,6 +9,7 @@
  */
 
 using namespace cppm;
+using namespace cppm::interfaces;
 using namespace std;
 
 int main(int argc, char **argv) {
