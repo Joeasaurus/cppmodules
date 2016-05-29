@@ -1,5 +1,6 @@
 #pragma once
 // Common
+#include "main/imodule.hpp"
 #include "main/module.hpp"
 #include "main/logger.hpp"
 // Module Specific
@@ -28,7 +29,7 @@ namespace cppm {
 			inline int  loadLibrarySymbols();
 
 		public:
-			Module* module = nullptr;
+			interfaces::IModule* module = nullptr;
 			string moduleName;
 
 			inline ModuleCOM(const string& filename) {_filename = filename;};

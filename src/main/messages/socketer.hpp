@@ -32,13 +32,13 @@ namespace cppm { namespace messages {
             socket_t*  inp_in;
             socket_t*  inp_out;
             mutex _moduleSockMutex;
-            atomic<bool> _connected{false};
+            atomic<bool> _connected;
 
             map<string, function<bool(const Message&)>> processCallbacks;
 			bool emit(string hookName, const Message& msg);
 
         public:
-            Socketer(const Context& ctx) : inp_context(ctx) {};
+            Socketer(const Context& ctx) : inp_context(ctx), _connected(false) {};
             ~Socketer();
 
             const Context& getContext();
