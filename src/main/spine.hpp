@@ -45,10 +45,6 @@ namespace cppm {
 			void setup(){};
 			void tick();
 
-			bool process_command(const Message& msg);
-			bool process_input  (const Message& msg);
-			bool process_output (const Message& msg);
-
 			bool loadModules(const string& directory);
 			bool loadModule(const string& filename);
 
@@ -59,6 +55,10 @@ namespace cppm {
 
 	};
 }
+
+// Init/Del functions.
+extern "C" CPPMAPI cppm::Spine* createModule();
+extern "C" CPPMAPI void destroyModule(cppm::Spine* module);
 
 /*
  * The spine shall be a HUB for all messages between modules.

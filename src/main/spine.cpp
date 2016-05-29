@@ -4,19 +4,17 @@
 #include <boost/range/iterator_range_core.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include "main/logger.hpp"
+
 #include "main/messages/messages.hpp"
 #include "main/messages/socketer.hpp"
 #include "main/exceptions/exceptions.hpp"
 // Module Specific
 
-
-#include "main/modulecom.hpp"
-
 using namespace cppm::messages;
 using namespace cppm::exceptions::spine;
 
 #include "main/spine.hpp"
+#include "main/modulecom.hpp"
 
 namespace cppm {
 
@@ -217,3 +215,6 @@ bool Spine::isRunning() {
 }
 
 }
+
+cppm::Spine* createModule(){return new cppm::Spine;}
+void destroyModule(cppm::Spine* module) {delete module;}

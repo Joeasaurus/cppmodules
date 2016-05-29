@@ -1,8 +1,7 @@
 #pragma once
 // Common
-#include "main/imodule.hpp"
 #include "main/module.hpp"
-#include "main/logger.hpp"
+#include "main/interfaces/logger.hpp"
 // Module Specific
 #include <dlfcn.h>
 #include <mutex>
@@ -10,6 +9,8 @@
 #include <set>
 
 #include <boost/filesystem.hpp>
+
+using namespace cppm::interfaces;
 
 namespace cppm {
 	class ModuleCOM {
@@ -29,7 +30,7 @@ namespace cppm {
 			inline int  loadLibrarySymbols();
 
 		public:
-			interfaces::IModule* module = nullptr;
+			Module* module = nullptr;
 			string moduleName;
 
 			inline ModuleCOM(const string& filename) {_filename = filename;};

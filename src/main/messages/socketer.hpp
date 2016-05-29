@@ -14,7 +14,7 @@
 	#include "zmq.hpp"
 #endif
 
-#include "main/logger.hpp"
+#include "main/interfaces/logger.hpp"
 #include "main/messages/messages.hpp"
 #include "main/messages/context.hpp"
 #include "main/exceptions/exceptions.hpp"
@@ -22,6 +22,7 @@
 using namespace std;
 using namespace zmq;
 using namespace cppm::exceptions::socketer;
+using namespace cppm::interfaces;
 
 namespace cppm { namespace messages {
     class Socketer {
@@ -32,7 +33,7 @@ namespace cppm { namespace messages {
             socket_t*  inp_in;
             socket_t*  inp_out;
             mutex _moduleSockMutex;
-            atomic<bool> _connected;
+            bool _connected;
 
             map<string, function<bool(const Message&)>> processCallbacks;
 			bool emit(string hookName, const Message& msg);
