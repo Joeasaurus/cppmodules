@@ -25,8 +25,7 @@ IF(EXAMPLE)
     )
     target_link_libraries(example
         ${BOTH_LINK_LIBRARIES}
-        cppmodules
-        dunamis-module
+        dunamis-spine
     )
 ENDIF(EXAMPLE)
 
