@@ -12,8 +12,6 @@ class OutputModule : public Module {
 		OutputModule() : Module("output", "Joe Eaves"){};
 		void setup();
 		void tick();
-		bool process_command(const Message& message){_logger.null(message.format());return true;};
-		bool process_input  (const Message& message){_logger.null(message.format());return true;};
 	private:
 		Eventer _eventer;
 		Output message{"output"};

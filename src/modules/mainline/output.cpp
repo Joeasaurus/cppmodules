@@ -2,6 +2,11 @@
 
 void OutputModule::setup() {
 
+	_socketer->on("process_command", [&](const Message& message) {
+		_logger.log(name(), message.format(), true);
+		return true;
+	});
+
 	_eventer.on("echoTime", [&](chrono::milliseconds) {
 		message.payload("echoTime");
 		_socketer->sendMessage(message);
