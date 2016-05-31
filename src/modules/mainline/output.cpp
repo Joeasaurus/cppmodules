@@ -3,7 +3,7 @@
 void OutputModule::setup() {
 
 	_socketer->on("process_command", [&](const Message& message) {
-		_logger.log(name(), message.format(), true);
+		_logger.log(name(), message.serialise(), true);
 		return true;
 	});
 

@@ -53,7 +53,7 @@ namespace cppm { namespace messages {
             void subscribe(CHANNEL chan);
             void subscribe(const string& chan);
 
-            bool sendMessage(Message wMsg) const;
+            bool sendMessage(Message& message) const;
 
             template<typename retType>
             retType recvMessage(function<retType(const Message&)> callback, long timeout=1000);

@@ -119,10 +119,10 @@ void Socketer::subscribe(const string& chan) {
     }
 };
 
-bool Socketer::sendMessage(Message wMsg) const {
+bool Socketer::sendMessage(Message& message) const {
     bool sendOk = false;
 
-    auto message_string = wMsg.format();
+    auto message_string = message.serialise();
     // _logger.log(name, "Formatted, before sending ---- " + message_string);
 
     message_t zmqObject(message_string.length());
@@ -147,11 +147,12 @@ retType Socketer::recvMessage(function<retType(const Message&)> callback, long t
 
     try {
         if (zmq::poll(pollSocketItems, 1, timeout) > 0 && inp_in->recv(&zMessage)) {
-            auto normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
+            const string normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
 
-            Message msg;
-            msg.payload(normMsg, false);
-            //_logger.log(name, "Normalised, before processing --- " + normMsg);
+			Message msg;
+			msg.deserialise(normMsg);
+            // _logger.log(name, "Normalised, before processing --- " + normMsg);
+			// _logger.log(name, "Assigned,   after  processing --- " + msg.serialise());
 
             return callback(msg);
         }

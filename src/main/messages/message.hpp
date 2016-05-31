@@ -26,24 +26,48 @@ namespace cppm {
 
 		class Message {
 			private:
-				string splitHeadAndData(string in) {
+				void copyMessage(string in) {
+					// cout << in << endl;
+					/*
+					 * m_chan and m_to are split by '-' to make use of ZMQ's subscriptions.
+					 */
+
 					auto h_b = tokeniseString(in, ";");
 
-					auto header = h_b.at(0);
-					_data       = h_b.at(1);
+					// Our channel deets
+					auto chans  = tokeniseString(h_b.at(0), "-");
 
-					if (h_b.size() > 2) {
+					if (chans.size() == 2) {
+						m_to = chans.at(1);
+						m_chantype = ChannelType::Directed;
+					} else {
+						m_chantype = ChannelType::Global;
+					}
+
+					m_chan = strToChan[chans.at(0)];
+
+
+					// Chain deets
+					auto chain = tokeniseString(h_b.at(1), ",");
+					_chainID   = chain.at(0);
+					_chainRef  = chain.at(1);
+
+					// Now all our data
+					_data      = h_b.at(2);
+
+					if (h_b.size() > 3) {
+						h_b.erase(h_b.begin());
 						h_b.erase(h_b.begin());
 						h_b.erase(h_b.begin());
 						for (auto& tk : h_b)
 							_data += ";" + tk;
 					}
-
-					return header;
 				};
 
 			protected:
-				string  _data  = "";
+				string  _data    = "";
+				string _chainID  = "0";
+				string _chainRef = "0";
 
 			public:
 				CHANNEL m_chan         = CHANNEL::None;
@@ -70,46 +94,32 @@ namespace cppm {
 					return _data;
 				};
 
-				bool payload(string in, bool data_only = true) {
-					if (data_only) {
-						_data = in;
-						return true;
-					}
-
-					/* We know that format sticks a ; between the header and body.
-					 * This should be the first colon, so channel, to and from cannot contain one.
-					 * We split the string on ; and bung everything right of it into 'data'
-					 * The header is then checked for the m_chan, m_to and from.
-					 * m_chan and m_to are split by '-' to make use of ZMQ's subscriptions.
-					 */
-
-					try {
-						auto fields = tokeniseString(splitHeadAndData(in), " ");
-						auto chans  = tokeniseString(fields.at(0), "-");
-
-						if (chans.size() == 2) {
-							m_to = chans.at(1);
-							m_chantype = ChannelType::Directed;
-						} else {
-							m_chantype = ChannelType::Global;
-						}
-
-						m_chan = strToChan[chans.at(0)];
-						m_from = fields.at(1);
-					} catch (exception& e) {
-						cout << e.what() << endl;
-						return false;
-					}
-
+				bool payload(string in) {
+					_data = in;
 					return true;
 				};
 
-				string format() const {
-					string to = " ";
+				/* This defines how our messages look.
+				 * ChannelID ; ChainID,ChainRef ; Data
+				 *
+				 * Messages should always be "repacked" with data, so they keep a ref count.
+				 */
+				string serialise(bool increase) {
+					if (increase)
+						_chainRef = to_string(stoul(_chainRef) + 1);
+					return serialise();
+				};
+				string serialise() const {
+					string to = ";";
 					if (m_to != "")
-						to   = "-" + m_to + to;
+						to = "-" + m_to + to;
 
-					return chanToStr[m_chan] + to + m_from + ";" + _data;
+					return chanToStr[m_chan] + to + _chainID + "," + _chainRef + ";" + _data;
+				};
+
+				const Message& deserialise(const string& in) {
+					copyMessage(in);
+					return *this;
 				};
 		};
 	}

@@ -5,7 +5,7 @@
 
 using namespace cppm;
 
-SCENARIO("Spine basic initialisation", "[SpineAPI]") {
+SCENARIO("Spine basic initialisation", "[Spine, SpineAPI]") {
 	GIVEN("a spine is created") {
 		Spine spine;
 		REQUIRE(spine.isRunning());

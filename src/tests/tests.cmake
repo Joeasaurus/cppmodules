@@ -5,6 +5,8 @@ set(TEST_OUTPUT_DIRS
 	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}/tests"
 )
 set(TEST_LINK_LIBRARIES
+	dunamis-module
+	dunamis-spine
 	-lzmq
 	-lpthread
 	-ldl
@@ -12,23 +14,20 @@ set(TEST_LINK_LIBRARIES
 	-lboost_filesystem-mt
 )
 set(TEST_FILES
-    Logger
 	SpineAPI
 	ModuleInterface
+	ModuleChain
 )
 set(TEST_COMMON_INCLUDE_DIRS
 	"${CMAKE_SOURCE_DIR}/src"
-)
-set(TEST_COMMON_COMPILE_FILES
-	$<TARGET_OBJECTS:MODULE>
-	$<TARGET_OBJECTS:SOCKETER>
 )
 set(TEST_EXTRA_INCLUDE_DIRS
 )
 set(TEST_EXTRA_COMPILE_FILES
 	"SpineAPI\;$<TARGET_OBJECTS:SPINE>"
-	"Logger\;"
+	"Logger\;${CMAKE_SOURCE_DIR}/src/main/logger.cpp"
 	"ModuleInterface\;"
+	"ModuleChain\;"
 )
 
 IF(TESTS)
@@ -36,9 +35,9 @@ IF(TESTS)
 		createExtrasList(${test} EXTRA_COMPILE_FILES TEST_EXTRA_COMPILE_FILES)
 		createExtrasList(${test} EXTRA_INCLUDE_DIRS TEST_EXTRA_INCLUDE_DIRS)
 		add_executable(${test}
-			src/tests/${test}.cpp
 			${TEST_COMMON_COMPILE_FILES}
 			${${test}_EXTRA_COMPILE_FILES}
+			src/tests/${test}.cpp
 		)
 		include_directories(AFTER
 			${TEST_COMMON_INCLUDE_DIRS}
