@@ -8,7 +8,7 @@ void OutputModule::setup() {
 	});
 
 	_eventer.on("echoTime", [&](chrono::milliseconds) {
-		message.payload("echoTime");
+		message.payload("OutMessage");
 		_socketer->sendMessage(message);
 	}, chrono::milliseconds(1000), EventPriority::LOW);
 

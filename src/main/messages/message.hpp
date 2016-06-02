@@ -26,33 +26,32 @@ namespace cppm {
 
 		class Message {
 			private:
-				void copyMessage(string in) {
-					// cout << in << endl;
+				void copyMessage(const string& in) {
 					/*
 					 * m_chan and m_to are split by 'DELIM' to make use of ZMQ's subscriptions.
 					 */
 
-					auto h_b = tokeniseString(in, " ");
+					auto header = in.substr(0,in.find(" "));
 
 					// Our channel deets
-					auto chans  = tokeniseString(h_b.at(0), chanToStr[CHANNEL::DELIM]);
+					auto chans  = tokeniseString(header, chanToStr[CHANNEL::DELIM]);
 
 					if (chans.size() == 2) {
-						m_to = chans.at(1);
+						m_to = chans.at(0);
+						m_chan = strToChan[chans.at(1)];
 						m_chantype = ChannelType::Directed;
 					} else {
+						m_chan = strToChan[chans.at(0)];
 						m_chantype = ChannelType::Global;
 					}
 
-					m_chan = strToChan[chans.at(0)];
-
-					auto body = tokeniseString(h_b.at(1), ";");
+					auto body = tokeniseString(in.substr(in.find(" ") + 1), ";");
 					m_from = body.at(0);
 
 					// Chain deets
 					auto chain = tokeniseString(body.at(1), ",");
-					_chainID   = chain.at(0);
-					_chainRef  = chain.at(1);
+					_chainID   = stoul(chain.at(0));
+					_chainRef  = stoul(chain.at(1));
 
 					// Now all our data
 					_data      = body.at(2);
@@ -68,8 +67,8 @@ namespace cppm {
 
 			protected:
 				string  _data    = "";
-				string _chainID  = "0";
-				string _chainRef = "0";
+				unsigned long _chainID  = 0;
+				unsigned long _chainRef = 0;
 
 			public:
 				CHANNEL m_chan         = CHANNEL::None;
@@ -78,6 +77,9 @@ namespace cppm {
 				string  m_from         = "";
 
 				Message(){};
+				Message(const string& messageLine) {
+					deserialise(messageLine);
+				};
 
 				Message(const string& from, CHANNEL chan = CHANNEL::In) {
 					m_from = from;
@@ -101,19 +103,25 @@ namespace cppm {
 					m_chan = chan;
 					if (m_to == "")
 						m_chantype = ChannelType::Global;
+					else
+						m_chantype = ChannelType::Directed;
 				};
 
-				void setChain(unsigned long chainID, unsigned long chainRef) {
-					_chainID  = to_string(chainID);
-					_chainRef = to_string(chainRef);
+				void setChain(unsigned long& chainID, unsigned long& chainRef) {
+					_chainID  = chainID;
+					_chainRef = chainRef;
+				};
+				void setChain(pair<unsigned int, unsigned int> chains) {
+					_chainID  = chains.first;
+					_chainRef = chains.second;
 				};
 
-				unsigned long* getChain() const {
-					unsigned long* ch = new unsigned long[2];
-					ch[0] = stoul(_chainID);
-					ch[1] = stoul(_chainRef);
-					return ch;
-				}
+				string getChainString() const {
+					return to_string(_chainID) + "," + to_string(_chainRef);
+				};
+				pair<unsigned long, unsigned long> getChain() const {
+					return {_chainID, _chainRef};
+				};
 
 				string payload() const {
 					return _data;
@@ -128,11 +136,11 @@ namespace cppm {
 				 * ChannelID ; ChainID,ChainRef ; Data
 				 */
 				string serialise() const {
-					string to = " ";
+					string to = "";
 					if (m_to != "")
-						to = chanToStr[CHANNEL::DELIM] + m_to + to;
+						to = m_to + chanToStr[CHANNEL::DELIM];
 
-					return chanToStr[m_chan] + to + m_from + ";" + _chainID + "," + _chainRef + ";" + _data;
+					return to + chanToStr[m_chan] + " " + m_from + ";" + getChainString() + ";" + _data;
 				};
 
 				const Message& deserialise(const string& in) {

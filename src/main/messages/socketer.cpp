@@ -36,8 +36,8 @@ void Socketer::openSockets(string name, string parent) {
                 inp_out->connect(outPoint.c_str());
 
                 // The connector will listen on a named channel for directed messages
-                subscribe(chanToStr[CHANNEL::In]  + chanToStr[CHANNEL::DELIM] + name);
-                subscribe(chanToStr[CHANNEL::Cmd] + chanToStr[CHANNEL::DELIM] + name);
+                subscribe(CHANNEL::In, name);
+                subscribe(CHANNEL::Cmd, name);
             }
 
             // In and Command are global channels, everyone hears these
@@ -103,18 +103,20 @@ bool Socketer::isConnected() const {
 };
 
 void Socketer::subscribe(CHANNEL chan) {
-    try {
-        auto channel = chanToStr[chan];
-        inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
-
-    } catch (const zmq::error_t &e) {
-        _logger.err(name, e.what());
-    }
+    subscribe(chan, "");
 };
 
-void Socketer::subscribe(const string& chan) {
+void Socketer::subscribe(CHANNEL chan, const string& subChan) {
+	auto strChan = chanToStr[chan];
+
+	if (! subChan.empty())
+		strChan = subChan + chanToStr[CHANNEL::DELIM] + strChan;
+
+	const char* channel = strChan.c_str();
+
     try {
-        inp_in->setsockopt(ZMQ_SUBSCRIBE, chan.data(), chan.size());
+        inp_in->setsockopt(ZMQ_SUBSCRIBE, channel, strlen(channel));
+		// _logger.log(name, channel, true);
     } catch (const zmq::error_t &e) {
         _logger.err(name, e.what());
     }
@@ -124,7 +126,7 @@ bool Socketer::sendMessage(Message& message) const {
     bool sendOk = false;
 
     auto message_string = message.serialise();
-    _logger.log(name, "Formatted, before sending ---- " + message_string);
+    // _logger.log(name, "Formatted, before sending ---- " + message_string);
 
     message_t zmqObject(message_string.length());
     memcpy(zmqObject.data(), message_string.data(), message_string.length());

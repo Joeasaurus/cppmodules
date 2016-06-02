@@ -31,6 +31,7 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 
 		auto index = chainFactory.create();
 		chainFactory.insert(index, "input");
+		chainFactory.insert(index, "input");
 		assert(index == 1);
 
 		list<unsigned long> refList{index};
@@ -212,7 +213,7 @@ void Spine::hookSocketCommands() {
 	_socketer->on("process_output", [&](const Message& msg) {
 		// HERE ENSUES THE ROUTING
 		// The spine manages chains of modules, so we forward from out to in down the chains
-		_logger.log(name(), "OUTPUT HEARD " + msg.payload(), true);
+		_logger.log(name(), "OUTPUT HEARD " + msg.serialise(), true);
 
 		auto modChain = msg.getChain();
 
@@ -226,31 +227,35 @@ void Spine::hookSocketCommands() {
 		Input inmsg(msg.m_from);
 		inmsg.payload(msg.payload());
 
-		if (modChain[0] == 0) {
+		if (modChain.first == 0) {
 			_logger.log(name(), "Creating chains for " + msg.m_from, true);
 
 			auto chains = authoredChains[msg.m_from];
 
 			for (auto& chain : chains) {
 				auto ref = chainFactory.create(chain);
-				_logger.log(name(), "... created " + to_string(chain) + "," + to_string(ref) + " ... with current() => " + chainFactory.current(chain, ref), true);
+				// _logger.log(name(), "... created " + to_string(chain) + "," + to_string(ref) + " ... with current() => " + chainFactory.current(chain, ref), true);
 
 				inmsg.setChain(chain, ref);
 				inmsg.sendTo(chainFactory.current(chain, ref));
-				_socketer->sendMessage(inmsg);
 
 				chainFactory.next(chain, ref);
 				chainFactory.hasEnded(chain, ref, true); // kill it!
+
+				_socketer->sendMessage(inmsg);
 			}
-		} else if (chainFactory.has(modChain[0], modChain[1])) {
-			inmsg.sendTo(chainFactory.current(modChain[0], modChain[1]));
-			chainFactory.next(modChain[0], modChain[1]);
-			chainFactory.hasEnded(modChain[0], modChain[1], true); // kill it!
+		} else if (chainFactory.has(modChain.first, modChain.second)) {
+			inmsg.sendTo(chainFactory.current(modChain.first, modChain.second));
+
+			chainFactory.next(modChain.first, modChain.second);
+			chainFactory.hasEnded(modChain.first, modChain.second, true); // kill it!
 
 			_socketer->sendMessage(inmsg);
+		} else {
+			_logger.log(name(), "DEAD message: " + msg.serialise());
+			return false;
 		}
 
-		delete modChain;
 		return true;
 	});
 }

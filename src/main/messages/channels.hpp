@@ -18,7 +18,7 @@ namespace cppm {
 		{"1", CHANNEL::In     },
 		{"2", CHANNEL::Out    },
 		{"3", CHANNEL::Cmd    },
-		{"4", CHANNEL::DELIM  }
+		{"-", CHANNEL::DELIM  }
 	};
 
 	static std::map<CHANNEL, std::string> chanToStr {
@@ -26,6 +26,6 @@ namespace cppm {
 		{CHANNEL::In,    "1"},
 		{CHANNEL::Out,   "2"},
 		{CHANNEL::Cmd,   "3"},
-		{CHANNEL::DELIM, "4"}
+		{CHANNEL::DELIM, "-"}
 	};
 }

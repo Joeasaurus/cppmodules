@@ -69,9 +69,10 @@ class ChainFactory {
 		bool hasEnded(unsigned long chainID, unsigned long chainRef, bool removeDeadChain = false) {
 			if (has(chainID, chainRef)) {
 				auto result = moduleChains[chainID][chainRef]->ended();
-				if (removeDeadChain && result)
+				if (removeDeadChain && result) {
 					delete moduleChains[chainID][chainRef];
 					return moduleChains[chainID].erase(chainRef) > 0;
+				}
 
 				return result;
 			}

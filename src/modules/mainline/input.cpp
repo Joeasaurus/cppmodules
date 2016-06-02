@@ -8,12 +8,12 @@ void InputModule::setup() {
 	});
 
 	_socketer->on("process_input", [&](const Message& message) {
-		_logger.log(name(), "INPUT: " + message.serialise(), true);
-		return true;
-	});
+		Output out(name());
+		out.setChain(message.getChain());
+		out.payload("ECHO " + message.payload());
 
-	_socketer->on("process_output", [&](const Message& message) {
-		_logger.log(name(), "INPUT: " + message.serialise(), true);
+		_socketer->sendMessage(out);
+
 		return true;
 	});
 
