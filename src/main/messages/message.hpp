@@ -26,24 +26,49 @@ namespace cppm {
 
 		class Message {
 			private:
-				string splitHeadAndData(string in) {
-					auto h_b = tokeniseString(in, ";");
+				void copyMessage(const string& in) {
+					/*
+					 * m_chan and m_to are split by 'DELIM' to make use of ZMQ's subscriptions.
+					 */
 
-					auto header = h_b.at(0);
-					_data       = h_b.at(1);
+					auto header = in.substr(0,in.find(" "));
 
-					if (h_b.size() > 2) {
-						h_b.erase(h_b.begin());
-						h_b.erase(h_b.begin());
-						for (auto& tk : h_b)
-							_data += ";" + tk;
+					// Our channel deets
+					auto chans  = tokeniseString(header, chanToStr[CHANNEL::DELIM]);
+
+					if (chans.size() == 2) {
+						m_to = chans.at(0);
+						m_chan = strToChan[chans.at(1)];
+						m_chantype = ChannelType::Directed;
+					} else {
+						m_chan = strToChan[chans.at(0)];
+						m_chantype = ChannelType::Global;
 					}
 
-					return header;
+					auto body = tokeniseString(in.substr(in.find(" ") + 1), ";");
+					m_from = body.at(0);
+
+					// Chain deets
+					auto chain = tokeniseString(body.at(1), ",");
+					_chainID   = stoul(chain.at(0));
+					_chainRef  = stoul(chain.at(1));
+
+					// Now all our data
+					_data      = body.at(2);
+
+					if (body.size() > 3) {
+						body.erase(body.begin());
+						body.erase(body.begin());
+						body.erase(body.begin());
+						for (auto& tk : body)
+							_data += ";" + tk;
+					}
 				};
 
 			protected:
-				string  _data  = "";
+				string  _data    = "";
+				unsigned long _chainID  = 0;
+				unsigned long _chainRef = 0;
 
 			public:
 				CHANNEL m_chan         = CHANNEL::None;
@@ -52,6 +77,9 @@ namespace cppm {
 				string  m_from         = "";
 
 				Message(){};
+				Message(const string& messageLine) {
+					deserialise(messageLine);
+				};
 
 				Message(const string& from, CHANNEL chan = CHANNEL::In) {
 					m_from = from;
@@ -62,54 +90,62 @@ namespace cppm {
 					m_to = to;
 				};
 
+				void sendFrom(const string& from) {
+					m_from = from;
+				};
+
 				void sendTo(const string& to) {
 					m_to = to;
+					m_chantype = ChannelType::Directed;
+				};
+
+				void setChannel(CHANNEL chan) {
+					m_chan = chan;
+					if (m_to == "")
+						m_chantype = ChannelType::Global;
+					else
+						m_chantype = ChannelType::Directed;
+				};
+
+				void setChain(unsigned long& chainID, unsigned long& chainRef) {
+					_chainID  = chainID;
+					_chainRef = chainRef;
+				};
+				void setChain(pair<unsigned int, unsigned int> chains) {
+					_chainID  = chains.first;
+					_chainRef = chains.second;
+				};
+
+				string getChainString() const {
+					return to_string(_chainID) + "," + to_string(_chainRef);
+				};
+				pair<unsigned long, unsigned long> getChain() const {
+					return {_chainID, _chainRef};
 				};
 
 				string payload() const {
 					return _data;
 				};
 
-				bool payload(string in, bool data_only = true) {
-					if (data_only) {
-						_data = in;
-						return true;
-					}
-
-					/* We know that format sticks a ; between the header and body.
-					 * This should be the first colon, so channel, to and from cannot contain one.
-					 * We split the string on ; and bung everything right of it into 'data'
-					 * The header is then checked for the m_chan, m_to and from.
-					 * m_chan and m_to are split by '-' to make use of ZMQ's subscriptions.
-					 */
-
-					try {
-						auto fields = tokeniseString(splitHeadAndData(in), " ");
-						auto chans  = tokeniseString(fields.at(0), "-");
-
-						if (chans.size() == 2) {
-							m_to = chans.at(1);
-							m_chantype = ChannelType::Directed;
-						} else {
-							m_chantype = ChannelType::Global;
-						}
-
-						m_chan = strToChan[chans.at(0)];
-						m_from = fields.at(1);
-					} catch (exception& e) {
-						cout << e.what() << endl;
-						return false;
-					}
-
+				bool payload(string in) {
+					_data = in;
 					return true;
 				};
 
-				string format() const {
-					string to = " ";
+				/* This defines how our messages look.
+				 * ChannelID ; ChainID,ChainRef ; Data
+				 */
+				string serialise() const {
+					string to = "";
 					if (m_to != "")
-						to   = "-" + m_to + to;
+						to = m_to + chanToStr[CHANNEL::DELIM];
 
-					return chanToStr[m_chan] + to + m_from + ";" + _data;
+					return to + chanToStr[m_chan] + " " + m_from + ";" + getChainString() + ";" + _data;
+				};
+
+				const Message& deserialise(const string& in) {
+					copyMessage(in);
+					return *this;
 				};
 		};
 	}

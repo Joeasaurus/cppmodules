@@ -36,8 +36,8 @@ void Socketer::openSockets(string name, string parent) {
                 inp_out->connect(outPoint.c_str());
 
                 // The connector will listen on a named channel for directed messages
-                subscribe(chanToStr[CHANNEL::In]  + "-" + name);
-                subscribe(chanToStr[CHANNEL::Cmd] + "-" + name);
+                subscribe(CHANNEL::In, name);
+                subscribe(CHANNEL::Cmd, name);
             }
 
             // In and Command are global channels, everyone hears these
@@ -69,6 +69,7 @@ bool Socketer::pollAndProcess() {
         switch (msg.m_chan) {
 
             case CHANNEL::None:
+			case CHANNEL::DELIM:
                 return false;
 
             case CHANNEL::Cmd:
@@ -102,27 +103,29 @@ bool Socketer::isConnected() const {
 };
 
 void Socketer::subscribe(CHANNEL chan) {
-    try {
-        auto channel = chanToStr[chan];
-        inp_in->setsockopt(ZMQ_SUBSCRIBE, channel.data(), channel.size());
+    subscribe(chan, "");
+};
 
+void Socketer::subscribe(CHANNEL chan, const string& subChan) {
+	auto strChan = chanToStr[chan];
+
+	if (! subChan.empty())
+		strChan = subChan + chanToStr[CHANNEL::DELIM] + strChan;
+
+	const char* channel = strChan.c_str();
+
+    try {
+        inp_in->setsockopt(ZMQ_SUBSCRIBE, channel, strlen(channel));
+		// _logger.log(name, channel, true);
     } catch (const zmq::error_t &e) {
         _logger.err(name, e.what());
     }
 };
 
-void Socketer::subscribe(const string& chan) {
-    try {
-        inp_in->setsockopt(ZMQ_SUBSCRIBE, chan.data(), chan.size());
-    } catch (const zmq::error_t &e) {
-        _logger.err(name, e.what());
-    }
-};
-
-bool Socketer::sendMessage(Message wMsg) const {
+bool Socketer::sendMessage(Message& message) const {
     bool sendOk = false;
 
-    auto message_string = wMsg.format();
+    auto message_string = message.serialise();
     // _logger.log(name, "Formatted, before sending ---- " + message_string);
 
     message_t zmqObject(message_string.length());
@@ -147,11 +150,12 @@ retType Socketer::recvMessage(function<retType(const Message&)> callback, long t
 
     try {
         if (zmq::poll(pollSocketItems, 1, timeout) > 0 && inp_in->recv(&zMessage)) {
-            auto normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
+            const string normMsg = string(static_cast<char*>(zMessage.data()), zMessage.size());
 
-            Message msg;
-            msg.payload(normMsg, false);
-            //_logger.log(name, "Normalised, before processing --- " + normMsg);
+			Message msg;
+			msg.deserialise(normMsg);
+            // _logger.log(name, "Normalised, before processing --- " + normMsg);
+			// _logger.log(name, "Assigned,   after  processing --- " + msg.serialise());
 
             return callback(msg);
         }

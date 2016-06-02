@@ -51,9 +51,9 @@ namespace cppm { namespace messages {
             void on(string hookName, function<bool(const Message&)> callback);
 
             void subscribe(CHANNEL chan);
-            void subscribe(const string& chan);
+            void subscribe(CHANNEL chan, const string& subChan);
 
-            bool sendMessage(Message wMsg) const;
+            bool sendMessage(Message& message) const;
 
             template<typename retType>
             retType recvMessage(function<retType(const Message&)> callback, long timeout=1000);
