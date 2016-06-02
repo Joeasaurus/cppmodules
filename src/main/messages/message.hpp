@@ -29,13 +29,13 @@ namespace cppm {
 				void copyMessage(string in) {
 					// cout << in << endl;
 					/*
-					 * m_chan and m_to are split by '-' to make use of ZMQ's subscriptions.
+					 * m_chan and m_to are split by 'DELIM' to make use of ZMQ's subscriptions.
 					 */
 
-					auto h_b = tokeniseString(in, ";");
+					auto h_b = tokeniseString(in, " ");
 
 					// Our channel deets
-					auto chans  = tokeniseString(h_b.at(0), "-");
+					auto chans  = tokeniseString(h_b.at(0), chanToStr[CHANNEL::DELIM]);
 
 					if (chans.size() == 2) {
 						m_to = chans.at(1);
@@ -46,20 +46,22 @@ namespace cppm {
 
 					m_chan = strToChan[chans.at(0)];
 
+					auto body = tokeniseString(h_b.at(1), ";");
+					m_from = body.at(0);
 
 					// Chain deets
-					auto chain = tokeniseString(h_b.at(1), ",");
+					auto chain = tokeniseString(body.at(1), ",");
 					_chainID   = chain.at(0);
 					_chainRef  = chain.at(1);
 
 					// Now all our data
-					_data      = h_b.at(2);
+					_data      = body.at(2);
 
-					if (h_b.size() > 3) {
-						h_b.erase(h_b.begin());
-						h_b.erase(h_b.begin());
-						h_b.erase(h_b.begin());
-						for (auto& tk : h_b)
+					if (body.size() > 3) {
+						body.erase(body.begin());
+						body.erase(body.begin());
+						body.erase(body.begin());
+						for (auto& tk : body)
 							_data += ";" + tk;
 					}
 				};
@@ -86,9 +88,32 @@ namespace cppm {
 					m_to = to;
 				};
 
+				void sendFrom(const string& from) {
+					m_from = from;
+				};
+
 				void sendTo(const string& to) {
 					m_to = to;
+					m_chantype = ChannelType::Directed;
 				};
+
+				void setChannel(CHANNEL chan) {
+					m_chan = chan;
+					if (m_to == "")
+						m_chantype = ChannelType::Global;
+				};
+
+				void setChain(unsigned long chainID, unsigned long chainRef) {
+					_chainID  = to_string(chainID);
+					_chainRef = to_string(chainRef);
+				};
+
+				unsigned long* getChain() const {
+					unsigned long* ch = new unsigned long[2];
+					ch[0] = stoul(_chainID);
+					ch[1] = stoul(_chainRef);
+					return ch;
+				}
 
 				string payload() const {
 					return _data;
@@ -101,20 +126,13 @@ namespace cppm {
 
 				/* This defines how our messages look.
 				 * ChannelID ; ChainID,ChainRef ; Data
-				 *
-				 * Messages should always be "repacked" with data, so they keep a ref count.
 				 */
-				string serialise(bool increase) {
-					if (increase)
-						_chainRef = to_string(stoul(_chainRef) + 1);
-					return serialise();
-				};
 				string serialise() const {
-					string to = ";";
+					string to = " ";
 					if (m_to != "")
-						to = "-" + m_to + to;
+						to = chanToStr[CHANNEL::DELIM] + m_to + to;
 
-					return chanToStr[m_chan] + to + _chainID + "," + _chainRef + ";" + _data;
+					return chanToStr[m_chan] + to + m_from + ";" + _chainID + "," + _chainRef + ";" + _data;
 				};
 
 				const Message& deserialise(const string& in) {

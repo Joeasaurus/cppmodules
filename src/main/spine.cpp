@@ -29,6 +29,13 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 
 		hookSocketCommands();
 
+		auto index = chainFactory.create();
+		chainFactory.insert(index, "input");
+		assert(index == 1);
+
+		list<unsigned long> refList{index};
+		authoredChains["output"] = refList;
+
 		_running.store(true);
 	}
 }
@@ -206,6 +213,44 @@ void Spine::hookSocketCommands() {
 		// HERE ENSUES THE ROUTING
 		// The spine manages chains of modules, so we forward from out to in down the chains
 		_logger.log(name(), "OUTPUT HEARD " + msg.payload(), true);
+
+		auto modChain = msg.getChain();
+
+		// Channel has already told us it's output to be routed
+		// Output is never directed, input is!
+		// If chainID == 0, get list of author chains for message author/sender
+		// Create refs for each of those chains
+		// Set the chain on the msg and send to the current() on it
+		// If the chain next() is null, kill it
+
+		Input inmsg(msg.m_from);
+		inmsg.payload(msg.payload());
+
+		if (modChain[0] == 0) {
+			_logger.log(name(), "Creating chains for " + msg.m_from, true);
+
+			auto chains = authoredChains[msg.m_from];
+
+			for (auto& chain : chains) {
+				auto ref = chainFactory.create(chain);
+				_logger.log(name(), "... created " + to_string(chain) + "," + to_string(ref) + " ... with current() => " + chainFactory.current(chain, ref), true);
+
+				inmsg.setChain(chain, ref);
+				inmsg.sendTo(chainFactory.current(chain, ref));
+				_socketer->sendMessage(inmsg);
+
+				chainFactory.next(chain, ref);
+				chainFactory.hasEnded(chain, ref, true); // kill it!
+			}
+		} else if (chainFactory.has(modChain[0], modChain[1])) {
+			inmsg.sendTo(chainFactory.current(modChain[0], modChain[1]));
+			chainFactory.next(modChain[0], modChain[1]);
+			chainFactory.hasEnded(modChain[0], modChain[1], true); // kill it!
+
+			_socketer->sendMessage(inmsg);
+		}
+
+		delete modChain;
 		return true;
 	});
 }

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include "main/chain.hpp"
+#include "main/chainfactory.hpp"
 #include "main/module.hpp"
 #include "Eventer.hpp"
 using namespace cppevent;
@@ -32,7 +33,8 @@ namespace cppm {
 			set<string> _loadedModules;
 			Eventer _eventer;
 
-			map<unsigned int, map<unsigned int, Chain*>> modulesChains;
+			map<string, list<unsigned long>> authoredChains;
+			ChainFactory chainFactory;
 
 			set<string> listModuleFiles(const string& directory) const;
 			void listModuleFiles(set<string>& destination, const string& directory) const;

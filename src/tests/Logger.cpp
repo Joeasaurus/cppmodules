@@ -1,8 +1,8 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-#include "main/logger.hpp"
+#include "main/interfaces/logger.hpp"
 
-using namespace cppm;
+using namespace cppm::interfaces;
 
 static std::string LoggerName = "Logger";
 

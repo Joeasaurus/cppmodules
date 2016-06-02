@@ -83,4 +83,16 @@ IF(DEFAULT_MODULES)
         ${BOTH_LINK_LIBRARIES}
         dunamis-module
     )
+
+	add_library(mainline_input SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/input.cpp
+    )
+    set_target_properties(mainline_input
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_input
+        ${BOTH_LINK_LIBRARIES}
+        dunamis-module
+    )
 ENDIF(DEFAULT_MODULES)
