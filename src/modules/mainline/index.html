@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>API</title>
+	<style type="text/css">
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: sans-serif;
+		}
+
+		form {
+			width: 600px;
+			margin: 0 auto;
+		}
+
+		button {
+			padding: 0.5em;
+			background: #ddd;
+			border: 1px solid #ccc;
+		}
+		input {
+			padding: 0.5em;
+			background: #ddd;
+			border: 1px solid #ccc;
+		}
+
+		.command input {
+		  width: calc(100% - 3em);
+		}
+
+		.command button {
+		  width: 3em;
+		  border-left: 0;
+		}
+
+		button[type=submit] {
+			width: 100%;
+		}
+	</style>
+</head>
+<body>
+	<form action="https://echo.getpostman.com/post" method="post">
+		<div class="commands">
+		</div>
+
+		<div class="command command-new">
+			<input type="text" name="commands[]"><button>+</button>
+		</div>
+
+		<br />
+
+		<button class="shortcut" data-command="spine:close-modules">Close Modules</button>
+		<button class="shortcut" data-command="spint:echo:Hello, World">Echo Test</button>
+
+		<br /><br />
+
+		<button type="submit">send</button>
+	</form>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script type="text/javascript">
+		$(function() {
+			$('.command-new button').click(function(e) {
+				e.preventDefault();
+				var $new = $('.command-new').clone();
+				$new.removeClass("command-new");
+				$new.find('button').text('-').unbind().click(function(e) {
+					$(this).nearest('.command').remove();
+				});
+
+				$('.commands').append($new);
+				$('.command-new input').val("").focus();
+			});
+
+			$('.shortcut').click(function(e) {
+				e.preventDefault();
+				$('.command-new input').val($(this).data("command"));
+			})
+		})
+	</script>
+</body>
+</html>

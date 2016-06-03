@@ -1,10 +1,10 @@
 #### COMMON ####
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(flags "-O3 -std=c++11 -Wall -Wextra -Wno-unused-parameter")
+    set(flags "-O3 -Wall -Wextra -Wno-unused-parameter")
 
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flags}"
+	set(CMAKE_CXX_FLAGS "${flags} -std=c++11"
 		CACHE STRING "Flags used by the compiler during all build types." FORCE)
-	set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${flags}"
+	set(CMAKE_C_FLAGS   "${flags}"
 		CACHE STRING "Flags used by the compiler during all build types." FORCE)
 endif()
 
@@ -92,6 +92,20 @@ IF(DEFAULT_MODULES)
     	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
     )
     target_link_libraries(mainline_input
+        ${BOTH_LINK_LIBRARIES}
+        dunamis-module
+    )
+
+	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose")
+	add_library(mainline_webui SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/webui.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose/mongoose.c
+    )
+    set_target_properties(mainline_webui
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_webui
         ${BOTH_LINK_LIBRARIES}
         dunamis-module
     )

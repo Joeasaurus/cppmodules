@@ -31,7 +31,7 @@ namespace cppm {
 					 * m_chan and m_to are split by 'DELIM' to make use of ZMQ's subscriptions.
 					 */
 
-					auto header = in.substr(0,in.find(" "));
+					auto header = in.substr(0, in.find(" "));
 
 					// Our channel deets
 					auto chans  = tokeniseString(header, chanToStr[CHANNEL::DELIM]);
@@ -123,11 +123,11 @@ namespace cppm {
 					return {_chainID, _chainRef};
 				};
 
-				string payload() const {
+				virtual string payload() const {
 					return _data;
 				};
 
-				bool payload(string in) {
+				virtual bool payload(string in) {
 					_data = in;
 					return true;
 				};

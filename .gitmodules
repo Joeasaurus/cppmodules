@@ -23,3 +23,6 @@
 [submodule "submodules/dlfcn-win32"]
 	path = submodules/dlfcn-win32
 	url = https://github.com/dlfcn-win32/dlfcn-win32.git
+[submodule "submodules/mongoose"]
+	path = submodules/mongoose
+	url = https://github.com/cesanta/mongoose.git

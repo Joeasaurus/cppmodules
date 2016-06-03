@@ -2,7 +2,6 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range_core.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 
 #include "main/messages/messages.hpp"
@@ -25,7 +24,7 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 		// Hack to die after so long while we're in dev.
 		_eventer.on("close-timeout", [&](chrono::milliseconds) {
 			_running.store(false);
-		}, chrono::milliseconds(10000), EventPriority::HIGH);
+		}, chrono::milliseconds(60000), EventPriority::HIGH);
 
 		hookSocketCommands();
 
