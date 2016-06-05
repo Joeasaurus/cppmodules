@@ -22,9 +22,9 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 	if (connectToParent("__bind__", Context::getSingleContext())) {;
 
 		// Hack to die after so long while we're in dev.
-		_eventer.on("close-timeout", [&](chrono::milliseconds) {
-			_running.store(false);
-		}, chrono::milliseconds(60000), EventPriority::HIGH);
+		// _eventer.on("close-timeout", [&](chrono::milliseconds) {
+		// 	_running.store(false);
+		// }, chrono::milliseconds(60000), EventPriority::HIGH);
 
 		hookSocketCommands();
 
