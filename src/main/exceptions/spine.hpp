@@ -14,7 +14,7 @@ namespace cppm { namespace exceptions { namespace spine {
 			InvalidModulePath(const string& dir, const string& msg)
 				: runtime_error( "InvalidModulePath" ), path(dir), message(msg) {};
 
-			virtual const char* what() const noexcept {
+			virtual const char* what() const {
 				ostringstream cnvt;
 				cnvt.str("");
 

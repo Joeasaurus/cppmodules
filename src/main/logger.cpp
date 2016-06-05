@@ -16,7 +16,7 @@ namespace interfaces {
 
         shared_ptr<sinks::null_sink_mt> _null_sink{make_shared<spdlog::sinks::null_sink_mt> ()};
         shared_ptr<logger> _null_logger;
-    } LoggerPrivate;
+    };
 
 	Logger::Logger(string name) {
         _handle = new LoggerImpl();
@@ -40,8 +40,8 @@ namespace interfaces {
 		spdlog::set_level(debug ? level::debug : level::notice);
 	};
 
-	shared_ptr<logger> Logger::getLogger() const {
-		return _handle->_logger;
+	logger* Logger::getLogger() const {
+		return _handle->_logger.get();
 	};
 
 	void Logger::log(const string& title, const string& data, bool debug) const {

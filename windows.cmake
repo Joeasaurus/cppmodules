@@ -13,13 +13,12 @@ include_directories(AFTER "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generat
 include_directories(AFTER
     "C:/Program Files/ZeroMQ 4.0.4/include"
     "C:/boost/include/boost-1_60"
+	"${CMAKE_SOURCE_DIR}/submodules/cppevent/include"
     "${CMAKE_SOURCE_DIR}/submodules/dlfcn-win32"
-	"${CMAKE_SOURCE_DIR}/submodules/jsoncpp/dist"
 	"${CMAKE_SOURCE_DIR}/submodules/spdlog/include"
 	"${CMAKE_SOURCE_DIR}/submodules/catch/single_include"
 	"${CMAKE_SOURCE_DIR}/submodules/cppzmq"
 	"${CMAKE_SOURCE_DIR}/submodules/boost-predef/include"
-    "${CMAKE_SOURCE_DIR}/submodules/cppevent/include"
 
 )
 link_directories(
@@ -28,44 +27,96 @@ link_directories(
     "C:/boost/lib"
 )
 
-find_library(LIBDL    dl)
-find_library(PTHREAD  pthread)
-find_library(LIBZMQ   libzmq-v120-mt-4_0_4)
-find_library(BOOSTFS  boost_filesystem-mt)
-find_library(BOOSTSYS boost_system-mt)
+set(LIBZMQ   libzmq-v120-mt-4_0_4)
+set(BOOSTFS  libboost_filesystem-vc120-mt-s-1_60)
+set(BOOSTSYS libboost_system-vc120-mt-s-1_60)
+set(LIBDLFCN dl)
 
 set(BOTH_LINK_LIBRARIES
-	libzmq-v120-mt-4_0_4
-)
-
-#### PER SYSTEM ####
-set(MAIN_LINK_LIBRARIES
-    dl
-	libboost_filesystem-vc120-mt-s-1_60
-	libboost_system-vc120-mt-s-1_60
+	${LIBZMQ}
 )
 
 #### MAIN ####
-add_executable(cppmodules
-	src/main/main.cpp
-	src/main/spine.cpp
-	${BOTH_COMPILE_FILES}
+add_library(dunamis-module
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
 )
-configure_file("${CMAKE_SOURCE_DIR}/src/main/spine.hpp.in" "${CMAKE_BINARY_DIR}/generated/main/spine.hpp")
-set_target_properties(cppmodules
+set_target_properties(dunamis-module
 	PROPERTIES
-	RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+	LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
 )
-target_link_libraries(cppmodules
-	${BOTH_LINK_LIBRARIES}
-	${MAIN_LINK_LIBRARIES}
+target_link_libraries(dunamis-module
+    ${BOTH_LINK_LIBRARIES}
 )
 
-#### MODULES ####
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" AND NOT ${MODDONE})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMODULE_EXPORT"
-        CACHE STRING "Flags used by the compiler during all build types." FORCE)
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DMODULE_EXPORT"
-        CACHE STRING "Flags used by the compiler during all build types." FORCE)
-    set(MODDONE TRUE)
-endif()
+
+add_library(dunamis-spine
+	$<TARGET_OBJECTS:SPINE>
+)
+set_target_properties(dunamis-spine
+	PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+)
+target_link_libraries(dunamis-spine
+    ${BOTH_LINK_LIBRARIES}
+	${LIBDLFCN}
+    ${BOOSTFS}
+	${BOOSTSYS}
+    dunamis-module
+)
+
+##### MODULES ####
+IF(DEFAULT_MODULES)
+    add_library(mainline_config SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
+    )
+    set_target_properties(mainline_config
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_config
+    	${BOTH_LINK_LIBRARIES}
+        ${BOOSTFS}
+    	${BOOSTSYS}
+        dunamis-module
+    )
+
+    add_library(mainline_output SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
+    )
+    set_target_properties(mainline_output
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_output
+        ${BOTH_LINK_LIBRARIES}
+        dunamis-module
+    )
+
+	add_library(mainline_input SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/input.cpp
+    )
+    set_target_properties(mainline_input
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_input
+        ${BOTH_LINK_LIBRARIES}
+        dunamis-module
+    )
+
+	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose")
+	add_library(mainline_webui SHARED
+    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/webui.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose/mongoose.c
+    )
+    set_target_properties(mainline_webui
+    	PROPERTIES
+    	LIBRARY_OUTPUT_DIRECTORY ${MODULES_LOCATION}
+    )
+    target_link_libraries(mainline_webui
+        ${BOTH_LINK_LIBRARIES}
+        dunamis-module
+    )
+ENDIF(DEFAULT_MODULES)

@@ -8,12 +8,12 @@
 #include "main/messages/socketer.hpp"
 #include "main/exceptions/exceptions.hpp"
 // Module Specific
-
+#include "main/modulecom.hpp"
 using namespace cppm::messages;
 using namespace cppm::exceptions::spine;
 
 #include "main/spine.hpp"
-#include "main/modulecom.hpp"
+
 
 namespace cppm {
 
