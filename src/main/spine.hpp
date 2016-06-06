@@ -63,8 +63,8 @@ namespace cppm {
 }
 
 // Init/Del functions.
-extern "C" CPPMAPI cppm::Spine* createModule();
-extern "C" CPPMAPI void destroyModule(cppm::Spine* module);
+extern "C" CPPM_WINEXPORT cppm::Spine* createModule();
+extern "C" CPPM_WINEXPORT void destroyModule(cppm::Spine* module);
 
 /*
  * The spine shall be a HUB for all messages between modules.

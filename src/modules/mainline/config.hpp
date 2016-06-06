@@ -25,5 +25,5 @@ class ConfigModule : public Module {
 };
 
 // Init/Del functions.
-extern "C" CPPMAPI ConfigModule* createModule();
-extern "C" CPPMAPI void destroyModule(ConfigModule* module);
+extern "C" CPPM_WINEXPORT ConfigModule* createModule();
+extern "C" CPPM_WINEXPORT void destroyModule(ConfigModule* module);

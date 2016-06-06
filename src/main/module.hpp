@@ -4,12 +4,12 @@
 // We have to do some icky things on Windows!
 #if BOOST_OS_WINDOWS
 	#if defined(MODULE_EXPORT)
-		#define CPPMAPI __declspec(dllexport)
+		#define CPPM_WINEXPORT __declspec(dllexport)
 	#else
-		#define CPPMAPI __declspec(dllimport)
+		#define CPPM_WINEXPORT __declspec(dllimport)
 	#endif
 #else
-	#define CPPMAPI
+	#define CPPM_WINEXPORT
 #endif
 
 #include <string>
@@ -61,5 +61,5 @@ namespace cppm {
  * These functions should be overriden and set 'export "C"' on.
  * These functions allow us to load the module dynamically via <dlfcn.h>
  */
-typedef CPPMAPI cppm::Module* Module_ctor(void);
-typedef CPPMAPI void Module_dctor(cppm::Module*);
+typedef CPPM_WINEXPORT cppm::Module* Module_ctor(void);
+typedef CPPM_WINEXPORT void Module_dctor(cppm::Module*);

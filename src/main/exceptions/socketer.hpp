@@ -1,4 +1,12 @@
 #pragma once
+#include "boost/predef.h"
+
+// VS2-013 doesn't have noexcept!
+#if BOOST_OS_WINDOWS
+	#define CPPM_CLANGNOEXCEPT
+#else
+	#define CPPM_CLANGNOEXCEPT noexcept
+#endif
 
 #include <iostream>
 #include <exception>
@@ -13,7 +21,7 @@ namespace cppm { namespace exceptions { namespace socketer {
 
 			NonExistantHook(const string& hook) : runtime_error( "NonExistantHook" ), hookName(hook) {};
 
-			virtual const char* what() const {
+			virtual const char* what() const CPPM_CLANGNOEXCEPT {
 				ostringstream cnvt;
 				cnvt.str("");
 
@@ -22,7 +30,7 @@ namespace cppm { namespace exceptions { namespace socketer {
 				return strdup(cnvt.str().c_str());
 			}
 
-			bool isCritical() const {
+			bool isCritical() const CPPM_CLANGNOEXCEPT {
 				if (hookName == "process_command" || hookName == "process_input")
 					return true;
 				return false;

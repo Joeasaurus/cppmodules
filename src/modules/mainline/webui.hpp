@@ -42,8 +42,8 @@ class WebUIModule : public Module {
 }
 
 // Init/Del functions.
-extern "C" CPPMAPI webui::WebUIModule* createModule();
-extern "C" CPPMAPI void destroyModule(webui::WebUIModule* module);
+extern "C" CPPM_WINEXPORT webui::WebUIModule* createModule();
+extern "C" CPPM_WINEXPORT void destroyModule(webui::WebUIModule* module);
 
 
 namespace webui { namespace pages {

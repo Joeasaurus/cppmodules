@@ -14,5 +14,5 @@ class InterfaceFixture : public Module {
 };
 
 // Init/Del functions.
-extern "C" CPPMAPI InterfaceFixture* createModule();
-extern "C" CPPMAPI void destroyModule(InterfaceFixture* module);
+extern "C" CPPM_WINEXPORT InterfaceFixture* createModule();
+extern "C" CPPM_WINEXPORT void destroyModule(InterfaceFixture* module);

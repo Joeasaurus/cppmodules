@@ -19,5 +19,5 @@ class OutputModule : public Module {
 };
 
 // Init/Del functions.
-extern "C" CPPMAPI OutputModule* createModule();
-extern "C" CPPMAPI void destroyModule(OutputModule* module);
+extern "C" CPPM_WINEXPORT OutputModule* createModule();
+extern "C" CPPM_WINEXPORT void destroyModule(OutputModule* module);
