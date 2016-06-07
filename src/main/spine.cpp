@@ -48,10 +48,9 @@ Spine::~Spine() {
 	//  in the Spine as 'loaded'
 	// It then waits for the module to join. It relies on the module closing
 	//  cleanly else it will lock up waiting.
-	Command wMsg(name());
-	wMsg.payload("close");
-
-	_socketer->sendMessage(wMsg);
+	// Command wMsg(name());
+	// wMsg.payload("global://system/close");
+	// _socketer->sendMessage(wMsg);
 
 	for_each(m_threads.begin(), m_threads.end(), [&](thread& t) {
 		if (t.joinable()) {
@@ -123,7 +122,7 @@ bool Spine::loadModule(const string& filename) {
 		if (com.loadLibrary()) {
 			if (com.initModule(name(), _socketer->getContext()) && _running.load()) {
 
-				registerModule(com.moduleName);
+				// registerModule(com.moduleName);
 
 				_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
 
@@ -147,7 +146,7 @@ bool Spine::loadModule(const string& filename) {
 				// Here the module is essentially dead, but not the thread
 				//TODO: Module reloading code, proper shutdown handlers etc.
 				com.deinitModule();
-				unregisterModule(com.moduleName);
+				// unregisterModule(com.moduleName);
 			}
 
 			this_thread::sleep_for(chrono::milliseconds(1000));
@@ -192,12 +191,14 @@ set<string> Spine::loadedModules() {
 
 void Spine::hookSocketCommands() {
 	_socketer->on("process_command", [&](const Message& msg) {
-		_logger.log(name(), "CMD HEARD " + msg.payload(), true);
-		if (msg.m_from == "config") {
-			if (msg.payload() == "updated") {
+		Command com(msg);
+
+		_logger.log(name(), "CMD HEARD " + com.payload(), true);
+		if (com.m_from == "config") {
+			if (com.payload() == "updated") {
 
 				Command msg(name(), "config");
-				msg.payload("get-config module-dir");
+				msg.payload("config://get/module-dir");
 				_socketer->sendMessage(msg);
 			}
 		}

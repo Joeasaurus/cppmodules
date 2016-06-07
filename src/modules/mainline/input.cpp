@@ -18,7 +18,7 @@ void InputModule::setup() {
 	});
 
 	Command moduleRunning(name());
-	moduleRunning.payload("module-loaded");
+	moduleRunning.payload("spine://module/loaded?name=" + name());
 	_socketer->sendMessage(moduleRunning);
 }
 

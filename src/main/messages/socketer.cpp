@@ -11,7 +11,7 @@ const Context& Socketer::getContext() {
 
 void Socketer::openSockets(string name, string parent) {
     this->name = name;
-    lock_guard<mutex> lock(_moduleSockMutex);
+    // lock_guard<mutex> lock(_moduleSockMutex);
     if (!_connected) {
         string inPoint = "inproc://";
         string outPoint = "inproc://";
@@ -73,7 +73,6 @@ bool Socketer::pollAndProcess() {
                 return false;
 
             case CHANNEL::Cmd:
-                //TODO: We should check for nice close messages here?
                 return emit("process_command", msg);
 
             case CHANNEL::In:

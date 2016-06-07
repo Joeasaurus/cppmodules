@@ -35,7 +35,7 @@ void ConfigModule::setup() {
 		if(this->loadConfigFile(this->configFilepath)) {
 
 			Command configUpdate(this->name());
-			configUpdate.payload("updated");
+			configUpdate.payload("global://config/updated");
 
 			if (_socketer->sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
@@ -44,7 +44,7 @@ void ConfigModule::setup() {
 
 
 	Command moduleRunning(name());
-	moduleRunning.payload("module-loaded");
+	moduleRunning.payload("spine://module/loaded?name=" + name());
 	_socketer->sendMessage(moduleRunning);
 }
 

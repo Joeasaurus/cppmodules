@@ -65,28 +65,26 @@ namespace cppm {
 					}
 				};
 
-			protected:
+			public:
 				string  _data    = "";
 				unsigned long _chainID  = 0;
 				unsigned long _chainRef = 0;
-
-			public:
 				CHANNEL m_chan         = CHANNEL::None;
 				ChannelType m_chantype = ChannelType::Global;
 				string  m_to           = "";
 				string  m_from         = "";
 
 				Message(){};
-				Message(const string& messageLine) {
-					deserialise(messageLine);
+
+				Message(const string& from, bool newmsg = true) {
+					if (newmsg) {
+						m_from = from;
+					} else {
+						deserialise(from);
+					}
 				};
 
-				Message(const string& from, CHANNEL chan = CHANNEL::In) {
-					m_from = from;
-					m_chan = chan;
-				};
-
-				Message(const string& from, const string& to, CHANNEL chan = CHANNEL::In) : Message(from, chan) {
+				Message(const string& from, const string& to) : Message(from) {
 					m_to = to;
 				};
 

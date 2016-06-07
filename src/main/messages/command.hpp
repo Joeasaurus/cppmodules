@@ -1,68 +1,79 @@
 #pragma once
 
 #include <string>
+
 #include "main/messages/message.hpp"
+#include "main/messages/uri.hpp"
 
 using namespace std;
 
-namespace cppm { namespace messages {
+namespace cppm { namespace messages 	
 	class Command : public Message {
 		public:
-			Command(const string& from) : Message(from, CHANNEL::Cmd) {};
-			Command(const string& from, const string& to) : Message(from, to, CHANNEL::Cmd) {};
-
-			string module() {
-				return _module;
+			Command(const string& from) : Message(from) {m_chan = CHANNEL::Cmd;};
+			Command(const string& from, const string& to) : Command(from) {m_to = to;};
+			Command(const Message& rhs) : Command(rhs.m_from, rhs.m_to) {
+				m_chantype = rhs.m_chantype;
+				_chainID   = rhs._chainID;
+				_chainRef  = rhs._chainRef;
+				_data = rhs._data;
+				payReload();
 			};
 
-			string domain() {
-				return _domain;
+			const string module() {
+				return uri.scheme();
 			};
 
-			string command() {
-				return _command;
+			const string domain() {
+				return uri.host();
+			};
+
+			const string command() {
+				auto c = uri.path();
+				if (strcmp(&c[0], "/"))
+					return c.substr(1);
+				return c;
+			};
+
+			const std::vector<std::pair<string, string>> params() {
+				return uri.getQueryParams();
 			};
 
 			void module(string mod) {
-				_module = mod;
+				uri.scheme(mod);
 			};
 
 			void domain(string dom) {
-				_domain = dom;
+				uri.host(dom);
 			};
 
 			void command(string com) {
-				_command = com;
+				if (strncmp(com.c_str(), "/", 1))
+					com = "/" + com;
+				uri.path(com);
+			};
+
+			void param(const pair<string, string>& paramPair) {
+				uri.addQueryParam(paramPair);
 			};
 
 			string payload() const {
-				if (_data.empty())
-					return _module + ":" + _domain + ":" + _command;
-				else
-					return _data;
+				return uri.toString();
+			};
+
+			string payReload() {
+				payload(_data);
+				return uri.toString();
 			};
 
 			bool payload(string in) {
-				auto parts = tokeniseString(in, ":");
-				module(parts.at(0));
-				if (parts.size() >= 2) {
-					domain(parts.at(1));
-					if (parts.size() >= 3) {
-						command(parts.at(2));
-						parts.erase(parts.begin());
-						parts.erase(parts.begin());
-						parts.erase(parts.begin());
-						for (auto& tk : parts)
-							_command += ":" + tk;
-					}
-				}
+				uri.parseUri(in);
 				_data = in;
+				m_chan = CHANNEL::Cmd;
 				return true;
 			};
 
 		private:
-			string _module  = "";
-			string _domain  = "";
-			string _command = "";
+			Uri uri;
 	};
 }}

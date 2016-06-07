@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
 
 // We have to do some icky things on Windows!
 #if BOOST_OS_WINDOWS
