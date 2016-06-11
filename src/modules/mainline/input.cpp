@@ -1,6 +1,7 @@
 #include "modules/mainline/input.hpp"
 
 void InputModule::setup() {
+	out.setChannel(CHANNEL::Out);
 
 	_socketer->on("process_command", [&](const Message& message) {
 		_logger.log(name(), message.serialise(), true);
@@ -8,7 +9,6 @@ void InputModule::setup() {
 	});
 
 	_socketer->on("process_input", [&](const Message& message) {
-		Output out(name());
 		out.setChain(message.getChain());
 		out.payload("ECHO " + message.payload());
 
@@ -17,7 +17,8 @@ void InputModule::setup() {
 		return true;
 	});
 
-	Command moduleRunning(name());
+	Message moduleRunning(name());
+	moduleRunning.setChannel(CHANNEL::Cmd);
 	moduleRunning.payload("spine://module/loaded?name=" + name());
 	_socketer->sendMessage(moduleRunning);
 }

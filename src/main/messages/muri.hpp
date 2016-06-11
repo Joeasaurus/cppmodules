@@ -2,22 +2,21 @@
 
 #include <string>
 
-#include "main/messages/message.hpp"
 #include "main/messages/uri.hpp"
 
 using namespace std;
 
-namespace cppm { namespace messages 	
-	class Command : public Message {
+namespace cppm { namespace messages {
+	class MUri {
 		public:
-			Command(const string& from) : Message(from) {m_chan = CHANNEL::Cmd;};
-			Command(const string& from, const string& to) : Command(from) {m_to = to;};
-			Command(const Message& rhs) : Command(rhs.m_from, rhs.m_to) {
-				m_chantype = rhs.m_chantype;
-				_chainID   = rhs._chainID;
-				_chainRef  = rhs._chainRef;
-				_data = rhs._data;
-				payReload();
+			MUri(){};
+			MUri(const string& inuri) {
+				setUri(inuri);
+			};
+			MUri(const string& mod, const string& dom, const string& com) {
+				module(mod);
+				domain(dom);
+				command(com);
 			};
 
 			const string module() {
@@ -39,11 +38,11 @@ namespace cppm { namespace messages
 				return uri.getQueryParams();
 			};
 
-			void module(string mod) {
+			void module(const string& mod) {
 				uri.scheme(mod);
 			};
 
-			void domain(string dom) {
+			void domain(const string& dom) {
 				uri.host(dom);
 			};
 
@@ -57,20 +56,12 @@ namespace cppm { namespace messages
 				uri.addQueryParam(paramPair);
 			};
 
-			string payload() const {
+			string getUri() const {
 				return uri.toString();
 			};
 
-			string payReload() {
-				payload(_data);
-				return uri.toString();
-			};
-
-			bool payload(string in) {
-				uri.parseUri(in);
-				_data = in;
-				m_chan = CHANNEL::Cmd;
-				return true;
+			void setUri(const string& inuri) {
+				uri.parseUri(inuri);
 			};
 
 		private:

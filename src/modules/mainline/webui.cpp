@@ -14,17 +14,35 @@ WebUIModule::~WebUIModule() {
 }
 
 void WebUIModule::setup() {
+	commands["module"] = [&](MUri& com) {
+		if (com.command() == "echo") {
+			_logger.log(name(), com.getUri());
+			return true;
+		}
+
+		return false;
+	};
 
 	_socketer->on("process_command", [&](const Message& message) {
-		_logger.log(name(), message.serialise(), true);
-		return true;
+		MUri uri(message.payload());
+		auto domain = uri.domain();
+
+		if (commands.find(domain) != commands.end()) {
+			auto theFunc = commands[domain];
+			return theFunc(uri);
+		}
+
+		_logger.log(name(), "Command domain not found: " + domain, true);
+		return false;
+		// _logger.log(name(), message.serialise(), true);
 	});
 
 	_eventer.on("poll-manager", [&] {
 		mg_mgr_poll(&manager, 0);
 	}, EventPriority::HIGH);
 
-	Command moduleRunning(name());
+	Message moduleRunning(name());
+	moduleRunning.setChannel(CHANNEL::Cmd);
 	moduleRunning.payload("spine://module/loaded?name=" + name());
 	_socketer->sendMessage(moduleRunning);
 }
@@ -107,7 +125,8 @@ int WebUIModule::handleQuery(vector<string>& params) {
 		if (split.at(0) == "commands[]" && split.size() == 2) {
 			_logger.log(name(), "[API] commands = " + split.at(1), true);
 
-			Command com(name());
+			Message com(name());
+			com.setChannel(CHANNEL::Cmd);
 			com.payload(split.at(1));
 			if (!_socketer->sendMessage(com))
 				failures++;

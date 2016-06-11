@@ -191,29 +191,27 @@ set<string> Spine::loadedModules() {
 
 void Spine::hookSocketCommands() {
 	_socketer->on("process_command", [&](const Message& msg) {
-		Command com(msg);
+		MUri mu(msg.payload());
 
-		_logger.log(name(), "CMD HEARD " + com.payload(), true);
-		if (com.m_from == "config") {
-			if (com.payload() == "updated") {
+		_logger.log(name(), "CMD HEARD " + mu.command(), true);
 
-				Command msg(name(), "config");
-				msg.payload("config://get/module-dir");
-				_socketer->sendMessage(msg);
-			}
-		}
+		// Message newmsg(name(), "webui");
+		// newmsg.setChannel(CHANNEL::Cmd);
+		// newmsg.payload(mu.getUri());
+		// _socketer->sendMessage(newmsg);
+
 		return true;
 	});
 
 	_socketer->on("process_input", [&](const Message& msg) {
-		_logger.log(name(), "INPUT HEARD " + msg.payload(), true);
+		// _logger.log(name(), "INPUT HEARD " + msg.payload(), true);
 		return true;
 	});
 
 	_socketer->on("process_output", [&](const Message& msg) {
 		// HERE ENSUES THE ROUTING
 		// The spine manages chains of modules, so we forward from out to in down the chains
-		_logger.log(name(), "OUTPUT HEARD " + msg.serialise(), true);
+		// _logger.log(name(), "OUTPUT HEARD " + msg.serialise(), true);
 
 		auto modChain = msg.getChain();
 
@@ -224,11 +222,12 @@ void Spine::hookSocketCommands() {
 		// Set the chain on the msg and send to the current() on it
 		// If the chain next() is null, kill it
 
-		Input inmsg(msg.m_from);
+		Message inmsg(msg.m_from);
+		inmsg.setChannel(CHANNEL::In);
 		inmsg.payload(msg.payload());
 
 		if (modChain.first == 0) {
-			_logger.log(name(), "Creating chains for " + msg.m_from, true);
+			// _logger.log(name(), "Creating chains for " + msg.m_from, true);
 
 			auto chains = authoredChains[msg.m_from];
 
@@ -252,7 +251,7 @@ void Spine::hookSocketCommands() {
 
 			_socketer->sendMessage(inmsg);
 		} else {
-			_logger.log(name(), "DEAD message: " + msg.serialise());
+			// _logger.log(name(), "DEAD message: " + msg.serialise());
 			return false;
 		}
 

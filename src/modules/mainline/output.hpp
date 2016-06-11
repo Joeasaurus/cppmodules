@@ -14,7 +14,7 @@ class OutputModule : public Module {
 		void tick();
 	private:
 		Eventer _eventer;
-		Output message{"output"};
+		Message message{"output"};
 
 };
 

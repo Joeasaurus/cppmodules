@@ -17,7 +17,7 @@ set(TEST_FILES
 	SpineAPI
 	ModuleInterface
 	ModuleChain
-	CommandMessage
+	MUri
 )
 set(TEST_COMMON_INCLUDE_DIRS
 	"${CMAKE_SOURCE_DIR}/src"
@@ -29,7 +29,7 @@ set(TEST_EXTRA_COMPILE_FILES
 	"Logger\;${CMAKE_SOURCE_DIR}/src/main/logger.cpp"
 	"ModuleInterface\;"
 	"ModuleChain\;"
-	"CommandMessage\;"
+	"MUri\;"
 )
 
 IF(TESTS)

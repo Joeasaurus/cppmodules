@@ -34,7 +34,8 @@ void ConfigModule::setup() {
 		// Need to think about how we specify stuff like that!
 		if(this->loadConfigFile(this->configFilepath)) {
 
-			Command configUpdate(this->name());
+			Message configUpdate(this->name());
+			configUpdate.setChannel(CHANNEL::Cmd);
 			configUpdate.payload("global://config/updated");
 
 			if (_socketer->sendMessage(configUpdate))
@@ -43,7 +44,8 @@ void ConfigModule::setup() {
 	}, chrono::milliseconds(5000), EventPriority::LOW);
 
 
-	Command moduleRunning(name());
+	Message moduleRunning(name());
+	moduleRunning.setChannel(CHANNEL::Cmd);
 	moduleRunning.payload("spine://module/loaded?name=" + name());
 	_socketer->sendMessage(moduleRunning);
 }

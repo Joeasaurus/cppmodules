@@ -1,8 +1,10 @@
 #pragma once
+#include <map>
 #include "main/module.hpp"
 #include "main/messages/messages.hpp"
 #include "Eventer.hpp"
 
+using namespace std;
 using namespace cppm;
 using namespace cppm::messages;
 using namespace cppevent;
@@ -26,7 +28,7 @@ class WebUIModule : public Module {
 		static WebUIModule* GetSingleton(struct mg_connection *nc);
 	private:
 		Eventer _eventer;
-		Command message{"WebUI"};
+		map<string, function<bool(MUri& command)>> commands;
 
 		struct mg_connection *connection;
 		struct mg_mgr manager;

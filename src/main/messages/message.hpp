@@ -25,46 +25,6 @@ namespace cppm {
 		};
 
 		class Message {
-			private:
-				void copyMessage(const string& in) {
-					/*
-					 * m_chan and m_to are split by 'DELIM' to make use of ZMQ's subscriptions.
-					 */
-
-					auto header = in.substr(0, in.find(" "));
-
-					// Our channel deets
-					auto chans  = tokeniseString(header, chanToStr[CHANNEL::DELIM]);
-
-					if (chans.size() == 2) {
-						m_to = chans.at(0);
-						m_chan = strToChan[chans.at(1)];
-						m_chantype = ChannelType::Directed;
-					} else {
-						m_chan = strToChan[chans.at(0)];
-						m_chantype = ChannelType::Global;
-					}
-
-					auto body = tokeniseString(in.substr(in.find(" ") + 1), ";");
-					m_from = body.at(0);
-
-					// Chain deets
-					auto chain = tokeniseString(body.at(1), ",");
-					_chainID   = stoul(chain.at(0));
-					_chainRef  = stoul(chain.at(1));
-
-					// Now all our data
-					_data      = body.at(2);
-
-					if (body.size() > 3) {
-						body.erase(body.begin());
-						body.erase(body.begin());
-						body.erase(body.begin());
-						for (auto& tk : body)
-							_data += ";" + tk;
-					}
-				};
-
 			public:
 				string  _data    = "";
 				unsigned long _chainID  = 0;
@@ -144,6 +104,46 @@ namespace cppm {
 				const Message& deserialise(const string& in) {
 					copyMessage(in);
 					return *this;
+				};
+
+			private:
+				void copyMessage(const string& in) {
+					/*
+					 * m_chan and m_to are split by 'DELIM' to make use of ZMQ's subscriptions.
+					 */
+
+					auto header = in.substr(0, in.find(" "));
+
+					// Our channel deets
+					auto chans  = tokeniseString(header, chanToStr[CHANNEL::DELIM]);
+
+					if (chans.size() == 2) {
+						m_to = chans.at(0);
+						m_chan = strToChan[chans.at(1)];
+						m_chantype = ChannelType::Directed;
+					} else {
+						m_chan = strToChan[chans.at(0)];
+						m_chantype = ChannelType::Global;
+					}
+
+					auto body = tokeniseString(in.substr(in.find(" ") + 1), ";");
+					m_from = body.at(0);
+
+					// Chain deets
+					auto chain = tokeniseString(body.at(1), ",");
+					_chainID   = stoul(chain.at(0));
+					_chainRef  = stoul(chain.at(1));
+
+					// Now all our data
+					_data      = body.at(2);
+
+					if (body.size() > 3) {
+						body.erase(body.begin());
+						body.erase(body.begin());
+						body.erase(body.begin());
+						for (auto& tk : body)
+							_data += ";" + tk;
+					}
 				};
 		};
 	}

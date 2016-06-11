@@ -11,7 +11,7 @@ class InputModule : public Module {
 		void setup();
 		void tick();
 	private:
-		Input message{"output"};
+		Message out{"input"};
 
 };
 

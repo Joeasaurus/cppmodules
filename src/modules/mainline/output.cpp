@@ -1,6 +1,7 @@
 #include "modules/mainline/output.hpp"
 
 void OutputModule::setup() {
+	message.setChannel(CHANNEL::Out);
 
 	_socketer->on("process_command", [&](const Message& message) {
 		_logger.log(name(), message.serialise(), true);
@@ -12,7 +13,8 @@ void OutputModule::setup() {
 		_socketer->sendMessage(message);
 	}, chrono::milliseconds(1000), EventPriority::LOW);
 
-	Command moduleRunning(name());
+	Message moduleRunning(name());
+	moduleRunning.setChannel(CHANNEL::Cmd);
 	moduleRunning.payload("spine://module/loaded?name=" + name());
 	_socketer->sendMessage(moduleRunning);
 }
