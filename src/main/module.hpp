@@ -39,7 +39,7 @@ namespace cppm {
 			chrono::system_clock::time_point timeNow;
 
 		protected:
-			Socketer*  _socketer;
+			Socketer*  _socketer = nullptr;
 			Logger     _logger;
 			ModuleInfo __info;
 
@@ -52,7 +52,7 @@ namespace cppm {
 			virtual void setup()=0;
 
 			string name() const;
-			bool connectToParent(string p, const Context& ctx);
+			void connectToParent(string parent, const Context& ctx);
 	};
 }
 

@@ -30,13 +30,8 @@ namespace cppm {
 		return this->__info.name;
 	}
 
-	bool Module::connectToParent(string p, const Context& ctx) {
-		if (!_socketer)
-			_socketer = new Socketer(ctx);
-
-		if (!_socketer->isConnected())
-			_socketer->openSockets(name(), p);
-
-		return _socketer->isConnected();
+	void Module::connectToParent(string parent, const Context& ctx) {
+		_socketer = new Socketer(ctx);
+		_socketer->openSockets(name(), parent);
 	}
 }

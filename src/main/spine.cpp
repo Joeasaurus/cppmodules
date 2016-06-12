@@ -19,25 +19,24 @@ namespace cppm {
 
 Spine::Spine() : Module("Spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
-	if (connectToParent("__bind__", Context::getSingleContext())) {;
+	connectToParent("__bind__", Context::getSingleContext());
 
-		// Hack to die after so long while we're in dev.
-		// _eventer.on("close-timeout", [&](chrono::milliseconds) {
-		// 	_running.store(false);
-		// }, chrono::milliseconds(60000), EventPriority::HIGH);
+	hookSocketCommands();
 
-		hookSocketCommands();
+	auto index = chainFactory.create();
+	chainFactory.insert(index, "input");
+	chainFactory.insert(index, "input");
+	assert(index == 1);
 
-		auto index = chainFactory.create();
-		chainFactory.insert(index, "input");
-		chainFactory.insert(index, "input");
-		assert(index == 1);
+	list<unsigned long> refList{index};
+	authoredChains["output"] = refList;
 
-		list<unsigned long> refList{index};
-		authoredChains["output"] = refList;
+	_running.store(true);
 
-		_running.store(true);
-	}
+	// Hack to die after so long while we're in dev.
+	// _eventer.on("close-timeout", [&](chrono::milliseconds) {
+	// 	_running.store(false);
+	// }, chrono::milliseconds(60000), EventPriority::HIGH);
 }
 
 Spine::~Spine() {

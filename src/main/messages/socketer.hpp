@@ -2,6 +2,7 @@
 #include "boost/predef.h"
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <thread>
 #include <map>
 
 // We have to do some icky things on Windows!
@@ -39,7 +40,9 @@ namespace cppm { namespace messages {
 			bool emit(string hookName, const Message& msg);
 
         public:
-            Socketer(const Context& ctx) : inp_context(ctx), _connected(false) {};
+            Socketer(const Context& ctx) : inp_context(ctx) {
+				cout << "Calling socketer from id: " << std::this_thread::get_id() << endl;
+			};
             ~Socketer();
 
             const Context& getContext();
