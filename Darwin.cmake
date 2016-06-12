@@ -30,7 +30,6 @@ add_library(dunamis-module
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/uri.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/logger.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
 )
 set_target_properties(dunamis-module
 	PROPERTIES
@@ -42,6 +41,7 @@ target_link_libraries(dunamis-module
 
 add_library(dunamis-spine
 	$<TARGET_OBJECTS:SPINE>
+	$<TARGET_OBJECTS:SOCKETER>
 )
 set_target_properties(dunamis-spine
 	PROPERTIES
@@ -60,6 +60,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
 #### MODULES ####
 IF(DEFAULT_MODULES)
     add_library(mainline_config SHARED
+		$<TARGET_OBJECTS:SOCKETER>
     	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
     )
     set_target_properties(mainline_config
@@ -74,7 +75,8 @@ IF(DEFAULT_MODULES)
     )
 
     add_library(mainline_output SHARED
-    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
+		$<TARGET_OBJECTS:SOCKETER>
+		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
     )
     set_target_properties(mainline_output
     	PROPERTIES
@@ -86,7 +88,8 @@ IF(DEFAULT_MODULES)
     )
 
 	add_library(mainline_input SHARED
-    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/input.cpp
+		$<TARGET_OBJECTS:SOCKETER>
+		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/input.cpp
     )
     set_target_properties(mainline_input
     	PROPERTIES
@@ -99,7 +102,8 @@ IF(DEFAULT_MODULES)
 
 	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose")
 	add_library(mainline_webui SHARED
-    	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/webui.cpp
+		$<TARGET_OBJECTS:SOCKETER>
+		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/webui.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose/mongoose.c
     )
     set_target_properties(mainline_webui

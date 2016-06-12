@@ -41,7 +41,7 @@ namespace cppm { namespace messages {
 
         public:
             Socketer(const Context& ctx) : inp_context(ctx) {
-				cout << "Calling socketer from id: " << std::this_thread::get_id() << endl;
+				// cout << "Calling socketer from id: " << std::this_thread::get_id() << endl;
 			};
             ~Socketer();
 

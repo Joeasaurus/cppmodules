@@ -44,6 +44,7 @@ namespace cppm {
 			void unregisterModule(const string& name);
 
 			void hookSocketCommands();
+			void handleCommand(MUri& mu);
 
 		public:
 			Spine();

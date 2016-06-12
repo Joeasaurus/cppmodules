@@ -12,9 +12,11 @@ set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
 set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
 include("${CMAKE_SOURCE_DIR}/functions.cmake")
 
-
 add_library(SPINE OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
+)
+add_library(SOCKETER OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
 )
 
 include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")
@@ -22,6 +24,7 @@ include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")
 
 add_executable(${BINARY_NAME}
     $<TARGET_OBJECTS:SPINE>
+	$<TARGET_OBJECTS:SOCKETER>
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mainfile/mainfile.cpp
 )
 set_target_properties(${BINARY_NAME}

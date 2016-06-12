@@ -34,7 +34,7 @@ namespace cppm { namespace messages {
 				return c;
 			};
 
-			const std::vector<std::pair<string, string>> params() {
+			const map<string, list<string>>& params() {
 				return uri.getQueryParams();
 			};
 
@@ -52,8 +52,12 @@ namespace cppm { namespace messages {
 				uri.path(com);
 			};
 
-			void param(const pair<string, string>& paramPair) {
-				uri.addQueryParam(paramPair);
+			const list<string>& param(const string& key) {
+				return uri.getQueryParam(key);
+			}
+
+			void param(const string& key, const string& value) {
+				uri.addQueryParam(key, value);
 			};
 
 			string getUri() const {

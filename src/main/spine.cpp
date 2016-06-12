@@ -17,7 +17,7 @@ using namespace cppm::exceptions::spine;
 
 namespace cppm {
 
-Spine::Spine() : Module("Spine", "Joe Eaves") {
+Spine::Spine() : Module("spine", "Joe Eaves") {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	connectToParent("__bind__", Context::getSingleContext());
 
@@ -42,15 +42,6 @@ Spine::Spine() : Module("Spine", "Joe Eaves") {
 Spine::~Spine() {
 	_running.store(false);
 
-	// Here the Spine sends a message out on it's publish socket
-	// Each message directs a 'close' message to a module registered
-	//  in the Spine as 'loaded'
-	// It then waits for the module to join. It relies on the module closing
-	//  cleanly else it will lock up waiting.
-	// Command wMsg(name());
-	// wMsg.payload("global://system/close");
-	// _socketer->sendMessage(wMsg);
-
 	for_each(m_threads.begin(), m_threads.end(), [&](thread& t) {
 		if (t.joinable()) {
 			t.join();
@@ -58,8 +49,6 @@ Spine::~Spine() {
 		};
 	});
 
-	// After all modules are closed we don't need our sockets
-	//  so we should close them before exit, to be nice
 	_logger.log(name(), "Closed");
 }
 
@@ -82,13 +71,10 @@ void Spine::listModuleFiles(set<string>& destination, const string& directory) c
 		boost::filesystem::recursive_directory_iterator startd(directory), endd;
 		auto files = boost::make_iterator_range(startd, endd);
 
-		for(boost::filesystem::path p : files){
-			if (p.extension() == this->moduleFileExtension &&
-				!boost::filesystem::is_directory(p)
-			) {
+		for(boost::filesystem::path p : files)
+			if (p.extension() == this->moduleFileExtension && !boost::filesystem::is_directory(p))
 				destination.insert(p.string());
-			}
-		}
+
 	} catch(boost::filesystem::filesystem_error& e) {
 		_logger.warn(name(), "WARNING! Could not load modules!");
 		throw InvalidModulePath(directory, static_cast<string>(e.what()));
@@ -188,16 +174,35 @@ set<string> Spine::loadedModules() {
 	return _loadedModules;
 }
 
+void Spine::handleCommand(MUri& mu) {
+	try {
+	if (mu.command() == "loaded") {
+		auto param = mu.param("name");
+
+		Message m(name(), param.front());
+		m.setChannel(CHANNEL::Cmd);
+		m.payload("REG_OK");
+		_socketer->sendMessage(m);
+	}
+} catch (exception& e) {
+	_logger.err(name(), e.what());
+}
+}
+
 void Spine::hookSocketCommands() {
 	_socketer->on("process_command", [&](const Message& msg) {
 		MUri mu(msg.payload());
 
-		_logger.log(name(), "CMD HEARD " + mu.command(), true);
+		_logger.log(name(), "CMD HEARD " + msg.payload() + " for " + mu.module());
 
-		// Message newmsg(name(), "webui");
-		// newmsg.setChannel(CHANNEL::Cmd);
-		// newmsg.payload(mu.getUri());
-		// _socketer->sendMessage(newmsg);
+		if (mu.module() == name()) {
+			_logger.log(name(), "Command " + mu.getUri() + " was for me!");
+			handleCommand(mu);
+		} else {
+			Message newmsg(msg.serialise(), false);
+			newmsg.sendTo(mu.module());
+			_socketer->sendMessage(newmsg);
+		}
 
 		return true;
 	});

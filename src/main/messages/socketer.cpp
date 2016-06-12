@@ -125,7 +125,7 @@ bool Socketer::sendMessage(Message& message) const {
     bool sendOk = false;
 
     auto message_string = message.serialise();
-    // _logger.log(name, "Formatted, before sending ---- " + message_string);
+    // _logger.log(name, "Formatted, before sending ---- " + message_string, true);
 
     message_t zmqObject(message_string.length());
     memcpy(zmqObject.data(), message_string.data(), message_string.length());
@@ -153,8 +153,8 @@ retType Socketer::recvMessage(function<retType(const Message&)> callback, long t
 
 			Message msg;
 			msg.deserialise(normMsg);
-            // _logger.log(name, "Normalised, before processing --- " + normMsg);
-			// _logger.log(name, "Assigned,   after  processing --- " + msg.serialise());
+            // _logger.log(name, "Normalised, before processing --- " + normMsg, true);
+			// _logger.log(name, "Assigned,   after  processing --- " + msg.serialise(), true);
 
             return callback(msg);
         }

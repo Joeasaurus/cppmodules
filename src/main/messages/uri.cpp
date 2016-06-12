@@ -37,7 +37,7 @@ string submatch(const cmatch& m, size_t idx) {
 
 void toLower(string& s) {
   for (auto& c : s) {
-    c = tolower(c);
+	c = tolower(c);
   }
 }
 
@@ -46,46 +46,48 @@ Uri::Uri(string str) {
 }
 
 void Uri::parseUri(const string& str) {
+	cout << str << endl;
+
 	cmatch match;
-    if (!regex_match(str.c_str(), match, uriRegex)) {
-      throw std::invalid_argument("invalid URI " + str);
-    }
+	if (!regex_match(str.c_str(), match, uriRegex)) {
+		throw std::invalid_argument("invalid URI " + str);
+	}
 
-    scheme_ = submatch(match, 1);
-    toLower(scheme_);
+	scheme_ = submatch(match, 1);
+	toLower(scheme_);
 
-    string authorityAndPath(match[2].first, match[2].second);
-    cmatch authorityAndPathMatch;
-    if (!regex_match(authorityAndPath.c_str(), authorityAndPathMatch, authorityAndPathRegex)) {
-      // Does not start with //, doesn't have authority
-      hasAuthority_ = false;
-      path_ = authorityAndPath;
-    } else {
+	string authorityAndPath(match[2].first, match[2].second);
+	cmatch authorityAndPathMatch;
 
+	if (!regex_match(authorityAndPath.c_str(), authorityAndPathMatch, authorityAndPathRegex)) {
+		// Does not start with //, doesn't have authority
+		hasAuthority_ = false;
+		path_ = authorityAndPath;
+	} else {
+		auto authority = authorityAndPathMatch[1];
 
-      auto authority = authorityAndPathMatch[1];
-      cmatch authorityMatch;
-      if (!regex_match(authority.first,
-                              authority.second,
-                              authorityMatch,
-                              authorityRegex)) {
-        throw std::invalid_argument("invalid URI authority " + string(authority.first, authority.second));
-      }
+		cmatch authorityMatch;
+		if (!regex_match(authority.first, authority.second,	authorityMatch,	authorityRegex)) {
+			throw std::invalid_argument("invalid URI authority " + string(authority.first, authority.second));
+		}
 
-      string port(authorityMatch[4].first, authorityMatch[4].second);
-      if (!port.empty()) {
-        port_ = static_cast<short>(std::stoi(port)); //ugck
-      }
+		string port(authorityMatch[4].first, authorityMatch[4].second);
+		if (!port.empty()) {
+			port_ = static_cast<short>(std::stoi(port)); //ugck
+		}
 
-      hasAuthority_ = true;
-      username_ = submatch(authorityMatch, 1);
-      password_ = submatch(authorityMatch, 2);
-      host_ = submatch(authorityMatch, 3);
-      path_ = submatch(authorityAndPathMatch, 2);
-    }
+		hasAuthority_ = true;
+		username_ = submatch(authorityMatch, 1);
+		password_ = submatch(authorityMatch, 2);
+		host_ = submatch(authorityMatch, 3);
+		path_ = submatch(authorityAndPathMatch, 2);
+	}
 
-    query_ = submatch(match, 3);
-    fragment_ = submatch(match, 4);
+	query_ = submatch(match, 3);
+	fragment_ = submatch(match, 4);
+
+	cout << query_ << endl;
+	parseQuery();
 }
 
 string Uri::authority() const {
@@ -95,21 +97,21 @@ string Uri::authority() const {
   result.reserve(host().size() + username().size() + password().size() + 8);
 
   if (!username().empty() || !password().empty()) {
-    result.append(username());
+	result.append(username());
 
-    if (!password().empty()) {
-      result.push_back(':');
-      result.append(password());
-    }
+	if (!password().empty()) {
+	  result.push_back(':');
+	  result.append(password());
+	}
 
-    result.push_back('@');
+	result.push_back('@');
   }
 
   result.append(host());
 
   if (port() != 0) {
-    result.push_back(':');
-    result.push_back(port());
+	result.push_back(':');
+	result.push_back(port());
   }
 
   return result;
@@ -117,70 +119,102 @@ string Uri::authority() const {
 
 string Uri::hostname() const {
   if (host_.size() > 0 && host_[0] == '[') {
-    // If it starts with '[', then it should end with ']', this is ensured by
-    // regex
-    return host_.substr(1, host_.size() - 2);
+	// If it starts with '[', then it should end with ']', this is ensured by
+	// regex
+	return host_.substr(1, host_.size() - 2);
   }
   return host_;
 }
 
-const std::vector<std::pair<string, string>>& Uri::getQueryParams() {
-  if (!query_.empty() && queryParams_.empty()) {
-    // Parse query string
+void Uri::parseQuery() {
+	if (!query_.empty()) {
+		queryParams_.clear();
 
-    cregex_iterator paramBeginItr(
-        query_.data(), query_.data() + query_.size(), queryParamRegex);
-    cregex_iterator paramEndItr;
-    for (auto itr = paramBeginItr; itr != paramEndItr; itr++) {
-      if (itr->length(2) == 0) {
-        // key is empty, ignore it
-        continue;
-      }
-      queryParams_.emplace_back(
-          string((*itr)[2].first, (*itr)[2].second), // parameter name
-          string((*itr)[3].first, (*itr)[3].second) // parameter value
-          );
-    }
-  }
+		cregex_iterator paramBeginItr(query_.data(),
+									  query_.data() + query_.size(), queryParamRegex);
+		cregex_iterator paramEndItr;
+
+		for (auto itr = paramBeginItr; itr != paramEndItr; itr++) {
+			if (itr->length(2) == 0) {
+				// key is empty, ignore it
+				continue;
+			}
+
+			addQueryParam(
+				string((*itr)[2].first, (*itr)[2].second),
+				string((*itr)[3].first, (*itr)[3].second)
+			);
+		}
+	} else {
+		throw GeneralFailure("parseQuery found query_ empty!"); //TODO: Add exception
+	}
+}
+
+bool Uri::hasParam(const string& key) {
+	return queryParams_.find(key) != queryParams_.end();
+}
+
+const map<string, list<string>>& Uri::getQueryParams() {
   return queryParams_;
 }
 
-void Uri::addQueryParam(const pair<string, string>& newParams) {
-	queryParams_.push_back(newParams);
-	if (queryParams_.size() > 1 && ! query_.empty())
-		query_ += "&";
-	query_ += newParams.first + "=" + newParams.second;
+const list<string>& Uri::getQueryParam(const string& key) {
+	if (hasParam(key)) {
+		return queryParams_.at(key);
+	}
+
+	throw ParamNotFound(key); // TODO: Exception
 }
 
-void Uri::setQueryParams(const vector<pair<string, string>>& newParams) {
+void Uri::setQueryParams(const map<string, list<string>>& newParams) {
 	queryParams_.clear();
+	query_.clear();
 	for (auto& param : newParams) {
-		addQueryParam(param);
+		addQueryParam(param, true);
+	}
+}
+
+void Uri::addQueryParam(const pair<string, list<string>>& newParams, bool addToQuery) {
+	for (auto& paramVal : newParams.second)
+		addQueryParam(newParams.first, paramVal, addToQuery);
+}
+
+void Uri::addQueryParam(const string& key, const string& value, bool addToQuery) {
+	if (hasParam(key)) {
+		queryParams_[key] = { value };
+	} else {
+		queryParams_[key].emplace_back(value);
+	}
+
+	if (addToQuery) {
+		if (queryParams_.size() > 1 && ! query_.empty())
+			query_ += "&";
+		query_ += key + "=" + value;
 	}
 }
 
 string Uri::toString() const {
   stringstream str;
   if (hasAuthority_) {
-    str << scheme_ << "://";
-    if (!password_.empty()) {
-      str << username_ << ":" << password_ << "@";
-    } else if (!username_.empty()) {
-      str << username_ << "@";
-    }
-    str << host_;
-    if (port_ != 0) {
-      str << ":" << to_string(port_);
-    }
+	str << scheme_ << "://";
+	if (!password_.empty()) {
+	  str << username_ << ":" << password_ << "@";
+	} else if (!username_.empty()) {
+	  str << username_ << "@";
+	}
+	str << host_;
+	if (port_ != 0) {
+	  str << ":" << to_string(port_);
+	}
   } else {
-    str << scheme_ << ":";
+	str << scheme_ << ":";
   }
   str << path_;
   if (!query_.empty()) {
-    str << "?" << query_;
+	str << "?" << query_;
   }
   if (!fragment_.empty()) {
-    str << "#" << fragment_;
+	str << "#" << fragment_;
   }
   return str.str();
 }

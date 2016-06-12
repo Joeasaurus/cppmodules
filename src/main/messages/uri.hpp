@@ -24,11 +24,16 @@
 #pragma once
 
 #include <string>
-#include <vector>
+#include <map>
+#include <list>
 #include <regex>
 #include <sstream>
 
+#include "main/exceptions/uri.hpp"
+
 using namespace std;
+using namespace cppm::exceptions::uri;
+
 
 namespace cppm { namespace messages {
 
@@ -133,9 +138,12 @@ class Uri {
    *          pair of which the first element is parameter name and the second
    *          one is parameter value
    */
-  const std::vector<std::pair<string, string>>& getQueryParams();
-  void addQueryParam(const pair<string, string>& newParams);
-  void setQueryParams(const vector<pair<string, string>>& newParams);
+  bool hasParam(const string& key);
+  const map<string, list<string>>& getQueryParams();
+  const list<string>& getQueryParam(const string& key);
+  void setQueryParams(const map<string, list<string>>& newParams);
+  void addQueryParam(const pair<string, list<string>>& newParams, bool addToQuery = false);
+  void addQueryParam(const string& key, const string& value, bool addToQuery = false);
 
  private:
   string scheme_ = "global";
@@ -147,7 +155,9 @@ class Uri {
   string path_;
   string query_;
   string fragment_;
-  std::vector<std::pair<string, string>> queryParams_;
+  map<string, list<string>> queryParams_;
+
+  void parseQuery();
 };
 
 }}
