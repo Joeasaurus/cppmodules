@@ -11,8 +11,9 @@
 #include "main/modulecom.hpp"
 using namespace cppm::messages;
 using namespace cppm::exceptions::spine;
+using namespace cppm::exceptions::uri;
 
-#include "main/spine.hpp"
+#include "main/spine/spine.hpp"
 
 
 namespace cppm {
@@ -52,9 +53,19 @@ Spine::~Spine() {
 	_logger.log(name(), "Closed");
 }
 
+
+
+
+bool Spine::isRunning() {
+	return _running.load();
+}
+
 void Spine::tick(){
 	_eventer.emitTimedEvents();
 };
+
+
+
 
 set<string> Spine::listModuleFiles(const string& directory) const {
 	set<string> moduleFiles;
@@ -106,11 +117,6 @@ bool Spine::loadModule(const string& filename) {
 
 		if (com.loadLibrary()) {
 			if (com.initModule(name(), _socketer->getContext()) && _running.load()) {
-
-				// registerModule(com.moduleName);
-
-				_logger.log("Spine", "Sockets Registered for: " + com.moduleName + "!", true);
-
 				try {
 					com.module->setup();
 					while (_running.load()) {
@@ -174,29 +180,17 @@ set<string> Spine::loadedModules() {
 	return _loadedModules;
 }
 
-void Spine::handleCommand(MUri& mu) {
-	try {
-	if (mu.command() == "loaded") {
-		auto param = mu.param("name");
 
-		Message m(name(), param.front());
-		m.setChannel(CHANNEL::Cmd);
-		m.payload("REG_OK");
-		_socketer->sendMessage(m);
-	}
-} catch (exception& e) {
-	_logger.err(name(), e.what());
-}
-}
+
 
 void Spine::hookSocketCommands() {
 	_socketer->on("process_command", [&](const Message& msg) {
 		MUri mu(msg.payload());
 
-		_logger.log(name(), "CMD HEARD " + msg.payload() + " for " + mu.module());
+		// _logger.log(name(), "CMD HEARD " + msg.payload() + " for " + mu.module());
 
 		if (mu.module() == name()) {
-			_logger.log(name(), "Command " + mu.getUri() + " was for me!");
+			// _logger.log(name(), "Command " + mu.getUri() + " was for me!");
 			handleCommand(mu);
 		} else {
 			Message newmsg(msg.serialise(), false);
@@ -213,58 +207,69 @@ void Spine::hookSocketCommands() {
 	});
 
 	_socketer->on("process_output", [&](const Message& msg) {
-		// HERE ENSUES THE ROUTING
-		// The spine manages chains of modules, so we forward from out to in down the chains
-		// _logger.log(name(), "OUTPUT HEARD " + msg.serialise(), true);
-
-		auto modChain = msg.getChain();
-
-		// Channel has already told us it's output to be routed
-		// Output is never directed, input is!
-		// If chainID == 0, get list of author chains for message author/sender
-		// Create refs for each of those chains
-		// Set the chain on the msg and send to the current() on it
-		// If the chain next() is null, kill it
-
-		Message inmsg(msg.m_from);
-		inmsg.setChannel(CHANNEL::In);
-		inmsg.payload(msg.payload());
-
-		if (modChain.first == 0) {
-			// _logger.log(name(), "Creating chains for " + msg.m_from, true);
-
-			auto chains = authoredChains[msg.m_from];
-
-			for (auto& chain : chains) {
-				auto ref = chainFactory.create(chain);
-				// _logger.log(name(), "... created " + to_string(chain) + "," + to_string(ref) + " ... with current() => " + chainFactory.current(chain, ref), true);
-
-				inmsg.setChain(chain, ref);
-				inmsg.sendTo(chainFactory.current(chain, ref));
-
-				chainFactory.next(chain, ref);
-				chainFactory.hasEnded(chain, ref, true); // kill it!
-
-				_socketer->sendMessage(inmsg);
-			}
-		} else if (chainFactory.has(modChain.first, modChain.second)) {
-			inmsg.sendTo(chainFactory.current(modChain.first, modChain.second));
-
-			chainFactory.next(modChain.first, modChain.second);
-			chainFactory.hasEnded(modChain.first, modChain.second, true); // kill it!
-
-			_socketer->sendMessage(inmsg);
-		} else {
-			// _logger.log(name(), "DEAD message: " + msg.serialise());
-			return false;
-		}
-
-		return true;
+		return handleOutput(msg);
 	});
 }
 
-bool Spine::isRunning() {
-	return _running.load();
+void Spine::handleCommand(MUri& mu) {
+	try {
+		if (mu.command() == "loaded") {
+			auto param = mu.param("name");
+			command_moduleLoaded(param.front());
+		}
+	} catch (ParamNotFound& e) {
+		_logger.err(name(), e.what());
+	}
+}
+
+bool Spine::handleOutput(const Message& msg) {
+	// HERE ENSUES THE ROUTING
+	// The spine manages chains of modules, so we forward from out to in down the chains
+	// _logger.log(name(), "OUTPUT HEARD " + msg.serialise(), true);
+
+	auto modChain = msg.getChain();
+
+	// Channel has already told us it's output to be routed
+	// Output is never directed, input is!
+	// If chainID == 0, get list of author chains for message author/sender
+	// Create refs for each of those chains
+	// Set the chain on the msg and send to the current() on it
+	// If the chain next() is null, kill it
+
+	Message inmsg(msg.m_from);
+	inmsg.setChannel(CHANNEL::In);
+	inmsg.payload(msg.payload());
+
+	if (modChain.first == 0) {
+		// _logger.log(name(), "Creating chains for " + msg.m_from, true);
+
+		auto chains = authoredChains[msg.m_from];
+
+		for (auto& chain : chains) {
+			auto ref = chainFactory.create(chain);
+			// _logger.log(name(), "... created " + to_string(chain) + "," + to_string(ref) + " ... with current() => " + chainFactory.current(chain, ref), true);
+
+			inmsg.setChain(chain, ref);
+			inmsg.sendTo(chainFactory.current(chain, ref));
+
+			chainFactory.next(chain, ref);
+			chainFactory.hasEnded(chain, ref, true); // kill it!
+
+			_socketer->sendMessage(inmsg);
+		}
+	} else if (chainFactory.has(modChain.first, modChain.second)) {
+		inmsg.sendTo(chainFactory.current(modChain.first, modChain.second));
+
+		chainFactory.next(modChain.first, modChain.second);
+		chainFactory.hasEnded(modChain.first, modChain.second, true); // kill it!
+
+		_socketer->sendMessage(inmsg);
+	} else {
+		// _logger.log(name(), "DEAD message: " + msg.serialise());
+		return false;
+	}
+
+	return true;
 }
 
 }

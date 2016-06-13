@@ -45,6 +45,9 @@ namespace cppm {
 
 			void hookSocketCommands();
 			void handleCommand(MUri& mu);
+			bool handleOutput(const Message& msg);
+
+			void command_moduleLoaded(const string& modName);
 
 		public:
 			Spine();

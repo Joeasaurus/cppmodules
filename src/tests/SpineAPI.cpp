@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include "main/spine.hpp"
+#include "main/spine/spine.hpp"
 
 using namespace cppm;
 

@@ -13,7 +13,8 @@ set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
 include("${CMAKE_SOURCE_DIR}/functions.cmake")
 
 add_library(SPINE OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine/spine.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine/spine_commands.cpp
 )
 add_library(SOCKETER OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp

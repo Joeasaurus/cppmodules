@@ -43,6 +43,8 @@ namespace cppm {
 			Logger     _logger;
 			ModuleInfo __info;
 
+			bool registered = false;
+
 		public:
 			Module(string name, string author);
 			virtual ~Module();

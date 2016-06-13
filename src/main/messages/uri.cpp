@@ -46,8 +46,6 @@ Uri::Uri(string str) {
 }
 
 void Uri::parseUri(const string& str) {
-	cout << str << endl;
-
 	cmatch match;
 	if (!regex_match(str.c_str(), match, uriRegex)) {
 		throw std::invalid_argument("invalid URI " + str);
@@ -86,7 +84,6 @@ void Uri::parseUri(const string& str) {
 	query_ = submatch(match, 3);
 	fragment_ = submatch(match, 4);
 
-	cout << query_ << endl;
 	parseQuery();
 }
 
@@ -146,7 +143,7 @@ void Uri::parseQuery() {
 			);
 		}
 	} else {
-		throw GeneralFailure("parseQuery found query_ empty!"); //TODO: Add exception
+		throw GeneralFailure("parseQuery found query_ empty!");
 	}
 }
 
@@ -163,7 +160,7 @@ const list<string>& Uri::getQueryParam(const string& key) {
 		return queryParams_.at(key);
 	}
 
-	throw ParamNotFound(key); // TODO: Exception
+	throw ParamNotFound(key);
 }
 
 void Uri::setQueryParams(const map<string, list<string>>& newParams) {
