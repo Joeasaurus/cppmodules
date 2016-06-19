@@ -9,12 +9,17 @@ using namespace cppm::exceptions::uri;
 
 namespace cppm {
 
-void Spine::command_moduleLoaded(const string& modName) {
-	registerModule(modName);
-	Message m(name(), modName);
-	m.setChannel(CHANNEL::Cmd);
-	m.payload(modName + "://module/loaded?success=true");
-	_socketer->sendMessage(m);
+
+
+void Spine::command_moduleLoaded(MUri& mu, map<string, string>& variables) {
+	if (variables.find("name") != variables.end()) {
+		auto modName = variables["name"];
+		registerModule(modName);
+		Message m(name(), modName);
+		m.setChannel(CHANNEL::Cmd);
+		m.payload(modName + "://module/loaded?success=true");
+		_socketer->sendMessage(m);
+	}
 }
 
 }

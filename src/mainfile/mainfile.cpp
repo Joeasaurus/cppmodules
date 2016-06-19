@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 			try {
 				spine.polltick();
 			} catch (exception& e) {
-				cout << "CAUGHT POLLTICK IN MAIN " << e.what() << endl;
+				logger.err("Main", string("CAUGHT POLLTICK OF SPINE ") + e.what());
 			}
 		}
 		return 0;

@@ -3,13 +3,15 @@ A module system in C++ that loads modules dynamically at run time.
 
 ## Building
 
-Requirements:
+General Requirements:
 * CMake  (>= 2.8)
-* Visual Studio 12.0 (2013)
 * Boost  (>= 1.58)
 * libzmq (>= 3.2)
 
 ### Windows
+Requirements:
+* Visual Studio 12.0 (2013)
+
 1. Install Boost. I do this by compiling the source manually as we need binaries for boost_system and boost_filesystem.
     * Grab the zip from [here](http://www.boost.org/users/history/version_1_60_0.html)
     * Unzip and open the dir in a command line. Run `.\bootstrap.bat`

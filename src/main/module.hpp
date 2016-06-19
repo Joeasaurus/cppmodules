@@ -19,8 +19,11 @@
 #include "main/messages/socketer.hpp"
 #include "main/exceptions/exceptions.hpp"
 #include "main/messages/messages.hpp"
+#include "main/uri/uriroutes.hpp"
+#include "Eventer.hpp"
 
 using namespace std;
+using namespace cppevent;
 
 namespace cppm {
 
@@ -37,16 +40,20 @@ namespace cppm {
 		friend class ModuleCOM;
 		private:
 			chrono::system_clock::time_point timeNow;
+			void serviceHooks_Registration();
 
 		protected:
 			Socketer*  _socketer = nullptr;
+			Eventer*   _eventer  = nullptr;
 			Logger     _logger;
 			ModuleInfo __info;
+			URIRouter router;
 
+			bool _withHooks = true;
 			bool registered = false;
 
 		public:
-			Module(string name, string author);
+			Module(string name, string author, bool withHooks = true);
 			virtual ~Module();
 
 			virtual void polltick();

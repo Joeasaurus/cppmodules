@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-#include "main/messages/muri.hpp"
+#include "main/uri/muri.hpp"
 
 using namespace cppm::messages;
 

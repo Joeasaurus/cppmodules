@@ -138,9 +138,9 @@ class Uri {
    *          pair of which the first element is parameter name and the second
    *          one is parameter value
    */
-  bool hasParam(const string& key);
-  const map<string, list<string>>& getQueryParams();
-  const list<string>& getQueryParam(const string& key);
+  bool hasParam(const string& key) const;
+  const map<string, list<string>>& getQueryParams() const;
+  const list<string>& getQueryParam(const string& key) const;
   void setQueryParams(const map<string, list<string>>& newParams);
   void addQueryParam(const pair<string, list<string>>& newParams, bool addToQuery = false);
   void addQueryParam(const string& key, const string& value, bool addToQuery = false);

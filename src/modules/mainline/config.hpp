@@ -4,15 +4,12 @@
 // Module Specific
 #include <boost/filesystem.hpp>
 #include <fstream>
-#include "Eventer.hpp"
 
 using namespace cppm;
 using namespace cppm::messages;
-using namespace cppevent;
 
 class ConfigModule : public Module {
 	public:
-		Eventer _eventer;
 
 		ConfigModule() : Module("config", "Joe Eaves"){};
 		void setup();

@@ -1,5 +1,4 @@
 #pragma once
-// Common
 #include <set>
 #include <map>
 #include <string>
@@ -8,11 +7,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+
 #include "main/chain.hpp"
 #include "main/chainfactory.hpp"
 #include "main/module.hpp"
-#include "Eventer.hpp"
+
+
 using namespace cppevent;
+using namespace cppm::messages;
 
 namespace cppm {
 	class Spine : public Module {
@@ -31,7 +33,6 @@ namespace cppm {
 			vector<thread> m_threads;
 			mutex _moduleRegisterMutex; // Protects loadedModules
 			set<string> _loadedModules;
-			Eventer _eventer;
 
 			map<string, list<unsigned long>> authoredChains;
 			ChainFactory chainFactory;
@@ -40,14 +41,14 @@ namespace cppm {
 			void listModuleFiles(set<string>& destination, const string& directory) const;
 			bool isModuleFile(const string& filename);
 
-			void registerModule(const string& name);
-			void unregisterModule(const string& name);
+			bool registerModule(const string& name);
+			bool unregisterModule(const string& name);
 
 			void hookSocketCommands();
 			void handleCommand(MUri& mu);
 			bool handleOutput(const Message& msg);
 
-			void command_moduleLoaded(const string& modName);
+			void command_moduleLoaded(MUri& mu, map<string, string>& variables);
 
 		public:
 			Spine();

@@ -3,11 +3,6 @@
 void InputModule::setup() {
 	out.setChannel(CHANNEL::Out);
 
-	_socketer->on("process_command", [&](const Message& message) {
-		_logger.log(name(), message.serialise(), true);
-		return true;
-	});
-
 	_socketer->on("process_input", [&](const Message& message) {
 		out.setChain(message.getChain());
 		out.payload("ECHO " + message.payload());
@@ -16,14 +11,10 @@ void InputModule::setup() {
 
 		return true;
 	});
-
-	Message moduleRunning(name());
-	moduleRunning.setChannel(CHANNEL::Cmd);
-	moduleRunning.payload("spine://module/loaded?name=" + name());
-	_socketer->sendMessage(moduleRunning);
 }
 
 void InputModule::tick() {
+	_eventer->emitTimedEvents();
 }
 
 InputModule* createModule(){return new InputModule;}

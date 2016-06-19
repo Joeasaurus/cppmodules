@@ -19,39 +19,29 @@ bool ConfigModule::loadConfigFile(string filepath)
 }
 
 void ConfigModule::setup() {
-	_socketer->on("process_command", [&](const Message& message) {
-		_logger.log(name(), message.serialise(), true);
-		return true;
-	});
 
 	_socketer->on("process_input", [&](const Message& message) {
 		_logger.log(name(), message.serialise(), true);
 		return true;
 	});
 
-	_eventer.on("config-reload", [&](chrono::milliseconds) {
+	_eventer->on("config-reload", [&](chrono::milliseconds) {
 		// Never true because the path is static and it's changed now!
 		// Need to think about how we specify stuff like that!
 		if(this->loadConfigFile(this->configFilepath)) {
 
 			Message configUpdate(this->name());
 			configUpdate.setChannel(CHANNEL::Cmd);
-			configUpdate.payload("global://config/updated");
+			configUpdate.payload("pidel://spine/global/config/updated");
 
 			if (_socketer->sendMessage(configUpdate))
 				_logger.log(name(), "Config reloaded", true);
 		}
 	}, chrono::milliseconds(5000), EventPriority::LOW);
-
-
-	Message moduleRunning(name());
-	moduleRunning.setChannel(CHANNEL::Cmd);
-	moduleRunning.payload("spine://module/loaded?name=" + name());
-	_socketer->sendMessage(moduleRunning);
 }
 
 void ConfigModule::tick() {
-	_eventer.emitTimedEvents();
+	_eventer->emitTimedEvents();
 }
 
 ConfigModule* createModule(){return new ConfigModule;}

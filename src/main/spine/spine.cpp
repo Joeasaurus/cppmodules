@@ -3,7 +3,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range_core.hpp>
 
-
 #include "main/messages/messages.hpp"
 #include "main/messages/socketer.hpp"
 #include "main/exceptions/exceptions.hpp"
@@ -18,7 +17,7 @@ using namespace cppm::exceptions::uri;
 
 namespace cppm {
 
-Spine::Spine() : Module("spine", "Joe Eaves") {
+Spine::Spine() : Module("spine", "Joe Eaves", false) {
 	//TODO: Is there a lot of stuff that could throw here? It needs looking at
 	connectToParent("__bind__", Context::getSingleContext());
 
@@ -35,7 +34,7 @@ Spine::Spine() : Module("spine", "Joe Eaves") {
 	_running.store(true);
 
 	// Hack to die after so long while we're in dev.
-	// _eventer.on("close-timeout", [&](chrono::milliseconds) {
+	// _eventer->on("close-timeout", [&](chrono::milliseconds) {
 	// 	_running.store(false);
 	// }, chrono::milliseconds(60000), EventPriority::HIGH);
 }
@@ -61,10 +60,8 @@ bool Spine::isRunning() {
 }
 
 void Spine::tick(){
-	_eventer.emitTimedEvents();
+	_eventer->emitTimedEvents();
 };
-
-
 
 
 set<string> Spine::listModuleFiles(const string& directory) const {
@@ -93,16 +90,16 @@ void Spine::listModuleFiles(set<string>& destination, const string& directory) c
 
 }
 
-void Spine::registerModule(const string& modName) {
-	lock_guard<mutex> lock(_moduleRegisterMutex);
+bool Spine::registerModule(const string& modName) {
 	_loadedModules.insert(modName);
 	_logger.log(name(), "Registered module: " + modName + "!");
+	return true;
 };
 
-void Spine::unregisterModule(const string& modName) {
-	lock_guard<mutex> lock(_moduleRegisterMutex);
+bool Spine::unregisterModule(const string& modName) {
 	_loadedModules.erase(modName);
 	_logger.log(name(), "Unregistered module: " + modName + "!");
+	return true;
 };
 
 bool Spine::loadModule(const string& filename) {
@@ -124,7 +121,7 @@ bool Spine::loadModule(const string& filename) {
 							try {
 								com.module->polltick();
 							} catch (exception& e) {
-								cout << "CAUGHT POLLTICK IN SPINE " << e.what() << endl;
+								_logger.err(name(), string("CAUGHT POLLTICK OF MODULE ") + com.module->name() + " " + e.what());
 							}
 						} else {
 							break;
@@ -184,22 +181,36 @@ set<string> Spine::loadedModules() {
 
 
 void Spine::hookSocketCommands() {
-	_socketer->on("process_command", [&](const Message& msg) {
-		MUri mu(msg.payload());
-
-		// _logger.log(name(), "CMD HEARD " + msg.payload() + " for " + mu.module());
-
-		if (mu.module() == name()) {
-			// _logger.log(name(), "Command " + mu.getUri() + " was for me!");
-			handleCommand(mu);
+	router.on("module-loaded", MUri("pidel://spine/module/load/:modulename"), [&](MUri& mu, PathMatch& pm) {
+		auto modname = pm.getVar("modulename");
+		if (registerModule(modname)) {
+			mu.command("/module/loaded/true");
 		} else {
-			Message newmsg(msg.serialise(), false);
-			newmsg.sendTo(mu.module());
-			_socketer->sendMessage(newmsg);
+			mu.command("/module/loaded/false");
 		}
-
-		return true;
+		mu.send(_socketer, name(), modname, CHANNEL::Cmd);
 	});
+	// uriR.addRoute(modLoaded, [&](MUri& mu, map<string, string>& variables) {
+	// 	command_moduleLoaded(mu, variables);
+	// });
+
+	// _socketer->on("process_command", [&](const Message& msg) {
+	// 	MUri mu(msg.payload());
+	// 	router.emit(mu);
+	//
+	// 	// _logger.log(name(), "CMD HEARD " + msg.payload() + " for " + mu.scheme());
+	//
+	// 	// if (mu.scheme() == name()) {
+	// 	// 	// _logger.log(name(), "Command " + mu.getUri() + " was for me!");
+	// 	// 	handleCommand(mu);
+	// 	// } else {
+	// 	// 	Message newmsg(msg.serialise(), false);
+	// 	// 	newmsg.sendTo(mu.scheme());
+	// 	// 	_socketer->sendMessage(newmsg);
+	// 	// }
+	//
+	// 	return true;
+	// });
 
 	_socketer->on("process_input", [&](const Message& msg) {
 		// _logger.log(name(), "INPUT HEARD " + msg.payload(), true);
@@ -215,7 +226,7 @@ void Spine::handleCommand(MUri& mu) {
 	try {
 		if (mu.command() == "loaded") {
 			auto param = mu.param("name");
-			command_moduleLoaded(param.front());
+			// command_moduleLoaded(param.front());
 		}
 	} catch (ParamNotFound& e) {
 		_logger.err(name(), e.what());

@@ -2,7 +2,9 @@
 
 #include <string>
 
-#include "main/messages/uri.hpp"
+#include "main/uri/uri.hpp"
+#include "main/messages/channels.hpp"
+#include "main/messages/socketer.hpp"
 
 using namespace std;
 
@@ -14,35 +16,39 @@ namespace cppm { namespace messages {
 				setUri(inuri);
 			};
 			MUri(const string& mod, const string& dom, const string& com) {
-				module(mod);
-				domain(dom);
+				scheme(mod);
+				cdomain(dom);
 				command(com);
 			};
 
-			const string module() {
+			void send(Socketer* sock, const string& from, const string& to = "", CHANNEL chan = CHANNEL::Cmd) const {
+				Message msg(from, to);
+				msg.setChannel(chan);
+				msg.payload(getUri());
+				sock->sendMessage(msg);
+			};
+
+			const string scheme() const {
 				return uri.scheme();
 			};
 
-			const string domain() {
+			const string cdomain() const {
 				return uri.host();
 			};
 
-			const string command() {
-				auto c = uri.path();
-				if (strcmp(&c[0], "/"))
-					return c.substr(1);
-				return c;
+			const string command() const {
+				return uri.path();
 			};
 
-			const map<string, list<string>>& params() {
+			const map<string, list<string>>& params() const {
 				return uri.getQueryParams();
 			};
 
-			void module(const string& mod) {
+			void scheme(const string& mod) {
 				uri.scheme(mod);
 			};
 
-			void domain(const string& dom) {
+			void cdomain(const string& dom) {
 				uri.host(dom);
 			};
 
@@ -52,7 +58,7 @@ namespace cppm { namespace messages {
 				uri.path(com);
 			};
 
-			const list<string>& param(const string& key) {
+			const list<string>& param(const string& key) const {
 				return uri.getQueryParam(key);
 			}
 

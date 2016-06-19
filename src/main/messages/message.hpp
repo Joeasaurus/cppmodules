@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <string>
-#include <boost/algorithm/string.hpp>
+#include "main/global.hpp"
 #include "main/messages/channels.hpp"
 
 using namespace std;
@@ -13,15 +13,6 @@ namespace cppm {
 		enum ChannelType {
 			Global,
 			Directed
-		};
-
-		static vector<string> tokeniseString(const string& message, const string& spchar) {
-			vector<string> messageTokens;
-			if (!message.empty()) {
-				boost::split(messageTokens, message, boost::is_any_of(spchar));
-			}
-
-			return messageTokens;
 		};
 
 		class Message {

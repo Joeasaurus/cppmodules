@@ -1,4 +1,4 @@
-#include "modules/mainline/WebUI.hpp"
+#include "modules/mainline/webui.hpp"
 
 namespace webui {
 
@@ -23,33 +23,14 @@ void WebUIModule::setup() {
 		return false;
 	};
 
-	_socketer->on("process_command", [&](const Message& message) {
-		MUri uri(message.payload());
-		auto domain = uri.domain();
-
-		if (commands.find(domain) != commands.end()) {
-			auto theFunc = commands[domain];
-			return theFunc(uri);
-		}
-
-		_logger.log(name(), "Command domain not found: " + domain, true);
-		return false;
-		// _logger.log(name(), message.serialise(), true);
-	});
-
-	_eventer.on("poll-manager", [&] {
+	_eventer->on("poll-manager", [&] {
 		mg_mgr_poll(&manager, 0);
 	}, EventPriority::HIGH);
-
-	Message moduleRunning(name());
-	moduleRunning.setChannel(CHANNEL::Cmd);
-	moduleRunning.payload("spine://module/loaded?name=" + name());
-	_socketer->sendMessage(moduleRunning);
 }
 
 void WebUIModule::tick() {
-	_eventer.emit("poll-manager");
-	_eventer.emitTimedEvents();
+	_eventer->emit("poll-manager");
+	_eventer->emitTimedEvents();
 }
 
 int WebUIModule::has_prefix(const struct mg_str *uri, const struct mg_str *prefix) {

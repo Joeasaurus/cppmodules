@@ -1,11 +1,9 @@
 #pragma once
 #include "main/module.hpp"
 #include "main/messages/messages.hpp"
-#include "Eventer.hpp"
 
 using namespace cppm;
 using namespace cppm::messages;
-using namespace cppevent;
 
 class OutputModule : public Module {
 	public:
@@ -13,8 +11,9 @@ class OutputModule : public Module {
 		void setup();
 		void tick();
 	private:
-		Eventer _eventer;
 		Message message{"output"};
+
+		void hookOut();
 
 };
 

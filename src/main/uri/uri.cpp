@@ -24,7 +24,7 @@
  * limitations under the License.
  */
 
-#include "main/messages/uri.hpp"
+#include "main/uri/uri.hpp"
 
 using namespace std;
 
@@ -124,38 +124,34 @@ string Uri::hostname() const {
 }
 
 void Uri::parseQuery() {
-	if (!query_.empty()) {
-		queryParams_.clear();
+	queryParams_.clear();
 
-		cregex_iterator paramBeginItr(query_.data(),
-									  query_.data() + query_.size(), queryParamRegex);
-		cregex_iterator paramEndItr;
+	cregex_iterator paramBeginItr(query_.data(),
+								  query_.data() + query_.size(), queryParamRegex);
+	cregex_iterator paramEndItr;
 
-		for (auto itr = paramBeginItr; itr != paramEndItr; itr++) {
-			if (itr->length(2) == 0) {
-				// key is empty, ignore it
-				continue;
-			}
-
-			addQueryParam(
-				string((*itr)[2].first, (*itr)[2].second),
-				string((*itr)[3].first, (*itr)[3].second)
-			);
+	for (auto itr = paramBeginItr; itr != paramEndItr; itr++) {
+		if (itr->length(2) == 0) {
+			// key is empty, ignore it
+			continue;
 		}
-	} else {
-		throw GeneralFailure("parseQuery found query_ empty!");
+
+		addQueryParam(
+			string((*itr)[2].first, (*itr)[2].second),
+			string((*itr)[3].first, (*itr)[3].second)
+		);
 	}
 }
 
-bool Uri::hasParam(const string& key) {
+bool Uri::hasParam(const string& key) const {
 	return queryParams_.find(key) != queryParams_.end();
 }
 
-const map<string, list<string>>& Uri::getQueryParams() {
+const map<string, list<string>>& Uri::getQueryParams() const {
   return queryParams_;
 }
 
-const list<string>& Uri::getQueryParam(const string& key) {
+const list<string>& Uri::getQueryParam(const string& key) const {
 	if (hasParam(key)) {
 		return queryParams_.at(key);
 	}

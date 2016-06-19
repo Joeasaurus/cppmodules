@@ -26,3 +26,6 @@
 [submodule "submodules/mongoose"]
 	path = submodules/mongoose
 	url = https://github.com/cesanta/mongoose.git
+[submodule "submodules/simple-cpp-router"]
+	path = submodules/simple-cpp-router
+	url = https://github.com/qoollo/simple-cpp-router.git

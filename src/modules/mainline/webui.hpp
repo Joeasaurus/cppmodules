@@ -2,12 +2,10 @@
 #include <map>
 #include "main/module.hpp"
 #include "main/messages/messages.hpp"
-#include "Eventer.hpp"
 
 using namespace std;
 using namespace cppm;
 using namespace cppm::messages;
-using namespace cppevent;
 
 #include "mongoose.h"
 
@@ -27,7 +25,6 @@ class WebUIModule : public Module {
 		static void APICallback(struct mg_connection* nc, int ev, void* p);
 		static WebUIModule* GetSingleton(struct mg_connection *nc);
 	private:
-		Eventer _eventer;
 		map<string, function<bool(MUri& command)>> commands;
 
 		struct mg_connection *connection;
