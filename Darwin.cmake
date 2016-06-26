@@ -21,7 +21,6 @@ include_directories(
 add_library(routing SHARED
     "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Router.cpp"
 	"${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/PathMatch.cpp"
-
     "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/PathTemplate.cpp"
     "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/RegexConverter.cpp"
     "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/PathTemplateParser.cpp"
@@ -38,6 +37,7 @@ set(BOTH_LINK_LIBRARIES
 
 #### MAIN ####
 add_library(dunamis-module
+	$<TARGET_OBJECTS:SOCKETER>
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main/uri/uri.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/logger.cpp
@@ -53,7 +53,6 @@ target_link_libraries(dunamis-module
 
 add_library(dunamis-spine
 	$<TARGET_OBJECTS:SPINE>
-	$<TARGET_OBJECTS:SOCKETER>
 )
 set_target_properties(dunamis-spine
 	PROPERTIES
@@ -72,7 +71,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/src/tests/tests.cmake")
 #### MODULES ####
 IF(DEFAULT_MODULES)
     add_library(mainline_config SHARED
-		$<TARGET_OBJECTS:SOCKETER>
     	${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/config.cpp
     )
     set_target_properties(mainline_config
@@ -87,7 +85,6 @@ IF(DEFAULT_MODULES)
     )
 
     add_library(mainline_output SHARED
-		$<TARGET_OBJECTS:SOCKETER>
 		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/output.cpp
     )
     set_target_properties(mainline_output
@@ -100,7 +97,6 @@ IF(DEFAULT_MODULES)
     )
 
 	add_library(mainline_input SHARED
-		$<TARGET_OBJECTS:SOCKETER>
 		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/input.cpp
     )
     set_target_properties(mainline_input
@@ -114,7 +110,6 @@ IF(DEFAULT_MODULES)
 
 	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose")
 	add_library(mainline_webui SHARED
-		$<TARGET_OBJECTS:SOCKETER>
 		${CMAKE_CURRENT_SOURCE_DIR}/src/modules/mainline/webui.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/submodules/mongoose/mongoose.c
     )
