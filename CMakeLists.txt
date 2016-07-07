@@ -10,14 +10,22 @@ set(BINARY_NAME "example")
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
 set(MODULES_LOCATION "${OUTPUT_DIR}/modules")
-include("${CMAKE_SOURCE_DIR}/functions.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/functions.cmake")
 
 add_library(SPINE OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine/spine.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine/spine_commands.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine/spine.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/main/spine/spine_commands.cpp"
 )
 add_library(SOCKETER OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/main/messages/socketer.cpp"
+)
+add_library(ROUTING OBJECT
+    "${CMAKE_CURRENT_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Router.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/PathMatch.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/PathTemplate.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/RegexConverter.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/PathTemplateParser.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/StringTokenizer.cpp"
 )
 
 include("${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_NAME}.cmake")

@@ -51,8 +51,8 @@ namespace cppm {
 
 	void Module::serviceHooks_Registration() {
 		// Register with the spine
-		router.on("loaded-success", MUri("pidel://spine/module/loaded/:result"), [&](MUri& mu, PathMatch& pm) {
-			registered = (pm.getVar("result") == "true");
+		router.on("loaded-success", MUri("pidel://spine/module/loaded/:result"), [&](MUri& mu, URIRouter* _rout) {
+			registered = (_rout->getVar("result") == "true");
 		});
 		_eventer->on("send-registration", [&](chrono::milliseconds) {
 			if (! registered) {

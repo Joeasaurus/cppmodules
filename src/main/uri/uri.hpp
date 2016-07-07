@@ -34,7 +34,6 @@
 using namespace std;
 using namespace cppm::exceptions::uri;
 
-
 namespace cppm { namespace messages {
 
 static const regex uriRegex(

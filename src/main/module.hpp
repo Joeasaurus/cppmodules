@@ -1,25 +1,13 @@
 #pragma once
-#include "boost/predef.h"
-
-// We have to do some icky things on Windows!
-#if BOOST_OS_WINDOWS
-	#if defined(MODULE_EXPORT)
-		#define CPPM_WINEXPORT __declspec(dllexport)
-	#else
-		#define CPPM_WINEXPORT __declspec(dllimport)
-	#endif
-#else
-	#define CPPM_WINEXPORT
-#endif
 
 #include <string>
 #include <chrono>
 #include <functional>
+#include "main/global.hpp"
 #include "main/interfaces/logger.hpp"
 #include "main/messages/socketer.hpp"
-#include "main/exceptions/exceptions.hpp"
 #include "main/messages/messages.hpp"
-#include "main/uri/uriroutes.hpp"
+#include "main/uri/urirouter.hpp"
 #include "Eventer.hpp"
 
 using namespace std;

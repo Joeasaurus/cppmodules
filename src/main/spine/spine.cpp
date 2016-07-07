@@ -181,8 +181,8 @@ set<string> Spine::loadedModules() {
 
 
 void Spine::hookSocketCommands() {
-	router.on("module-loaded", MUri("pidel://spine/module/load/:modulename"), [&](MUri& mu, PathMatch& pm) {
-		auto modname = pm.getVar("modulename");
+	router.on("module-loaded", MUri("pidel://spine/module/load/:modulename"), [&](MUri& mu, URIRouter* _rout) {
+		auto modname = _rout->getVar("modulename");
 		if (registerModule(modname)) {
 			mu.command("/module/loaded/true");
 		} else {

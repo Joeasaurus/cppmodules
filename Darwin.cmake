@@ -18,15 +18,6 @@ include_directories(
 	"${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src"
 )
 
-add_library(routing SHARED
-    "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Router.cpp"
-	"${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/PathMatch.cpp"
-    "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/PathTemplate.cpp"
-    "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/RegexConverter.cpp"
-    "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/PathTemplateParser.cpp"
-    "${CMAKE_SOURCE_DIR}/submodules/simple-cpp-router/src/Routing/Details/StringTokenizer.cpp"
-)
-
 find_library(LIBZMQ   zmq)
 find_library(BOOSTFS  boost_filesystem-mt)
 find_library(BOOSTSYS boost_system-mt)
@@ -37,10 +28,12 @@ set(BOTH_LINK_LIBRARIES
 
 #### MAIN ####
 add_library(dunamis-module
+	$<TARGET_OBJECTS:ROUTING>
 	$<TARGET_OBJECTS:SOCKETER>
-	${CMAKE_CURRENT_SOURCE_DIR}/src/main/uri/uri.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/logger.cpp
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/main/uri/uri.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/main/uri/urirouter.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/main/module.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/main/logger.cpp"
 )
 set_target_properties(dunamis-module
 	PROPERTIES
@@ -48,10 +41,10 @@ set_target_properties(dunamis-module
 )
 target_link_libraries(dunamis-module
     ${BOTH_LINK_LIBRARIES}
-	routing
 )
 
 add_library(dunamis-spine
+	$<TARGET_OBJECTS:ROUTING>
 	$<TARGET_OBJECTS:SPINE>
 )
 set_target_properties(dunamis-spine
